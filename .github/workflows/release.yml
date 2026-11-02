@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-cli:
+    name: Build CLI (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux-x64
+            target: bun-linux-x64
+            artifact: realthing-linux-x64
+          - os: ubuntu-latest
+            name: linux-arm64
+            target: bun-linux-arm64
+            artifact: realthing-linux-arm64
+          - os: macos-latest
+            name: darwin-arm64
+            target: bun-darwin-arm64
+            artifact: realthing-darwin-arm64
+          - os: macos-13
+            name: darwin-x64
+            target: bun-darwin-x64
+            artifact: realthing-darwin-x64
+          - os: windows-latest
+            name: windows-x64
+            target: bun-windows-x64
+            artifact: realthing-windows-x64.exe
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build Web UI
+        run: bun run build:web
+
+      - name: Compile Standalone CLI Binary
+        run: bun apps/cli/scripts/build-binary.ts --target=${{ matrix.target }}
+
+      - name: Upload Binary to Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: apps/cli/dist/${{ matrix.artifact }}
+          generate_release_notes: true
