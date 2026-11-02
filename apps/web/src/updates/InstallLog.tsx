@@ -3,10 +3,10 @@ import {
 	RiArrowRightSLine as ChevronRight,
 	RiFileCopyLine as Copy,
 } from "@remixicon/react";
-import type { NativeUpdateLogEntry } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
-import { cn } from "@thinkrail/ui/utils";
+import type { NativeUpdateLogEntry } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
+import { cn } from "@realthing/ui/utils";
 import { formatInstallLog, installLogSource, installLogText, logTime } from "./installCopy";
 
 export function InstallLogToggle({

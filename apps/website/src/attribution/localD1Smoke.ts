@@ -58,7 +58,7 @@ async function request(
 		"--noproxy",
 		"*",
 		"--connect-to",
-		`thinkrail.ai:443:127.0.0.1:${port}`,
+		`realthing.ai:443:127.0.0.1:${port}`,
 		"--max-time",
 		"3",
 		"--request",
@@ -70,7 +70,7 @@ async function request(
 		command.push("--header", "Content-Type: application/json", "--data", JSON.stringify(body));
 	}
 	if (origin !== undefined) command.push("--header", `Origin: ${origin}`);
-	command.push(`https://thinkrail.ai${path}`);
+	command.push(`https://realthing.ai${path}`);
 	const result = await execute(command);
 	if (result.exitCode !== 0) {
 		throw new Error(result.stderr || `curl exited ${result.exitCode}`);
@@ -112,7 +112,7 @@ function spawnPages(command: string[]) {
 }
 
 export async function runLocalD1Smoke(): Promise<void> {
-	const stateDirectory = await mkdtemp(join(tmpdir(), "thinkrail-attribution-d1-"));
+	const stateDirectory = await mkdtemp(join(tmpdir(), "realthing-attribution-d1-"));
 	const port = await reservePort();
 	let pagesProcess: ReturnType<typeof spawnPages> | undefined;
 	let pagesOutput: Promise<[string, string]> | undefined;
@@ -199,7 +199,7 @@ export async function runLocalD1Smoke(): Promise<void> {
 						policy_version: 1,
 					},
 				},
-				"https://thinkrail.ai",
+				"https://realthing.ai",
 			);
 			expectStatus(bind, 200, "bind");
 		}

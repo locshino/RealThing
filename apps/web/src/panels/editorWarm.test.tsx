@@ -3,9 +3,15 @@ import {
 	ResourceEnvironmentProvider,
 	type ResourceHost,
 	ResourceHostProvider,
-} from "@thinkrail/resource-renderers";
+} from "@realthing/resource-renderers";
 import { renderToStaticMarkup } from "react-dom/server";
-import { holdEditorWarm, useEditorWarm, warmOnHover, whenFilesTreeIdle } from "./editorWarm";
+import {
+	holdEditorWarm,
+	useEditorWarm,
+	warmOnHover,
+	whenFilesTreeIdle,
+	whenFilesTreeReady,
+} from "./editorWarm";
 
 const host: ResourceHost = {
 	markdown: () => null,
@@ -100,6 +106,27 @@ test("whenFilesTreeIdle cancelled while parked never runs", () => {
 	release();
 	flushIdle();
 	expect(runs).toBe(0);
+});
+
+test("whenFilesTreeReady runs synchronously when no Files tree is loading", () => {
+	let runs = 0;
+	whenFilesTreeReady(() => runs++, 50);
+	expect(runs).toBe(1);
+});
+
+test("whenFilesTreeReady waits for loading Files tree and respects cancellation", async () => {
+	const release = holdEditorWarm();
+	let runs = 0;
+	let cancelledRuns = 0;
+	whenFilesTreeReady(() => runs++, 5);
+	const cancel = whenFilesTreeReady(() => cancelledRuns++, 5);
+	expect(runs).toBe(0);
+	cancel();
+	release();
+	expect(runs).toBe(0);
+	await new Promise((resolve) => setTimeout(resolve, 10));
+	expect(runs).toBe(1);
+	expect(cancelledRuns).toBe(0);
 });
 
 test("warmOnHover warms only the row the pointer rests on", async () => {

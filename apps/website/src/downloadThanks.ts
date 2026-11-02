@@ -1,4 +1,4 @@
-import type { WebsiteCtaLocation } from "@thinkrail/website-analytics";
+import type { WebsiteCtaLocation } from "@realthing/website-analytics";
 import { captureAnalytics } from "./analytics";
 import {
 	contentKeyForPathname,

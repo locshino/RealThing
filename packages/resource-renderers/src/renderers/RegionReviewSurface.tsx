@@ -1,7 +1,7 @@
 import { RiChatNewLine as MessageSquarePlus } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { IconButton } from "@thinkrail/ui/button";
-import { cn } from "@thinkrail/ui/utils";
+import { useT } from "@realthing/locales/react";
+import { IconButton } from "@realthing/ui/button";
+import { cn } from "@realthing/ui/utils";
 import {
 	type CSSProperties,
 	type ReactNode,

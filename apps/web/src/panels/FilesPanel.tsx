@@ -1,6 +1,6 @@
 import { RiCollapseVerticalLine } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { ToggleSegment } from "@thinkrail/ui/toggle-segment";
+import { useT } from "@realthing/locales/react";
+import { ToggleSegment } from "@realthing/ui/toggle-segment";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { selectActiveFilePath, selectFilesTreeView, useAppStore } from "../store";
 import { ChangesPanel } from "./ChangesPanel";

@@ -1,6 +1,6 @@
-import type { MessageKey } from "@thinkrail/locales";
-import { useT } from "@thinkrail/locales/react";
-import { ToggleSegment } from "@thinkrail/ui/toggle-segment";
+import type { MessageKey } from "@realthing/locales";
+import { useT } from "@realthing/locales/react";
+import { ToggleSegment } from "@realthing/ui/toggle-segment";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { AnchorDraft, SurfaceReview } from "../registry";
 import { RegionReviewSurface } from "./RegionReviewSurface";

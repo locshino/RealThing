@@ -4,9 +4,9 @@ import {
 	RiMoreLine as MoreHorizontal,
 	RiTerminalBoxLine as SquareTerminal,
 } from "@remixicon/react";
-import type { MessageKey } from "@thinkrail/locales";
-import { useT } from "@thinkrail/locales/react";
-import { Button, IconButton } from "@thinkrail/ui/button";
+import type { MessageKey } from "@realthing/locales";
+import { useT } from "@realthing/locales/react";
+import { Button, IconButton } from "@realthing/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -15,8 +15,8 @@ import {
 	DropdownMenuRadioItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "@thinkrail/ui/dropdown-menu";
-import { type ImperativePanelGroupHandle, ResizablePanelGroup } from "@thinkrail/ui/resizable";
+} from "@realthing/ui/dropdown-menu";
+import { type ImperativePanelGroupHandle, ResizablePanelGroup } from "@realthing/ui/resizable";
 import { memo, type ReactNode, useMemo, useRef } from "react";
 import { type LayoutAttention, readLayoutSelection, tupleKey } from "../../lib";
 import { resizeVisibleAuxiliaryGroups, visibleAuxiliaryGroups } from "./auxiliaryPresentation";

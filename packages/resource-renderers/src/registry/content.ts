@@ -1,4 +1,4 @@
-import type { ResourceMeta } from "@thinkrail/contracts";
+import type { ResourceMeta } from "@realthing/contracts";
 import type { ResourceContent } from "./types";
 
 export const PENDING_TEXT_META: ResourceMeta = { hash: null, byteLength: null, text: true };

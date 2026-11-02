@@ -45,7 +45,7 @@ afterEach(() => {
 });
 
 function fixture(): string {
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-spec-surface-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-spec-surface-"));
 	roots.push(root);
 	return root;
 }

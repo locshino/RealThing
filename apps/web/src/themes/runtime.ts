@@ -8,13 +8,14 @@ import {
 	type ThemeId,
 	type UserThemeFile,
 	type UserThemeFileErrorCode,
-} from "@thinkrail/contracts";
+} from "@realthing/contracts";
 import {
 	asStablePreferenceAdapter,
 	getStablePreferenceAdapter,
 	type StablePreferenceAdapter,
 } from "../clientPreferences";
 import { STORAGE_PREFIX } from "../constants/branding";
+import { useAppStore } from "../store/appStore";
 import {
 	ANSI_COLOR_KEYS,
 	type AnsiColorKey,
@@ -434,10 +435,65 @@ function applyVariables(root: HTMLElement, theme: ThemeManifest): void {
 	root.style.setProperty("color-scheme", theme.appearance);
 }
 
+function applyTypographyVariables(
+	root: HTMLElement,
+	uiFontFamily: string,
+	codeFontFamily: string,
+): void {
+	const ui = uiFontFamily.trim();
+	if (ui.length > 0) {
+		root.style.setProperty("--font-sans", ui);
+		root.style.setProperty("--tr-font-family-ui", ui);
+		root.style.setProperty("--tr-font-family-interface", ui);
+	} else {
+		root.style.removeProperty("--font-sans");
+		root.style.removeProperty("--tr-font-family-ui");
+		root.style.removeProperty("--tr-font-family-interface");
+	}
+	const code = codeFontFamily.trim();
+	if (code.length > 0) {
+		root.style.setProperty("--font-mono", code);
+		root.style.setProperty("--tr-font-family-code", code);
+	} else {
+		root.style.removeProperty("--font-mono");
+		root.style.removeProperty("--tr-font-family-code");
+	}
+}
+
+let runtimeSubscription: (() => void) | null = null;
+
+export function initThemeRuntime(): () => void {
+	if (typeof document !== "undefined") {
+		const initial = useAppStore.getState();
+		applyTypographyVariables(
+			document.documentElement,
+			initial.uiFontFamily,
+			initial.codeFontFamily,
+		);
+	}
+	runtimeSubscription?.();
+	runtimeSubscription = useAppStore.subscribe((state, previous) => {
+		if (
+			typeof document !== "undefined" &&
+			(state.uiFontFamily !== previous.uiFontFamily ||
+				state.codeFontFamily !== previous.codeFontFamily)
+		) {
+			applyTypographyVariables(document.documentElement, state.uiFontFamily, state.codeFontFamily);
+		}
+	});
+	return () => {
+		runtimeSubscription?.();
+		runtimeSubscription = null;
+	};
+}
+
 function applyResolvedTheme(theme: ThemeManifest): ThemeDescriptor {
 	if (typeof document !== "undefined") {
+		if (!runtimeSubscription) initThemeRuntime();
 		const root = document.documentElement;
 		applyVariables(root, theme);
+		const state = useAppStore.getState();
+		applyTypographyVariables(root, state.uiFontFamily, state.codeFontFamily);
 		root.dataset.themeContrast = theme.contrast;
 		root.dataset.theme = theme.id;
 	}

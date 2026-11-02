@@ -1,4 +1,4 @@
-import type { TerminalDataPush, TerminalExitPush } from "@thinkrail/contracts";
+import type { TerminalDataPush, TerminalExitPush } from "@realthing/contracts";
 
 export interface TerminalPrebindResult {
 	frames: TerminalDataPush[];

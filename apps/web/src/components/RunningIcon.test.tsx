@@ -6,7 +6,7 @@ import { RunningIcon } from "./RunningIcon";
 test("running icon is the store-free, labeled, theme-coloured stroke-drawn monogram with split frame", () => {
 	const markup = renderToStaticMarkup(<RunningIcon className="size-14 text-primary" />);
 
-	expect(markup).toContain('aria-label="Agent working"');
+	expect(markup).toContain('aria-label="Working"');
 	expect(markup).toContain('data-testid="running-icon"');
 	expect(markup).toContain('data-running="true"');
 	expect(markup).toContain("size-14 text-primary");

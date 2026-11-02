@@ -3,11 +3,10 @@ import {
 	RiArrowDownSLine as ChevronDown,
 	RiGitCommitLine as GitCommitHorizontal,
 	RiGitPullRequestLine as GitCompare,
-	RiRobot2Line as Robot,
 } from "@remixicon/react";
-import type { GitCommit, GitDiffScope } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+import type { GitCommit, GitDiffScope } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -15,14 +14,13 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "@thinkrail/ui/dropdown-menu";
-import { LoadingRegion } from "@thinkrail/ui/skeleton";
+} from "@realthing/ui/dropdown-menu";
+import { LoadingRegion } from "@realthing/ui/skeleton";
 import { useRef, useState } from "react";
 import { useNow } from "@/components/useNow";
-import { relativeTime, turnTimeLabel } from "@/lib";
+import { relativeTime } from "@/lib";
 import { getTransport } from "../transport";
-import { scopeLabel, scopeTitle, turnScope } from "./changesModel";
-import { useWorkspaceTurns } from "./useWorkspaceTurns";
+import { scopeLabel, scopeTitle } from "./changesModel";
 
 export function ChangesScopeMenu({
 	workspaceId,
@@ -40,9 +38,7 @@ export function ChangesScopeMenu({
 	const [hasUncommitted, setHasUncommitted] = useState<boolean | null>(null);
 
 	const generation = useRef(0);
-	const turns = useWorkspaceTurns(workspaceId);
-	const latestTurn = turns.at(-1);
-	const label = scopeLabel(t, scope, commits ?? [], turns);
+	const label = scopeLabel(t, scope, commits ?? []);
 
 	const load = () => {
 		const mine = ++generation.current;
@@ -82,7 +78,7 @@ export function ChangesScopeMenu({
 					data-testid="changes-scope-trigger"
 					data-open={open}
 					aria-label={t("changes.scope.title", { label })}
-					tooltip={scopeTitle(t, scope, commits ?? [], turns)}
+					tooltip={scopeTitle(t, scope, commits ?? [])}
 					className="min-w-0"
 				>
 					<span data-testid="changes-scope-label" className="truncate">
@@ -110,59 +106,6 @@ export function ChangesScopeMenu({
 						? t("changes.scopeMenu.noUncommitted")
 						: t("changes.scopeMenu.uncommitted")}
 				</DropdownMenuItem>
-				<DropdownMenuItem
-					data-testid="changes-scope-last-turn"
-					data-active={scope.kind === "turn" && scope.id === latestTurn?.id ? true : undefined}
-					disabled={latestTurn === undefined}
-					onSelect={() => {
-						if (latestTurn) onSelectScope(turnScope(latestTurn));
-					}}
-				>
-					<Check
-						className={scope.kind === "turn" && scope.id === latestTurn?.id ? "" : "invisible"}
-					/>
-					<Robot />
-					{latestTurn
-						? t("changes.scopeMenu.lastTurnFiles", { count: latestTurn.changes.length })
-						: t("changes.scopeMenu.noTurns")}
-				</DropdownMenuItem>
-				{turns.length > 1 ? (
-					<>
-						<DropdownMenuSeparator />
-						<DropdownMenuLabel>{t("changes.scopeMenu.turns")}</DropdownMenuLabel>
-						{[...turns]
-							.reverse()
-							.slice(0, 10)
-							.map((turn) => {
-								const active = scope.kind === "turn" && scope.id === turn.id;
-								return (
-									<DropdownMenuItem
-										key={turn.id}
-										data-testid="changes-scope-turn"
-										data-turn={turn.id}
-										data-active={active ? true : undefined}
-										onSelect={() => onSelectScope(turnScope(turn))}
-									>
-										<Check className={active ? "" : "invisible"} />
-										<Robot />
-										<span className="flex min-w-0 flex-col">
-											<span className="truncate">
-												{turn.id === latestTurn?.id
-													? t("changes.scope.lastTurn")
-													: t("changes.scope.turn", { time: turnTimeLabel(t, turn.startedAt) })}
-											</span>
-											<span className="truncate tr-text-metadata text-text-muted">
-												{t("changes.scopeMenu.turnMeta", {
-													count: turn.changes.length,
-													time: relativeTime(t, turn.settledAt, now),
-												})}
-											</span>
-										</span>
-									</DropdownMenuItem>
-								);
-							})}
-					</>
-				) : null}
 				<DropdownMenuSeparator />
 				<DropdownMenuLabel>{t("changes.scopeMenu.commits")}</DropdownMenuLabel>
 				{commits === null ? (

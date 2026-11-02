@@ -1,5 +1,8 @@
 import { expect, test } from "bun:test";
-import { classifyBytes, decodeText, hashBytes, resourceMeta } from "./content";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { classifyBytes, decodeText, hashBytes, mimeFromPath, resourceMeta } from "./content";
 
 const BYTES = new TextEncoder();
 
@@ -116,4 +119,30 @@ test("a Git LFS pointer is text with its own media type, whatever the file is na
 	expect(classifyBytes(BYTES.encode("version https://git-lfs.github.com/spec/v1\n"))).toEqual({
 		text: true,
 	});
+});
+
+test("mimeFromPath checks filesAssociations by basename or extension before built-in EXTENSION_MIME", () => {
+	const saved = process.env.REALTHING_DATA_DIR;
+	const dir = mkdtempSync(join(tmpdir(), "trpi-content-test-"));
+	process.env.REALTHING_DATA_DIR = dir;
+	try {
+		writeFileSync(
+			join(dir, "config.json"),
+			JSON.stringify({
+				filesAssociations: {
+					".mdx": "text/markdown",
+					conf: "text/yaml",
+					"Dockerfile.dev": "text/plain",
+				},
+			}),
+		);
+		expect(mimeFromPath("docs/intro.mdx")).toBe("text/markdown");
+		expect(mimeFromPath("app.CONF")).toBe("text/yaml");
+		expect(mimeFromPath("build/Dockerfile.dev")).toBe("text/plain");
+		expect(mimeFromPath("notes.md")).toBe("text/markdown");
+	} finally {
+		rmSync(dir, { recursive: true, force: true });
+		if (saved === undefined) delete process.env.REALTHING_DATA_DIR;
+		else process.env.REALTHING_DATA_DIR = saved;
+	}
 });

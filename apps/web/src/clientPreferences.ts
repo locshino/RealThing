@@ -4,7 +4,7 @@ export interface StablePreferenceAdapter {
 	removeItem(key: string): void;
 }
 
-const STABLE_PREFERENCES_GLOBAL = "__THINKRAIL_STABLE_PREFERENCES__";
+const STABLE_PREFERENCES_GLOBAL = "__REALTHING_STABLE_PREFERENCES__";
 
 export function asStablePreferenceAdapter(value: unknown): StablePreferenceAdapter | null {
 	return typeof value === "object" && value !== null && !Array.isArray(value)

@@ -1,8 +1,8 @@
-import type { GitStatus } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
-import { LoadingRegion } from "@thinkrail/ui/skeleton";
-import { ToggleSegment } from "@thinkrail/ui/toggle-segment";
+import type { GitStatus } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
+import { LoadingRegion } from "@realthing/ui/skeleton";
+import { ToggleSegment } from "@realthing/ui/toggle-segment";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { firstClickOnly } from "../lib";
 import {

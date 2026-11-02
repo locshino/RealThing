@@ -1,64 +1,79 @@
 import {
 	type AppConfig,
 	type AppConfigUpdate,
-	COMPOSER_GROWTH_LIMITS,
-	isComposerGrowthLimit,
-	isJbcentralQuotaRefreshSeconds,
+	EDITOR_AUTO_SAVE_DELAY_MS,
+	EDITOR_FONT_SIZE,
+	GIT_COMMIT_LIST_MAX,
+	isEditorAutoSaveDelayMs,
+	isEditorCursorStyle,
+	isEditorFontSize,
+	isEditorLineNumbers,
+	isEditorRenderWhitespace,
+	isEditorTabSize,
+	isExplorerFileIcons,
+	isExplorerSortOrder,
+	isFilesExcludeList,
+	isGitCommitListMax,
 	isLineWidth,
 	isLocalePreference,
-	isSettleIdleDays,
-	isSubagentMaxConcurrent,
+	isStringMap,
 	isSystemThemePair,
+	isTerminalCursorStyle,
+	isTerminalFontSize,
+	isTerminalScrollbackLines,
+	isTerminalShellArgs,
 	isTerminalWindowsShell,
 	isThemeMode,
 	LINE_WIDTH_COLUMNS,
-	RECENT_MODELS_LIMIT,
-	sameModel,
-	type WireModel,
-} from "@thinkrail/contracts";
+	TERMINAL_FONT_SIZE,
+	TERMINAL_SCROLLBACK_LINES,
+} from "@realthing/contracts";
 import { loadConfig, saveConfig } from "../persistence";
 import { normalizeStoredCustomLayoutPresets, validateCustomLayoutPresets } from "./layoutPresets";
 
 export type SettingsPublisher = (config: AppConfig, appliedUpdate: AppConfigUpdate) => void;
 type RuntimeAppConfigUpdate = AppConfigUpdate & {
-	chatMessageOrder?: unknown;
 	layout?: unknown;
-	recentModels?: unknown;
 };
 
 const ACCEPTED_UPDATE_KEYS = {
 	theme: true,
 	themeMode: true,
 	systemThemePair: true,
-	analyticsEnabled: true,
-	analyticsConsentConfirmed: true,
 	notificationsEnabled: true,
+	uiFontFamily: true,
+	codeFontFamily: true,
+	explorerFileIcons: true,
+	fileLineWidth: true,
+	fileLineWidthBounded: true,
+	editorFontSize: true,
+	editorTabSize: true,
+	editorInsertSpaces: true,
+	editorMinimap: true,
+	editorLineNumbers: true,
+	editorRenderWhitespace: true,
+	editorCursorStyle: true,
+	editorAutoSaveDelayMs: true,
+	filesExclude: true,
+	filesShowHidden: true,
+	explorerCompactFolders: true,
+	explorerSortOrder: true,
+	filesAssociations: true,
 	terminalReplayKb: true,
 	terminalWindowsShell: true,
-	composerGrowthLimit: true,
-	chatLineWidth: true,
-	fileLineWidth: true,
-	chatLineWidthBounded: true,
-	fileLineWidthBounded: true,
+	terminalShellPath: true,
+	terminalShellArgs: true,
+	terminalFontSize: true,
+	terminalCursorStyle: true,
+	terminalCursorBlink: true,
+	terminalScrollbackLines: true,
+	gitCommitVerify: true,
+	gitCommitListMax: true,
+	externalEditorCustomBin: true,
+	customKeybindings: true,
 	customLayoutPresets: true,
-	favoriteModels: true,
-	defaultModel: true,
-	defaultEffort: true,
-	reviewModel: true,
-	reviewEffort: true,
-	reviewAutoFix: true,
-	agentReviewEnabled: true,
-	subagentsEnabled: true,
-	subagentMaxConcurrent: true,
-	jbcentralQuotaEnabled: true,
-	jbcentralQuotaRefreshSeconds: true,
-	settleIdleDays: true,
-	disabledExtensions: true,
 	locale: true,
-	onboardingDismissed: true,
-	chatMessageOrder: true,
 	layout: true,
-	recentModels: true,
 } satisfies Record<keyof RuntimeAppConfigUpdate, true>;
 
 function assertUpdateShape(update: unknown): void {
@@ -67,36 +82,6 @@ function assertUpdateShape(update: unknown): void {
 	}
 	const unknownKey = Object.keys(update).find((key) => !Object.hasOwn(ACCEPTED_UPDATE_KEYS, key));
 	if (unknownKey !== undefined) throw new Error(`Unknown setting: ${unknownKey}`);
-}
-
-function isWireModelRef(value: unknown): value is WireModel {
-	if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-	const record = value as Record<string, unknown>;
-	return (
-		typeof record.provider === "string" &&
-		record.provider.length > 0 &&
-		typeof record.id === "string" &&
-		record.id.length > 0 &&
-		typeof record.name === "string" &&
-		Array.isArray(record.thinkingLevels)
-	);
-}
-
-function validateFavoriteModels(value: unknown): WireModel[] {
-	if (!Array.isArray(value) || !value.every(isWireModelRef)) {
-		throw new Error("favoriteModels must be a list of models");
-	}
-	return value.filter((model, index) => value.findIndex((m) => sameModel(m, model)) === index);
-}
-
-function validateDisabledExtensions(value: unknown): string[] {
-	if (
-		!Array.isArray(value) ||
-		!value.every((name) => typeof name === "string" && name.trim().length > 0)
-	) {
-		throw new Error("disabledExtensions must be a list of extension names");
-	}
-	return [...new Set(value as string[])];
 }
 
 let publishSettings: SettingsPublisher | null = null;
@@ -121,76 +106,142 @@ export function getConfig(): AppConfig {
 export function updateConfig(partial: AppConfigUpdate): AppConfig {
 	assertUpdateShape(partial);
 	const runtimeUpdate: RuntimeAppConfigUpdate = { ...partial };
-	delete runtimeUpdate.chatMessageOrder;
 	delete runtimeUpdate.layout;
-	for (const [name, value] of [
-		["chatLineWidth", runtimeUpdate.chatLineWidth],
-		["fileLineWidth", runtimeUpdate.fileLineWidth],
-	] as const) {
-		if (value !== undefined && !isLineWidth(value)) {
-			throw new Error(
-				`${name} must be a whole number from ${LINE_WIDTH_COLUMNS.min} to ${LINE_WIDTH_COLUMNS.max}`,
-			);
-		}
+	if (runtimeUpdate.fileLineWidth !== undefined && !isLineWidth(runtimeUpdate.fileLineWidth)) {
+		throw new Error(
+			`fileLineWidth must be a whole number from ${LINE_WIDTH_COLUMNS.min} to ${LINE_WIDTH_COLUMNS.max}`,
+		);
 	}
 	for (const [name, value] of [
-		["chatLineWidthBounded", runtimeUpdate.chatLineWidthBounded],
 		["fileLineWidthBounded", runtimeUpdate.fileLineWidthBounded],
-		["analyticsEnabled", runtimeUpdate.analyticsEnabled],
-		["analyticsConsentConfirmed", runtimeUpdate.analyticsConsentConfirmed],
 		["notificationsEnabled", runtimeUpdate.notificationsEnabled],
-		["reviewAutoFix", runtimeUpdate.reviewAutoFix],
-		["agentReviewEnabled", runtimeUpdate.agentReviewEnabled],
-		["onboardingDismissed", runtimeUpdate.onboardingDismissed],
+		["editorInsertSpaces", runtimeUpdate.editorInsertSpaces],
+		["editorMinimap", runtimeUpdate.editorMinimap],
+		["filesShowHidden", runtimeUpdate.filesShowHidden],
+		["explorerCompactFolders", runtimeUpdate.explorerCompactFolders],
+		["terminalCursorBlink", runtimeUpdate.terminalCursorBlink],
+		["gitCommitVerify", runtimeUpdate.gitCommitVerify],
 	] as const) {
 		if (value !== undefined && typeof value !== "boolean") {
 			throw new Error(`${name} must be a boolean`);
 		}
 	}
-	if (
-		runtimeUpdate.analyticsConsentConfirmed !== undefined &&
-		runtimeUpdate.analyticsEnabled === undefined
-	) {
-		throw new Error("analytics consent must include the sharing preference");
-	}
-	const {
-		defaultModel,
-		defaultEffort,
-		reviewModel,
-		reviewEffort,
-		favoriteModels,
-		recentModels: _hostOwnedRecentModels,
-		customLayoutPresets,
-		subagentsEnabled,
-		theme,
-		themeMode,
-		systemThemePair,
-		jbcentralQuotaEnabled,
-		jbcentralQuotaRefreshSeconds,
-		disabledExtensions,
-		...rest
-	} = runtimeUpdate;
-	const nextDisabledExtensions =
-		disabledExtensions === undefined ? undefined : validateDisabledExtensions(disabledExtensions);
 	for (const [name, value] of [
-		["defaultModel", defaultModel],
-		["reviewModel", reviewModel],
+		["uiFontFamily", runtimeUpdate.uiFontFamily],
+		["codeFontFamily", runtimeUpdate.codeFontFamily],
+		["terminalShellPath", runtimeUpdate.terminalShellPath],
+		["externalEditorCustomBin", runtimeUpdate.externalEditorCustomBin],
 	] as const) {
-		if (value !== undefined && value !== null && !isWireModelRef(value)) {
-			throw new Error(`${name} must be a model or null`);
+		if (
+			value !== undefined &&
+			(typeof value !== "string" || value.length > 500 || value.includes("\0"))
+		) {
+			throw new Error(`${name} must be a valid string`);
 		}
 	}
-	if (subagentsEnabled !== undefined && typeof subagentsEnabled !== "boolean") {
-		throw new Error("subagentsEnabled must be a boolean");
+	if (
+		runtimeUpdate.explorerFileIcons !== undefined &&
+		!isExplorerFileIcons(runtimeUpdate.explorerFileIcons)
+	) {
+		throw new Error("explorerFileIcons must be minimal or filetype");
 	}
 	if (
-		runtimeUpdate.subagentMaxConcurrent !== undefined &&
-		!isSubagentMaxConcurrent(runtimeUpdate.subagentMaxConcurrent)
+		runtimeUpdate.editorFontSize !== undefined &&
+		!isEditorFontSize(runtimeUpdate.editorFontSize)
 	) {
-		throw new Error("subagentMaxConcurrent must be a whole number from 1 to 16");
+		throw new Error(
+			`editorFontSize must be an integer from ${EDITOR_FONT_SIZE.min} to ${EDITOR_FONT_SIZE.max}`,
+		);
 	}
-	if (jbcentralQuotaEnabled !== undefined && typeof jbcentralQuotaEnabled !== "boolean") {
-		throw new Error("jbcentralQuotaEnabled must be a boolean");
+	if (runtimeUpdate.editorTabSize !== undefined && !isEditorTabSize(runtimeUpdate.editorTabSize)) {
+		throw new Error("editorTabSize must be 2, 4, or 8");
+	}
+	if (
+		runtimeUpdate.editorLineNumbers !== undefined &&
+		!isEditorLineNumbers(runtimeUpdate.editorLineNumbers)
+	) {
+		throw new Error("editorLineNumbers must be on, off, or relative");
+	}
+	if (
+		runtimeUpdate.editorRenderWhitespace !== undefined &&
+		!isEditorRenderWhitespace(runtimeUpdate.editorRenderWhitespace)
+	) {
+		throw new Error("editorRenderWhitespace must be none, boundary, selection, or all");
+	}
+	if (
+		runtimeUpdate.editorCursorStyle !== undefined &&
+		!isEditorCursorStyle(runtimeUpdate.editorCursorStyle)
+	) {
+		throw new Error("editorCursorStyle must be line, block, or underline");
+	}
+	if (
+		runtimeUpdate.editorAutoSaveDelayMs !== undefined &&
+		!isEditorAutoSaveDelayMs(runtimeUpdate.editorAutoSaveDelayMs)
+	) {
+		throw new Error(
+			`editorAutoSaveDelayMs must be an integer from ${EDITOR_AUTO_SAVE_DELAY_MS.min} to ${EDITOR_AUTO_SAVE_DELAY_MS.max}`,
+		);
+	}
+	if (runtimeUpdate.filesExclude !== undefined && !isFilesExcludeList(runtimeUpdate.filesExclude)) {
+		throw new Error("filesExclude must be a bounded list of non-empty strings");
+	}
+	if (
+		runtimeUpdate.explorerSortOrder !== undefined &&
+		!isExplorerSortOrder(runtimeUpdate.explorerSortOrder)
+	) {
+		throw new Error("explorerSortOrder must be default, mixed, filesFirst, or type");
+	}
+	if (
+		runtimeUpdate.filesAssociations !== undefined &&
+		!isStringMap(runtimeUpdate.filesAssociations)
+	) {
+		throw new Error("filesAssociations must be a string map");
+	}
+	if (
+		runtimeUpdate.terminalShellArgs !== undefined &&
+		!isTerminalShellArgs(runtimeUpdate.terminalShellArgs)
+	) {
+		throw new Error("terminalShellArgs must be a bounded string array");
+	}
+	if (
+		runtimeUpdate.terminalFontSize !== undefined &&
+		!isTerminalFontSize(runtimeUpdate.terminalFontSize)
+	) {
+		throw new Error(
+			`terminalFontSize must be an integer from ${TERMINAL_FONT_SIZE.min} to ${TERMINAL_FONT_SIZE.max}`,
+		);
+	}
+	if (
+		runtimeUpdate.terminalCursorStyle !== undefined &&
+		!isTerminalCursorStyle(runtimeUpdate.terminalCursorStyle)
+	) {
+		throw new Error("terminalCursorStyle must be block, underline, or bar");
+	}
+	if (
+		runtimeUpdate.terminalScrollbackLines !== undefined &&
+		!isTerminalScrollbackLines(runtimeUpdate.terminalScrollbackLines)
+	) {
+		throw new Error(
+			`terminalScrollbackLines must be an integer from ${TERMINAL_SCROLLBACK_LINES.min} to ${TERMINAL_SCROLLBACK_LINES.max}`,
+		);
+	}
+	if (
+		runtimeUpdate.gitCommitListMax !== undefined &&
+		!isGitCommitListMax(runtimeUpdate.gitCommitListMax)
+	) {
+		throw new Error(
+			`gitCommitListMax must be an integer from ${GIT_COMMIT_LIST_MAX.min} to ${GIT_COMMIT_LIST_MAX.max}`,
+		);
+	}
+	if (
+		runtimeUpdate.customKeybindings !== undefined &&
+		!isStringMap(runtimeUpdate.customKeybindings)
+	) {
+		throw new Error("customKeybindings must be a string map");
+	}
+	const { customLayoutPresets, theme, themeMode, systemThemePair, ...rest } = runtimeUpdate;
+	if (theme !== undefined && typeof theme !== "string") {
+		throw new Error("theme must be a string");
 	}
 	if (
 		runtimeUpdate.terminalWindowsShell !== undefined &&
@@ -200,27 +251,10 @@ export function updateConfig(partial: AppConfigUpdate): AppConfig {
 	}
 	if (
 		runtimeUpdate.terminalReplayKb !== undefined &&
-		!Number.isFinite(runtimeUpdate.terminalReplayKb)
+		(typeof runtimeUpdate.terminalReplayKb !== "number" ||
+			!Number.isFinite(runtimeUpdate.terminalReplayKb))
 	) {
 		throw new Error("terminalReplayKb must be a finite number");
-	}
-	if (
-		runtimeUpdate.composerGrowthLimit !== undefined &&
-		!isComposerGrowthLimit(runtimeUpdate.composerGrowthLimit)
-	) {
-		throw new Error(`composerGrowthLimit must be one of ${COMPOSER_GROWTH_LIMITS.join(", ")}`);
-	}
-	if (
-		jbcentralQuotaRefreshSeconds !== undefined &&
-		!isJbcentralQuotaRefreshSeconds(jbcentralQuotaRefreshSeconds)
-	) {
-		throw new Error("jbcentralQuotaRefreshSeconds must be a whole number from 1 to 3600");
-	}
-	if (
-		runtimeUpdate.settleIdleDays !== undefined &&
-		!isSettleIdleDays(runtimeUpdate.settleIdleDays)
-	) {
-		throw new Error("settleIdleDays must be a whole number of days from 1 to 365, or null");
 	}
 	if (runtimeUpdate.locale !== undefined && !isLocalePreference(runtimeUpdate.locale)) {
 		throw new Error('locale must be "system" or a canonical BCP-47 language tag');
@@ -232,14 +266,6 @@ export function updateConfig(partial: AppConfigUpdate): AppConfig {
 		throw new Error("systemThemePair must contain light and dark theme ids");
 	}
 	const current = getConfig();
-	if (
-		runtimeUpdate.analyticsEnabled === true &&
-		!current.analyticsEnabled &&
-		current.analyticsConsentConfirmed &&
-		runtimeUpdate.analyticsConsentConfirmed === undefined
-	) {
-		throw new Error("enabling additional analytics requires an explicit confirmation");
-	}
 	const nextThemeMode = themeMode ?? (theme !== undefined ? "fixed" : current.themeMode);
 	const nextSystemThemePair =
 		systemThemePair === undefined
@@ -254,50 +280,13 @@ export function updateConfig(partial: AppConfigUpdate): AppConfig {
 		...(theme === undefined ? {} : { theme }),
 		themeMode: nextThemeMode,
 		...(nextSystemThemePair ? { systemThemePair: nextSystemThemePair } : {}),
-		...(subagentsEnabled === undefined ? {} : { subagentsEnabled }),
-		...(jbcentralQuotaEnabled === undefined ? {} : { jbcentralQuotaEnabled }),
-		...(jbcentralQuotaRefreshSeconds === undefined ? {} : { jbcentralQuotaRefreshSeconds }),
 		...(customLayoutPresets === undefined
 			? {}
 			: { customLayoutPresets: validateCustomLayoutPresets(customLayoutPresets) }),
-		...(favoriteModels === undefined
-			? {}
-			: { favoriteModels: validateFavoriteModels(favoriteModels) }),
-		...(nextDisabledExtensions === undefined ? {} : { disabledExtensions: nextDisabledExtensions }),
 	};
-	if (defaultModel !== undefined) {
-		if (defaultModel === null) delete next.defaultModel;
-		else next.defaultModel = defaultModel;
-	}
-	if (defaultEffort !== undefined) {
-		if (defaultEffort === null) delete next.defaultEffort;
-		else next.defaultEffort = defaultEffort;
-	}
-	if (reviewModel !== undefined) {
-		if (reviewModel === null) delete next.reviewModel;
-		else next.reviewModel = reviewModel;
-	}
-	if (reviewEffort !== undefined) {
-		if (reviewEffort === null) delete next.reviewEffort;
-		else next.reviewEffort = reviewEffort;
-	}
 	saveConfig(next);
 	cached = next;
 	publishSettings?.(next, runtimeUpdate);
-	return next;
-}
-
-/** Records an explicit model choice at the head of `recentModels` (deduped, capped), then publishes. */
-export function noteRecentModel(model: WireModel): AppConfig {
-	const current = getConfig();
-	const recentModels = [
-		model,
-		...current.recentModels.filter((candidate) => !sameModel(candidate, model)),
-	].slice(0, RECENT_MODELS_LIMIT);
-	const next: AppConfig = { ...current, recentModels };
-	saveConfig(next);
-	cached = next;
-	publishSettings?.(next, {});
 	return next;
 }
 

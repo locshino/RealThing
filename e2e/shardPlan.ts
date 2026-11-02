@@ -61,7 +61,7 @@ export function resolveShardCount(options: {
 }): number {
 	if (options.shardOverride !== undefined) return options.shardOverride;
 	if (options.envValue !== undefined && options.envValue !== "") {
-		return parseShardCount(options.envValue, "THINKRAIL_E2E_SHARDS");
+		return parseShardCount(options.envValue, "REALTHING_E2E_SHARDS");
 	}
 	if (options.hasPlaywrightArgs) return 1;
 	return automaticShardCount(options.availableCpuCount);
@@ -79,7 +79,7 @@ export function parseJobShard(raw: string | undefined): JobShard | undefined {
 	const total = Number(match?.[2]);
 	if (!match || total < 1 || index < 1 || index > total) {
 		throw new Error(
-			`THINKRAIL_E2E_JOB_SHARD must be "k/N" with 1 <= k <= N, got ${JSON.stringify(raw)}`,
+			`REALTHING_E2E_JOB_SHARD must be "k/N" with 1 <= k <= N, got ${JSON.stringify(raw)}`,
 		);
 	}
 	return { index, total };

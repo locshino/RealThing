@@ -4,7 +4,7 @@ import type {
 	NativeQuitHint,
 	NativeUpdateState,
 	NativeWindowState,
-} from "@thinkrail/contracts";
+} from "@realthing/contracts";
 import type { PageZoomAction, PageZoomGesture } from "./pageZoom";
 import type { WindowChromeGeometry } from "./windowChrome";
 

@@ -1,4 +1,4 @@
-import { t } from "@thinkrail/locales/react";
+import { t } from "@realthing/locales/react";
 
 export function errorText(
 	err: unknown,

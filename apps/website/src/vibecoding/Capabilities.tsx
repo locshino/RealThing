@@ -11,18 +11,18 @@ const sharedCards = {
 	},
 	changeStream: {
 		n: "03",
-		title: "Live change stream",
-		body: "Interactive diff view tracking every modified source file instantly.",
+		title: "Multi-scope diffs",
+		body: "Interactive diff review across branch, uncommitted changes, and individual commits.",
 	},
-	questions: {
+	terminals: {
 		n: "04",
-		title: "Interactive questions",
-		body: "Agents pause and prompt you when requirements lack clarity.",
+		title: "Integrated terminal",
+		body: "Real PTY terminal tabs scoped directly to each workspace directory.",
 	},
-	models: {
+	editor: {
 		n: "06",
-		title: "Per-session model choice",
-		body: "Choose the provider model and thinking level that fit each coding session.",
+		title: "Fast code editor",
+		body: "Edit files, inspect symbols, and navigate your repository without leaving the workspace.",
 	},
 } satisfies Record<string, Card>;
 
@@ -30,40 +30,34 @@ const CARDS: Record<Positioning, Card[]> = {
 	control: [
 		{
 			n: "01",
-			title: "Spec-first workflow",
-			body: "Convert natural language directly into testable feature specifications.",
+			title: "Workspace plans",
+			body: "Keep task plans and feature outlines right beside your code.",
 		},
 		sharedCards.workspaces,
 		sharedCards.changeStream,
-		sharedCards.questions,
+		sharedCards.terminals,
 		{
 			n: "05",
 			title: "Linked project context",
-			body: "Searchable specs preserve requirements, boundaries, and decisions across sessions.",
+			body: "Searchable specs preserve requirements, boundaries, and architecture decisions.",
 		},
-		sharedCards.models,
+		sharedCards.editor,
 	],
 	compounding: [
 		{
 			n: "01",
 			title: "Living specs",
-			body: "Specs the agent keeps current — read before every change, updated with every decision.",
+			body: "Architecture and module specs stay versioned alongside the code they describe.",
 		},
 		sharedCards.workspaces,
 		sharedCards.changeStream,
-		sharedCards.questions,
+		sharedCards.terminals,
 		{
 			n: "05",
-			title: "Reusable skills",
-			body: "Teach a workflow once. The agent runs it the same way every time.",
+			title: "Workspace plans",
+			body: "Structure tasks and implementation steps for every active worktree.",
 		},
-		sharedCards.models,
-		{
-			n: "07",
-			title: "Extensions",
-			body: "Next: ThinkRail builds the tools it needs from how you actually work.",
-			tag: "coming soon",
-		},
+		sharedCards.editor,
 	],
 };
 

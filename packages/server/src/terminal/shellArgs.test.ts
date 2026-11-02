@@ -17,7 +17,7 @@ test("auto prefers pwsh when it resolves on PATH", () => {
 
 test("auto falls back to Windows PowerShell when pwsh is not installed", () => {
 	expect(terminalShell("win32", {}, "auto", noPwsh)).toBe("powershell.exe");
-	expect(terminalShell("win32", {})).toBe("powershell.exe");
+	expect(terminalShell("win32", {}, undefined, noPwsh)).toBe("powershell.exe");
 });
 
 test("an explicit preference is a literal pin, never probed or substituted", () => {
@@ -73,4 +73,13 @@ test("macOS terminals start login shells", () => {
 test("other platforms keep non-login shells", () => {
 	expect(terminalShellArgs("linux")).toEqual([]);
 	expect(terminalShellArgs("win32")).toEqual([]);
+});
+
+test("custom terminalShellPath and terminalShellArgs override environment and platform defaults when non-empty", () => {
+	expect(
+		terminalShell("linux", { SHELL: "/bin/bash" }, "auto", noPwsh, "  /usr/local/bin/fish  "),
+	).toBe("/usr/local/bin/fish");
+	expect(terminalShell("linux", { SHELL: "/bin/zsh" }, "auto", noPwsh, "   ")).toBe("/bin/zsh");
+	expect(terminalShellArgs("linux", ["-l", "--interactive"])).toEqual(["-l", "--interactive"]);
+	expect(terminalShellArgs("darwin", [])).toEqual(["-l"]);
 });

@@ -1,15 +1,15 @@
 import { randomUUID } from "node:crypto";
-import { mkdirSync, readdirSync, rmdirSync, rmSync, statSync } from "node:fs";
+import { type Dirent, mkdirSync, readdirSync, rmdirSync, rmSync, statSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { basename, isAbsolute, join, resolve } from "node:path";
 import type {
-	McpProjectOverride,
-	McpToolGrant,
+	PathCandidate,
+	PathSuggestionsResult,
 	Project,
 	ProjectPathStatus,
-} from "@thinkrail/contracts";
-import { CodedError } from "@thinkrail/shared/codedError";
+} from "@realthing/contracts";
+import { CodedError } from "@realthing/shared/codedError";
 import { canonicalPath, git } from "../git";
 import { loadProjects, loadWorkspaces, saveProjects } from "../persistence";
 
@@ -25,7 +25,7 @@ function emit(project: Project): void {
 	publishProject?.(project);
 }
 
-function resolveProjectPath(path: string): string {
+export function resolveProjectPath(path: string): string {
 	const home =
 		(process.platform === "win32" ? process.env.USERPROFILE : process.env.HOME) || homedir();
 	const underHome =
@@ -72,26 +72,49 @@ function ensureSlugs(projects: Project[]): boolean {
 	return changed;
 }
 
-/** Whether pi itself already trusts a path; seeds a newly added project's pi-level trust. */
-export type PiTrustSeed = (path: string) => boolean;
-let piTrustSeed: PiTrustSeed | null = null;
-
-export function setPiTrustSeed(seed: PiTrustSeed | null): void {
-	piTrustSeed = seed;
-}
-
 export function getProjects(): Project[] {
 	const projects = loadProjects();
 	if (ensureSlugs(projects)) saveProjects(projects);
 	return projects;
 }
 
-export function openProject(inputPath: string, displayName?: string): Project {
+export function openProject(
+	inputPath: string,
+	displayName?: string,
+	opts?: { allowNonGit?: boolean | undefined },
+): Project {
 	const path = resolveProjectPath(inputPath);
-	const root = gitToplevel(path);
-	if (!root) throw new CodedError("NOT_GIT", `Not a git repository: ${path}`);
-
 	const projects = getProjects();
+	let root = gitToplevel(path);
+	if (!root) {
+		const known = projects.find(
+			(p) => p.path === path || canonicalPath(p.path) === canonicalPath(path),
+		);
+		if (known && opts?.allowNonGit) {
+			root = known.path;
+		} else if (known) {
+			const attachedPaths = new Set(
+				loadWorkspaces()
+					.filter((ws) => ws.projectId === known.id)
+					.map((ws) => canonicalPath(ws.worktreePath)),
+			);
+			const hasUnattachedGitFolders = discoverGitSubfolders(known.path).some(
+				(sub) => !attachedPaths.has(canonicalPath(sub.path)),
+			);
+			if (known.closed !== true && hasUnattachedGitFolders) {
+				throw new CodedError("NOT_GIT", `Not a git repository: ${path}`);
+			}
+			root = known.path;
+		} else if (opts?.allowNonGit) {
+			if (!statSync(path, { throwIfNoEntry: false })?.isDirectory()) {
+				throw new Error(`Not a folder: ${path}`);
+			}
+			root = canonicalPath(path);
+		} else {
+			throw new CodedError("NOT_GIT", `Not a git repository: ${path}`);
+		}
+	}
+
 	const existing = projects.find((p) => p.path === root);
 	if (existing) {
 		delete existing.closed;
@@ -105,7 +128,7 @@ export function openProject(inputPath: string, displayName?: string): Project {
 	if (loadWorkspaces().some((ws) => canonicalPath(ws.worktreePath) === wanted))
 		throw new CodedError(
 			"ALREADY_OPEN",
-			`This folder is already open in ThinkRail as a workspace: ${root}`,
+			`This folder is already open in RealThing as a workspace: ${root}`,
 		);
 
 	const taken = new Set(projects.map((p) => p.slug));
@@ -116,7 +139,6 @@ export function openProject(inputPath: string, displayName?: string): Project {
 		path: root,
 		slug: uniqueSlug(slugify(basename(root)), taken),
 		lastOpened: Date.now(),
-		piResourceTrust: piTrustSeed?.(root) ? "granted" : "untrusted",
 	};
 	projects.push(project);
 	saveProjects(projects);
@@ -199,158 +221,61 @@ export function renameProject(id: string, requestedName: string): Project {
 	return project;
 }
 
-export function setProjectTrust(
-	id: string,
-	trusted: boolean,
-	acknowledgedSkills?: string[],
-	options: { resources?: boolean } = {},
-): Project {
-	const projects = getProjects();
-	const project = projects.find((p) => p.id === id);
-	if (!project) throw new Error(`Unknown project: ${id}`);
-	project.trusted = trusted;
-	if (!trusted) project.piResourceTrust = "untrusted";
-	else if (options.resources === true) project.piResourceTrust = "granted";
-	if (acknowledgedSkills !== undefined) project.acknowledgedSkills = acknowledgedSkills;
-	saveProjects(projects);
-	emit(project);
-	return project;
-}
+const SKIPPED_SCAN_DIRS = new Set([
+	".git",
+	"node_modules",
+	"dist",
+	"build",
+	"out",
+	"target",
+	"vendor",
+	".next",
+	".turbo",
+]);
 
-export function approveProjectMcpServer(id: string, name: string, fingerprint: string): Project {
-	const projects = getProjects();
-	const project = projects.find((p) => p.id === id);
-	if (!project) throw new Error(`Unknown project: ${id}`);
-	project.mcpApprovals = { ...project.mcpApprovals, [name]: fingerprint };
-	saveProjects(projects);
-	return project;
-}
+export function discoverGitSubfolders(rootPath: string): PathCandidate[] {
+	const found: PathCandidate[] = [];
+	const seen = new Set<string>();
 
-export function setProjectMcpOverride(
-	id: string,
-	name: string,
-	patch: McpProjectOverride | null,
-): Project {
-	if (patch !== null) {
-		if (patch.enabled !== undefined && typeof patch.enabled !== "boolean") {
-			throw new CodedError("MCP_CONFIG_INVALID", "MCP server enabled must be a boolean");
+	const visit = (dir: string, relPrefix: string, depth: number) => {
+		if (found.length >= 50 || depth > 2) return;
+		let entries: Dirent<string>[];
+		try {
+			entries = readdirSync(dir, { withFileTypes: true });
+		} catch {
+			return;
 		}
-		if (
-			patch.exposure !== undefined &&
-			patch.exposure !== "deferred" &&
-			patch.exposure !== "direct" &&
-			patch.exposure !== "hidden"
-		) {
-			throw new CodedError(
-				"MCP_CONFIG_INVALID",
-				"MCP server exposure must be deferred, direct or hidden",
-			);
+		entries.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+		for (const entry of entries) {
+			if (found.length >= 50) break;
+			if (entry.name.startsWith(".") || SKIPPED_SCAN_DIRS.has(entry.name)) continue;
+			if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+			const fullPath = join(dir, entry.name);
+			let canonical: string;
+			try {
+				if (!statSync(fullPath).isDirectory()) continue;
+				canonical = canonicalPath(fullPath);
+			} catch {
+				continue;
+			}
+			if (seen.has(canonical)) continue;
+			seen.add(canonical);
+			const relName = relPrefix ? `${relPrefix}/${entry.name}` : entry.name;
+			const hasDotGit = statSync(join(fullPath, ".git"), { throwIfNoEntry: false }) !== undefined;
+			if (hasDotGit) {
+				found.push({
+					name: relName,
+					path: resolve(fullPath),
+					kind: "repo",
+				});
+			} else if (depth < 2) {
+				visit(fullPath, relName, depth + 1);
+			}
 		}
-	}
-	const projects = getProjects();
-	const project = projects.find((p) => p.id === id);
-	if (!project) throw new Error(`Unknown project: ${id}`);
-	const overrides: Record<string, McpProjectOverride> = { ...project.mcpOverrides };
-	if (patch === null) {
-		delete overrides[name];
-	} else {
-		if (patch.enabled === undefined && patch.exposure === undefined) return project;
-		const override = {
-			...(Object.hasOwn(overrides, name) ? overrides[name] : {}),
-			...(patch.enabled !== undefined ? { enabled: patch.enabled } : {}),
-			...(patch.exposure !== undefined ? { exposure: patch.exposure } : {}),
-		};
-		Object.defineProperty(overrides, name, {
-			value: override,
-			enumerable: true,
-			configurable: true,
-			writable: true,
-		});
-	}
-	if (Object.keys(overrides).length === 0) delete project.mcpOverrides;
-	else project.mcpOverrides = overrides;
-	saveProjects(projects);
-	return project;
-}
+	};
 
-function setOwn<T>(record: Record<string, T>, key: string, value: T): void {
-	Object.defineProperty(record, key, {
-		value,
-		enumerable: true,
-		configurable: true,
-		writable: true,
-	});
-}
-
-export function grantProjectMcpTool(
-	id: string,
-	name: string,
-	target: string,
-	tool: string,
-): Project {
-	const projects = getProjects();
-	const project = projects.find((p) => p.id === id);
-	if (!project) throw new Error(`Unknown project: ${id}`);
-	const grants: Record<string, McpToolGrant> = { ...project.mcpToolGrants };
-	const current = Object.hasOwn(grants, name) ? grants[name] : undefined;
-	const tools = current?.target === target ? current.tools.filter((t) => t !== tool) : [];
-	setOwn(grants, name, { target, tools: [...tools, tool] });
-	project.mcpToolGrants = grants;
-	saveProjects(projects);
-	return project;
-}
-
-export function revokeProjectMcpTool(id: string, name: string, tool: string): Project {
-	const projects = getProjects();
-	const project = projects.find((p) => p.id === id);
-	if (!project) throw new Error(`Unknown project: ${id}`);
-	const grants: Record<string, McpToolGrant> = { ...project.mcpToolGrants };
-	const current = Object.hasOwn(grants, name) ? grants[name] : undefined;
-	if (!current) return project;
-	const tools = current.tools.filter((t) => t !== tool);
-	if (tools.length === 0) delete grants[name];
-	else setOwn(grants, name, { target: current.target, tools });
-	if (Object.keys(grants).length === 0) delete project.mcpToolGrants;
-	else project.mcpToolGrants = grants;
-	saveProjects(projects);
-	return project;
-}
-
-export function acknowledgeProjectSkills(id: string, names: string[]): Project {
-	const projects = getProjects();
-	const project = projects.find((p) => p.id === id);
-	if (!project) throw new Error(`Unknown project: ${id}`);
-	project.acknowledgedSkills = [...new Set([...(project.acknowledgedSkills ?? []), ...names])];
-	saveProjects(projects);
-	return project;
-}
-
-export function setProjectSkillEnabled(id: string, name: string, enabled: boolean): Project {
-	const projects = getProjects();
-	const project = projects.find((p) => p.id === id);
-	if (!project) throw new Error(`Unknown project: ${id}`);
-	const disabled = new Set(project.disabledSkills ?? []);
-	if (enabled) disabled.delete(name);
-	else disabled.add(name);
-	project.disabledSkills = [...disabled];
-	saveProjects(projects);
-	return project;
-}
-
-export function setProjectGroupEnabled(id: string, group: string, enabled: boolean): Project {
-	const projects = getProjects();
-	const project = projects.find((p) => p.id === id);
-	if (!project) throw new Error(`Unknown project: ${id}`);
-	const groups = new Set(project.disabledGroups ?? []);
-	if (enabled) groups.delete(group);
-	else groups.add(group);
-	project.disabledGroups = [...groups];
-	saveProjects(projects);
-	return project;
-}
-
-export function isProjectTrusted(id: string): boolean {
-	return getProjects().find((p) => p.id === id)?.trusted === true;
+	visit(rootPath, "", 1);
+	return found;
 }
 
 function inspectResolvedProjectPath(path: string): ProjectPathStatus {
@@ -361,11 +286,175 @@ function inspectResolvedProjectPath(path: string): ProjectPathStatus {
 		return { kind: "missing" };
 	}
 	if (!stat.isDirectory()) return { kind: "notDirectory" };
-	return { kind: gitToplevel(path) ? "repo" : "initable" };
+	if (gitToplevel(path)) return { kind: "repo" };
+	const home =
+		(process.platform === "win32" ? process.env.USERPROFILE : process.env.HOME) || homedir();
+	if (canonicalPath(path) === canonicalPath(home)) return { kind: "initable" };
+	const gitFolders = discoverGitSubfolders(path);
+	return gitFolders.length > 0 ? { kind: "initable", gitFolders } : { kind: "initable" };
 }
 
 export function inspectProjectPath(inputPath: string): ProjectPathStatus {
 	return inspectResolvedProjectPath(resolveProjectPath(inputPath));
+}
+
+export function suggestProjectPaths(inputQuery: string): PathSuggestionsResult {
+	const trimmed = inputQuery.trim();
+	const home =
+		(process.platform === "win32" ? process.env.USERPROFILE : process.env.HOME) || homedir();
+
+	let resolvedParent: string;
+	let parentDisplay: string;
+	let prefix: string;
+	let searchEverywhere = false;
+
+	if (!trimmed) {
+		resolvedParent = home;
+		parentDisplay = "~";
+		prefix = "";
+	} else if (
+		trimmed === "~" ||
+		trimmed === "~/" ||
+		(process.platform === "win32" && trimmed === "~\\")
+	) {
+		resolvedParent = home;
+		parentDisplay = "~";
+		prefix = "";
+	} else if (
+		trimmed.startsWith("~/") ||
+		(process.platform === "win32" && trimmed.startsWith("~\\"))
+	) {
+		const withoutTilde = trimmed.slice(2);
+		const lastSlash = Math.max(withoutTilde.lastIndexOf("/"), withoutTilde.lastIndexOf("\\"));
+		if (lastSlash === -1) {
+			resolvedParent = home;
+			parentDisplay = "~";
+			prefix = withoutTilde;
+		} else {
+			const subParent = withoutTilde.slice(0, lastSlash);
+			resolvedParent = join(home, subParent);
+			parentDisplay = `~/${subParent}`;
+			prefix = withoutTilde.slice(lastSlash + 1);
+		}
+	} else if (isAbsolute(trimmed)) {
+		const lastSlash = Math.max(trimmed.lastIndexOf("/"), trimmed.lastIndexOf("\\"));
+		if (trimmed.endsWith("/") || trimmed.endsWith("\\")) {
+			resolvedParent = resolve(trimmed);
+			parentDisplay = resolvedParent;
+			prefix = "";
+		} else if (lastSlash === -1 || lastSlash === 0) {
+			resolvedParent = resolve("/");
+			parentDisplay = "/";
+			prefix = trimmed.slice(lastSlash + 1);
+		} else {
+			const parentPart = trimmed.slice(0, lastSlash);
+			resolvedParent = resolve(parentPart);
+			parentDisplay = resolvedParent;
+			prefix = trimmed.slice(lastSlash + 1);
+		}
+	} else if (trimmed.includes("/") || trimmed.includes("\\")) {
+		const lastSlash = Math.max(trimmed.lastIndexOf("/"), trimmed.lastIndexOf("\\"));
+		const subParent = trimmed.slice(0, lastSlash);
+		resolvedParent = join(home, subParent);
+		parentDisplay = `~/${subParent}`;
+		prefix = trimmed.slice(lastSlash + 1);
+	} else {
+		resolvedParent = home;
+		parentDisplay = "~";
+		prefix = trimmed;
+		searchEverywhere = true;
+	}
+
+	const candidates: PathCandidate[] = [];
+	const seenPaths = new Set<string>();
+
+	const scanDir = (dir: string, displayPrefix: string, filterPrefix: string) => {
+		let entries: Dirent<string>[];
+		try {
+			entries = readdirSync(dir, { withFileTypes: true });
+		} catch {
+			return;
+		}
+
+		const filterLower = filterPrefix.toLowerCase();
+		const matching = entries.filter((entry) => {
+			if (entry.name === ".git") return false;
+			if (entry.name.startsWith(".") && !filterPrefix.startsWith(".")) return false;
+			if (!entry.isDirectory() && !entry.isSymbolicLink()) return false;
+			if (filterLower && !entry.name.toLowerCase().includes(filterLower)) return false;
+			return true;
+		});
+
+		matching.sort((a, b) => {
+			const aStarts = filterLower && a.name.toLowerCase().startsWith(filterLower) ? 0 : 1;
+			const bStarts = filterLower && b.name.toLowerCase().startsWith(filterLower) ? 0 : 1;
+			if (aStarts !== bStarts) return aStarts - bStarts;
+			return a.name.localeCompare(b.name, undefined, { sensitivity: "base" });
+		});
+
+		for (const entry of matching) {
+			if (candidates.length >= 50) break;
+			const fullPath = join(dir, entry.name);
+			if (seenPaths.has(fullPath)) continue;
+
+			if (entry.isSymbolicLink()) {
+				try {
+					if (!statSync(fullPath).isDirectory()) continue;
+				} catch {
+					continue;
+				}
+			}
+
+			seenPaths.add(fullPath);
+
+			let isRepo = false;
+			try {
+				isRepo = statSync(join(fullPath, ".git")).isDirectory();
+			} catch {}
+
+			const candidatePath =
+				displayPrefix === "~"
+					? `~/${entry.name}`
+					: displayPrefix.startsWith("~")
+						? `${displayPrefix.replace(/[/\\]+$/, "")}/${entry.name}`
+						: fullPath;
+
+			candidates.push({
+				name: entry.name,
+				path: candidatePath,
+				kind: isRepo ? "repo" : "directory",
+			});
+		}
+	};
+
+	scanDir(resolvedParent, parentDisplay, prefix);
+
+	if (searchEverywhere && candidates.length < 50) {
+		const commonDirs = [
+			"projects",
+			"project",
+			"src",
+			"dev",
+			"code",
+			"workspace",
+			"workspaces",
+			"repos",
+		];
+		for (const sub of commonDirs) {
+			if (candidates.length >= 50) break;
+			const subDir = join(home, sub);
+			try {
+				if (statSync(subDir).isDirectory()) {
+					scanDir(subDir, `~/${sub}`, prefix);
+				}
+			} catch {}
+		}
+	}
+
+	return {
+		parent: parentDisplay,
+		candidates,
+	};
 }
 
 export function initProject(inputPath: string): Project {
@@ -418,9 +507,9 @@ function bootstrapRepository(path: string): void {
 		if (!added.ok) throw new Error(`git add failed: ${path}`);
 
 		const identity: string[] = [];
-		if (!git(path, ["config", "user.name"]).out) identity.push("-c", "user.name=ThinkRail");
+		if (!git(path, ["config", "user.name"]).out) identity.push("-c", "user.name=RealThing");
 		if (!git(path, ["config", "user.email"]).out)
-			identity.push("-c", "user.email=thinkrail@localhost");
+			identity.push("-c", "user.email=realthing@localhost");
 		const commit = git(path, [...identity, "commit", "--allow-empty", "-m", "Initial commit"]);
 		if (!commit.ok) throw new Error(`git commit failed: ${path}`);
 	} catch (err) {

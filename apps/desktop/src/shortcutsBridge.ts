@@ -1,4 +1,4 @@
-import type { NativeCommand, NativeQuitHint, NativeShortcutsBridge } from "@thinkrail/contracts";
+import type { NativeCommand, NativeQuitHint, NativeShortcutsBridge } from "@realthing/contracts";
 
 export function createShortcutsBridge(quit: () => Promise<void>) {
 	const quitHintListeners = new Set<(hint: NativeQuitHint) => void>();

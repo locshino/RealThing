@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 function tempDir(): string {
-	const dir = mkdtempSync(join(tmpdir(), "thinkrail-themes-"));
+	const dir = mkdtempSync(join(tmpdir(), "realthing-themes-"));
 	dirs.push(dir);
 	return dir;
 }

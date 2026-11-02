@@ -1,7 +1,7 @@
 import { RiFileCopyLine as Copy, RiFolderOpenLine as FolderOpen } from "@remixicon/react";
-import type { UserThemesSnapshot } from "@thinkrail/contracts";
-import { T, type Translator, useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+import type { UserThemesSnapshot } from "@realthing/contracts";
+import { T, type Translator, useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import type { ReactNode } from "react";
 import type { UserThemeIssue } from "@/themes";
 import { repoSourceUrl } from "./LanguageSettings";

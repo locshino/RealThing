@@ -1,24 +1,14 @@
 import {
 	RiBox3Line as Box,
 	RiArrowDownSLine as ChevronDown,
+	RiFolderOpenLine as FolderOpen,
 	RiGitBranchLine as GitBranch,
 	RiHome2Line as House,
 	type RemixiconComponentType as LucideIcon,
-	RiSparkling2Line as Sparkles,
-	RiAlertLine as TriangleAlert,
 } from "@remixicon/react";
-import {
-	type ModelDefault,
-	PROJECT_TEMPLATE_PREVIEW_PROTOCOL_VERSION,
-	type SlashCommandInfo,
-	type TemplateInfo,
-	type TemplateReadLocation,
-	type ThinkingLevel,
-	type WireModel,
-	type Workspace,
-} from "@thinkrail/contracts";
-import { i18n, T, useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+import type { ExistingWorktreeCandidate, Workspace } from "@realthing/contracts";
+import { i18n, useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import {
 	Command,
 	CommandEmpty,
@@ -26,75 +16,76 @@ import {
 	CommandInput,
 	CommandItem,
 	CommandList,
-} from "@thinkrail/ui/command";
+} from "@realthing/ui/command";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-} from "@thinkrail/ui/dialog";
-import { Popover, PopoverContent, PopoverTrigger } from "@thinkrail/ui/popover";
-import { Textarea } from "@thinkrail/ui/textarea";
-import { cn } from "@thinkrail/ui/utils";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
-import { type DefaultPairOption, ModelEffortPicker } from "@/chat/ModelEffortPicker";
-import {
-	deriveProjectTrustNotice,
-	type ProjectTrustNotice,
-	trustEnablesText,
-	trustGrantParams,
-	untrustedNoticeText,
-} from "@/chat/projectTrust";
-import {
-	imagePasteDropHandlers,
-	PROMPT_IMAGE_CHIPS_PADDING,
-	PromptImageChips,
-	usePromptImages,
-} from "@/chat/promptImages";
-import { SkillsButton } from "@/chat/SkillsButton";
-import { SkillsDialog } from "@/chat/SkillsDialog";
-import { useModelCatalog } from "@/chat/useModelCatalog";
-import { useModelPreferences } from "@/chat/useModelPreferences";
-import { useProjectTrustSummary } from "@/chat/useProjectTrustSummary";
-import {
-	applyTemplateSlotEdit,
-	beginTemplateSlotSession,
-	finalizeTemplateSlotSession,
-	isPromptKeyEventComposing,
-	type ParsedTemplate,
-	SlashCommandMenu,
-	selectedSlashCommandValue,
-	slashCommandCatalogOrEmpty,
-	slashCommandQuery,
-	stepTemplateSlotSession,
-	TemplateSlotHint,
-	type TemplateSlotSessionState,
-	templateToSlashCommand,
-	usePendingSelection,
-	useSlashCommandCompletion,
-	useTemplateCommandPicker,
-} from "@/prompt";
-import { selectCatalogModel, selectPickerModels, toast, useAppStore } from "@/store";
-import { createSessionWithSkillBaseline, errorText, getTransport } from "@/transport";
+} from "@realthing/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@realthing/ui/popover";
+import { cn } from "@realthing/ui/utils";
+import { useEffect, useId, useState } from "react";
+import { toast, useAppStore } from "@/store";
+import { errorText, getTransport } from "@/transport";
 import { BranchPicker } from "./BranchPicker";
 import { useBranchList } from "./branches";
 import { enterDefaultWorkspace } from "./defaultWorkspace";
 
 type WorkspaceTarget = "worktree" | "default";
 
-export function reconcileModel(
-	models: readonly WireModel[],
-	model: WireModel,
-	catalogFresh: boolean,
-): WireModel | "unavailable" | null {
-	const found = selectCatalogModel(models, model);
-	if (found) return found;
-	return catalogFresh && models.length > 0 ? "unavailable" : null;
+interface FolderOption {
+	path: string;
+	name: string;
+	branch?: string;
 }
 
 const PILL =
 	"flex h-32 min-w-0 items-center gap-8 rounded-sm border border-control-border-default bg-clip-padding bg-control-bg px-8 tr-text-ui text-text-default outline-none transition-colors hover:bg-control-bg-hovered focus-visible:ring-2 focus-visible:ring-primary data-[open=true]:border-control-border-active data-[open=true]:bg-control-bg-selected";
+
+function relativeFolderName(projectPath: string | undefined, targetPath: string): string {
+	const normTarget = targetPath.replace(/\\/g, "/").replace(/\/+$/, "");
+	if (projectPath) {
+		const normProject = projectPath.replace(/\\/g, "/").replace(/\/+$/, "");
+		if (normTarget.startsWith(`${normProject}/`)) {
+			return normTarget.slice(normProject.length + 1);
+		}
+	}
+	const lastSlash = normTarget.lastIndexOf("/");
+	return lastSlash >= 0 ? normTarget.slice(lastSlash + 1) : normTarget;
+}
+
+function buildFolderOptions(
+	defaultLabel: string,
+	projectPath: string | undefined,
+	projectWorkspaces: Workspace[] | undefined,
+	existingCandidates: ExistingWorktreeCandidate[],
+): FolderOption[] {
+	const options: FolderOption[] = [{ path: "", name: defaultLabel }];
+	const seen = new Set<string>();
+	if (projectWorkspaces) {
+		for (const ws of projectWorkspaces) {
+			if (ws.kind !== "external" || seen.has(ws.worktreePath)) continue;
+			seen.add(ws.worktreePath);
+			options.push({
+				path: ws.worktreePath,
+				name: ws.name,
+				branch: ws.branch,
+			});
+		}
+	}
+	for (const candidate of existingCandidates) {
+		if (candidate.status !== "available" || seen.has(candidate.path)) continue;
+		seen.add(candidate.path);
+		options.push({
+			path: candidate.path,
+			name: relativeFolderName(projectPath, candidate.path),
+			branch: candidate.branch,
+		});
+	}
+	return options;
+}
 
 async function refreshProjectWorkspaces(projectId: string): Promise<void> {
 	useAppStore.getState().expandProject(projectId);
@@ -105,112 +96,49 @@ async function refreshProjectWorkspaces(projectId: string): Promise<void> {
 export function NewWorkspaceDialog({
 	open,
 	projectId,
-	initialPrompt,
-	promptNote,
 	onOpenChange,
 }: {
 	open: boolean;
 	projectId: string;
-	initialPrompt?: string;
-	promptNote?: string;
 	onOpenChange: (open: boolean) => void;
 }) {
 	const t = useT();
 	const projects = useAppStore((s) => s.projects);
-	const protocolVersion = useAppStore((s) => s.protocolVersion);
+	const workspacesByProject = useAppStore((s) => s.workspaces);
 
 	const [selectedProjectId, setSelectedProjectId] = useState(projectId);
 	const [target, setTarget] = useState<WorkspaceTarget>("worktree");
 	const [baseRef, setBaseRef] = useState<string>("");
-	const [prompt, setPrompt] = useState("");
-	const [skillCommands, setSkillCommands] = useState<SlashCommandInfo[]>([]);
-	const [templates, setTemplates] = useState<TemplateInfo[]>([]);
-	const [slotSession, setSlotSession] = useState<TemplateSlotSessionState | null>(null);
-	const [model, setModel] = useState<WireModel | null>(null);
-	const [thinkingLevel, setThinkingLevel] = useState<ThinkingLevel>("medium");
-	const [hostDefault, setHostDefault] = useState<ModelDefault | null>(null);
-	const [explicitPair, setExplicitPair] = useState(false);
-	const pendingDefault = useRef<(() => void) | null>(null);
-	const pickExplicitly = useCallback(() => {
-		pendingDefault.current?.();
-		pendingDefault.current = null;
-		setExplicitPair(true);
-	}, []);
-	const attachedImages = usePromptImages();
+	const [selectedFolderPath, setSelectedFolderPath] = useState<string>("");
+	const [existingCandidates, setExistingCandidates] = useState<ExistingWorktreeCandidate[]>([]);
 	const [creating, setCreating] = useState(false);
-	const [trusting, setTrusting] = useState(false);
-	const [manageSkills, setManageSkills] = useState(false);
-	const promptRef = useRef<HTMLTextAreaElement>(null);
-	const hostDefaultAsked = useRef(false);
 	const targetGroupName = useId();
 	const [dialogEl, setDialogEl] = useState<HTMLElement | null>(null);
-	const updatePromptDraft = useCallback(
-		(nextPrompt: string, nextSlotSession: TemplateSlotSessionState | null) => {
-			setPrompt(nextPrompt);
-			setSlotSession(nextSlotSession);
-		},
-		[],
-	);
-
-	const focusPromptSelection = usePendingSelection(promptRef);
-
-	const supportsProjectTemplatePreview =
-		protocolVersion !== null && protocolVersion >= PROJECT_TEMPLATE_PREVIEW_PROTOCOL_VERSION;
-	const loadTemplate = useCallback(
-		(name: string) => {
-			const location: TemplateReadLocation = supportsProjectTemplatePreview
-				? { projectId: selectedProjectId }
-				: {};
-			return getTransport().request("template.get", { ...location, name });
-		},
-		[selectedProjectId, supportsProjectTemplatePreview],
-	);
-	const applyTemplate = useCallback(
-		(template: ParsedTemplate) => {
-			const transition = beginTemplateSlotSession(template);
-			updatePromptDraft(transition.value, transition.session);
-			focusPromptSelection(transition.selection.start, transition.selection.end);
-		},
-		[focusPromptSelection, updatePromptDraft],
-	);
-	const { pending: templatePending, pick: pickTemplate } = useTemplateCommandPicker({
-		draft: prompt,
-		contextKey: `${selectedProjectId}:${supportsProjectTemplatePreview ? "project" : "global"}`,
-		load: loadTemplate,
-		onApply: applyTemplate,
-	});
-	const slashCompletion = useSlashCommandCompletion({
-		value: prompt,
-		commands: [...skillCommands, ...templates.map(templateToSlashCommand)],
-		onSelect: (command) => {
-			if (command.source === "prompt") {
-				void pickTemplate(command.name);
-				return;
-			}
-			const next = selectedSlashCommandValue(command);
-			updatePromptDraft(next, null);
-			focusPromptSelection(next.length);
-		},
-	});
-	const slashActive = slashCommandQuery(prompt) !== null;
-
-	const stepPromptSlot = (direction: 1 | -1) => {
-		if (!slotSession) return;
-		const transition = stepTemplateSlotSession(prompt, slotSession, direction);
-		updatePromptDraft(transition.value, transition.session);
-		focusPromptSelection(transition.selection.start, transition.selection.end);
-	};
 
 	useEffect(() => {
 		if (!open) return;
 		setSelectedProjectId(projectId);
-		updatePromptDraft(initialPrompt ?? "", null);
 		setTarget("worktree");
+		setSelectedFolderPath("");
 		setCreating(false);
-		attachedImages.reset();
-		hostDefaultAsked.current = false;
-		setExplicitPair(false);
-	}, [open, projectId, initialPrompt, updatePromptDraft, attachedImages.reset]);
+	}, [open, projectId]);
+
+	useEffect(() => {
+		if (!open) return;
+		setSelectedFolderPath("");
+		let cancelled = false;
+		void getTransport()
+			.request("workspace.listExisting", { projectId: selectedProjectId })
+			.then((rows) => {
+				if (!cancelled) setExistingCandidates(rows);
+			})
+			.catch(() => {
+				if (!cancelled) setExistingCandidates([]);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [open, selectedProjectId]);
 
 	useEffect(() => {
 		if (!open) return;
@@ -218,125 +146,6 @@ export function NewWorkspaceDialog({
 		onOpenChange(false);
 		toast.info(i18n.t("panels.newWorkspace.projectClosed"));
 	}, [open, projects, selectedProjectId, onOpenChange]);
-
-	useEffect(() => {
-		if (!open) return;
-		let cancelled = false;
-		setSkillCommands([]);
-		setTemplates([]);
-		void slashCommandCatalogOrEmpty(() =>
-			getTransport().request("skill.list", { projectId: selectedProjectId }),
-		).then((commands) => {
-			if (!cancelled) setSkillCommands(commands);
-		});
-		return () => {
-			cancelled = true;
-		};
-	}, [open, selectedProjectId]);
-
-	useEffect(() => {
-		if (!open || !slashActive) return;
-		let cancelled = false;
-		const location: TemplateReadLocation = supportsProjectTemplatePreview
-			? { projectId: selectedProjectId }
-			: {};
-		getTransport()
-			.request("template.list", location)
-			.then(({ templates: nextTemplates }) => {
-				if (!cancelled) setTemplates(nextTemplates);
-			})
-			.catch(() => {
-				if (!cancelled) setTemplates([]);
-			});
-		return () => {
-			cancelled = true;
-		};
-	}, [open, selectedProjectId, slashActive, supportsProjectTemplatePreview]);
-
-	const trustSummary = useProjectTrustSummary(selectedProjectId, open);
-
-	const {
-		models: allModels,
-		refreshing: modelsRefreshing,
-		refresh: onRefreshModels,
-		fresh: catalogFresh,
-	} = useModelCatalog(open);
-	const hiddenModels = useAppStore((s) => s.hiddenModels);
-	const visibleModels = useMemo(
-		() => selectPickerModels(allModels, hiddenModels, []),
-		[allModels, hiddenModels],
-	);
-	const models = useMemo(
-		() => selectPickerModels(allModels, hiddenModels, [model]),
-		[allModels, hiddenModels, model],
-	);
-	const modelPreferences = useModelPreferences(visibleModels);
-
-	const applyHostDefault = useCallback(() => {
-		let cancelled = false;
-		const cancel = () => {
-			cancelled = true;
-		};
-		pendingDefault.current?.();
-		pendingDefault.current = cancel;
-		setExplicitPair(false);
-		getTransport()
-			.request("model.default", {})
-			.then((d) => {
-				setHostDefault(d);
-				if (cancelled) return;
-				pendingDefault.current = null;
-				setModel(d.model);
-				setThinkingLevel(d.thinkingLevel);
-			})
-			.catch(() => {});
-		return cancel;
-	}, []);
-
-	const defaultOption: DefaultPairOption = {
-		resolved: hostDefault,
-		active: !explicitPair,
-		onSelect: () => {
-			applyHostDefault();
-		},
-	};
-
-	useEffect(() => {
-		if (!open) return;
-		return applyHostDefault();
-	}, [open, applyHostDefault]);
-
-	useEffect(() => {
-		if (!open || !model) return;
-		const next = reconcileModel(allModels, model, catalogFresh);
-		if (next === null) return;
-		if (next !== "unavailable") {
-			if (next !== model) setModel(next);
-			return;
-		}
-		if (hostDefaultAsked.current) return;
-		hostDefaultAsked.current = true;
-		return applyHostDefault();
-	}, [open, allModels, model, catalogFresh, applyHostDefault]);
-
-	useEffect(() => {
-		if (!open || !model) return;
-		if (model.thinkingLevels.includes(thinkingLevel)) return;
-		let cancelled = false;
-		getTransport()
-			.request("model.clampThinking", {
-				provider: model.provider,
-				id: model.id,
-				level: thinkingLevel,
-			})
-			.then((r) => {
-				if (!cancelled) setThinkingLevel(r.level);
-			})
-			.catch(() => {});
-		return () => {
-			cancelled = true;
-		};
-	}, [open, model, thinkingLevel]);
 
 	const prefetchBase = (ref: string) => {
 		if (!ref) return;
@@ -359,15 +168,44 @@ export function NewWorkspaceDialog({
 		setBaseRef(list.defaultBranch);
 		prefetchBase(list.defaultBranch);
 	});
-	const submitEnabled = !creating && !templatePending && attachedImages.pending === 0;
+	const submitEnabled = !creating;
+	const selectedProject = projects.find((p) => p.id === selectedProjectId);
+	const projectWorkspaces = workspacesByProject[selectedProjectId];
+	const folderOptions = buildFolderOptions(
+		t("panels.newWorkspace.defaultFolderOption"),
+		selectedProject?.path,
+		projectWorkspaces,
+		existingCandidates,
+	);
 
 	const create = async () => {
 		if (!submitEnabled) return;
 		setCreating(true);
-		const text = finalizeTemplateSlotSession(prompt, slotSession).trim();
-		const attachments = attachedImages.images.map(({ name, content }) => ({ name, content }));
 		let workspace: Workspace;
 		if (target === "default") {
+			if (selectedFolderPath) {
+				const existingWs = projectWorkspaces?.find((ws) => ws.worktreePath === selectedFolderPath);
+				if (existingWs) {
+					workspace = existingWs;
+				} else {
+					const opened = await getTransport()
+						.request("workspace.openExisting", {
+							projectId: selectedProjectId,
+							path: selectedFolderPath,
+						})
+						.catch((err: unknown) => {
+							toast.error(errorText(err), t("panels.newWorkspace.createFailed"));
+							setCreating(false);
+							return null;
+						});
+					if (!opened) return;
+					workspace = opened;
+				}
+				void refreshProjectWorkspaces(workspace.projectId).catch(() => {});
+				useAppStore.getState().activateWorkspace(workspace);
+				onOpenChange(false);
+				return;
+			}
 			const def = await enterDefaultWorkspace(selectedProjectId);
 			if (!def) {
 				setCreating(false);
@@ -398,63 +236,8 @@ export function NewWorkspaceDialog({
 			store.activateWorkspace(workspace);
 		}
 		onOpenChange(false);
-
-		store.beginChatStart(workspace.id);
-		const startChat = async () => {
-			const { result: session, syncedTick } = await createSessionWithSkillBaseline({
-				workspaceId: workspace.id,
-				...(model && explicitPair ? { model, thinkingLevel } : {}),
-			});
-			store.openChatSession(
-				workspace.id,
-				session.sessionId,
-				session.model,
-				session.thinkingLevel,
-				syncedTick,
-			);
-			if (!text && attachments.length === 0) return;
-			store.appendUserMessage(
-				session.sessionId,
-				text,
-				attachments.length > 0 ? attachments : undefined,
-			);
-			getTransport()
-				.request("session.prompt", {
-					sessionId: session.sessionId,
-					text,
-					...(attachments.length > 0 ? { images: attachments.map((a) => a.content) } : {}),
-				})
-				.catch((err) => store.appendErrorTurn(session.sessionId, errorText(err)));
-		};
-		await startChat()
-			.catch((err: unknown) =>
-				toast.error(errorText(err), t("panels.newWorkspace.chatStartFailed")),
-			)
-			.finally(() => useAppStore.getState().endChatStart(workspace.id));
 	};
 
-	const trustProject = async (notice: Extract<ProjectTrustNotice, { kind: "untrusted" }>) => {
-		if (trusting) return;
-		setTrusting(true);
-		const trust = async () => {
-			const updated = await getTransport().request(
-				"project.setTrust",
-				trustGrantParams(selectedProjectId, notice),
-			);
-			useAppStore.getState().applyProjectUpdated(updated);
-			const commands = await slashCommandCatalogOrEmpty(() =>
-				getTransport().request("skill.list", { projectId: selectedProjectId }),
-			);
-			setSkillCommands(commands);
-		};
-		await trust()
-			.catch((err: unknown) => toast.error(errorText(err), t("panels.newWorkspace.trustFailed")))
-			.finally(() => setTrusting(false));
-	};
-
-	const selectedProject = projects.find((p) => p.id === selectedProjectId);
-	const trustNotice = deriveProjectTrustNotice(selectedProject, trustSummary);
-	const trustEnables = trustNotice.kind === "untrusted" ? trustEnablesText(t, trustNotice) : null;
 	const isolated = target === "worktree";
 
 	return (
@@ -464,20 +247,6 @@ export function NewWorkspaceDialog({
 				hideClose
 				data-testid="new-workspace-dialog"
 				className="max-w-[600px] gap-12 p-12"
-				onEscapeKeyDown={(event) => {
-					if (slashCompletion.open) {
-						event.preventDefault();
-						slashCompletion.dismiss();
-						return;
-					}
-					if (!slotSession) return;
-					event.preventDefault();
-					updatePromptDraft(prompt, null);
-				}}
-				onOpenAutoFocus={(e) => {
-					e.preventDefault();
-					promptRef.current?.focus();
-				}}
 			>
 				<DialogHeader>
 					<DialogTitle>
@@ -535,153 +304,17 @@ export function NewWorkspaceDialog({
 							onSelect={selectBaseRef}
 							onRefresh={refreshBranches}
 						/>
-					) : null}
-					<SkillsButton
-						onOpen={() => setManageSkills(true)}
-						testId="ws-manage-skills"
-						className="ml-auto"
-					/>
-				</div>
-
-				{trustNotice.kind === "untrusted" ? (
-					<div
-						data-testid="ws-trust-notice"
-						className="flex w-full flex-col gap-8 rounded-sm border border-feedback-warning-muted bg-container-elevated-bg px-12 py-8 text-left"
-					>
-						<div className="flex items-start gap-8">
-							<TriangleAlert className="mt-2 size-14 shrink-0 text-feedback-warning" aria-hidden />
-							<span className="flex min-w-0 flex-1 flex-col gap-2">
-								<span className="tr-text-ui text-text-default">
-									{untrustedNoticeText(t, trustNotice)} {t("panels.newWorkspace.trustUnaffected")}
-								</span>
-								{trustEnables ? (
-									<span className="text-text-muted tr-text-metadata">{trustEnables}</span>
-								) : null}
-							</span>
-						</div>
-						<div className="flex justify-end">
-							<Button
-								variant="outline"
-								size="m"
-								data-testid="ws-trust-project"
-								disabled={trusting}
-								onClick={() => void trustProject(trustNotice)}
-							>
-								{t("panels.newWorkspace.trustProject")}
-							</Button>
-						</div>
-					</div>
-				) : null}
-
-				<div className="relative">
-					{promptNote ? (
-						<p
-							data-testid="ws-prompt-note"
-							className="mb-4 flex items-start gap-8 rounded-sm border border-primary-muted bg-clip-padding bg-primary-subtle px-12 py-8 text-left text-text-muted tr-text-metadata leading-snug"
-						>
-							<Sparkles className="mt-2 size-14 shrink-0 text-primary" />
-							<span>{promptNote}</span>
-						</p>
-					) : null}
-					<PromptImageChips
-						controller={attachedImages}
-						testId="ws-prompt-images"
-						className={PROMPT_IMAGE_CHIPS_PADDING.dialog}
-					/>
-					<Textarea
-						ref={promptRef}
-						data-testid="ws-prompt"
-						value={prompt}
-						disabled={creating}
-						{...imagePasteDropHandlers(attachedImages)}
-						onChange={(e) => {
-							const next = e.target.value;
-							const nextSlotSession = slotSession
-								? applyTemplateSlotEdit(prompt, next, e.target.selectionStart, slotSession)
-								: null;
-							updatePromptDraft(next, nextSlotSession);
-						}}
-						placeholder={t("panels.newWorkspace.promptPlaceholder")}
-						spellCheck={false}
-						rows={6}
-						className="min-h-[160px]"
-						onKeyDown={(e) => {
-							if (isPromptKeyEventComposing(e.nativeEvent)) return;
-							if (slotSession && !slashCompletion.open) {
-								if (e.key === "Tab") {
-									e.preventDefault();
-									e.stopPropagation();
-									stepPromptSlot(e.shiftKey ? -1 : 1);
-									return;
-								}
-								if (e.key === "Escape") {
-									e.preventDefault();
-									e.stopPropagation();
-									updatePromptDraft(prompt, null);
-									return;
-								}
-							}
-							if (slashCompletion.handleKeyDown(e)) return;
-							if (e.key === "Enter" && !e.shiftKey) {
-								e.preventDefault();
-								if (submitEnabled) void create();
-							}
-						}}
-					/>
-					{slashCompletion.open ? (
-						<SlashCommandMenu
-							commands={slashCompletion.matches}
-							activeIndex={slashCompletion.activeIndex}
-							onSelect={slashCompletion.pick}
-							className="absolute top-full left-8 z-50 mt-4"
-						/>
-					) : slotSession ? (
-						<TemplateSlotHint
-							activeIndex={slotSession.activeIndex}
-							count={slotSession.slots.length}
-							onNext={() => stepPromptSlot(1)}
-							className="absolute top-full left-8 z-50 mt-4"
-						/>
-					) : prompt.trim() && isolated ? (
-						<p
-							data-testid="workspace-naming-hint"
-							className="px-4 text-text-muted tr-text-metadata"
-						>
-							{t("panels.newWorkspace.namingHint")}
-						</p>
 					) : (
-						<p className="mt-4 text-text-muted tr-text-metadata">
-							<T
-								i18nKey="panels.newWorkspace.slashHint"
-								components={[<span key="slash" className="tr-code-text" />]}
-							/>
-						</p>
+						<FolderPicker
+							options={folderOptions}
+							selectedPath={selectedFolderPath}
+							container={dialogEl}
+							onSelect={setSelectedFolderPath}
+						/>
 					)}
 				</div>
 
-				<div className="flex flex-wrap items-center gap-8">
-					<div className="flex min-w-0 flex-1 flex-wrap items-center gap-8">
-						<ModelEffortPicker
-							models={models}
-							current={model}
-							level={thinkingLevel}
-							refreshing={modelsRefreshing}
-							onRefresh={onRefreshModels}
-							onSelect={({ model: next, level }) => {
-								pickExplicitly();
-								setModel(next);
-								if (level) setThinkingLevel(level);
-							}}
-							onSelectLevel={(level) => {
-								pickExplicitly();
-								setThinkingLevel(level);
-							}}
-							preferences={modelPreferences}
-							defaultOption={defaultOption}
-							container={dialogEl}
-							className="max-w-full"
-						/>
-					</div>
+				<div className="flex flex-wrap items-center justify-end gap-8">
 					<Button
 						variant="primary"
 						size="l"
@@ -707,11 +340,6 @@ export function NewWorkspaceDialog({
 						)}
 					</Button>
 				</div>
-				<SkillsDialog
-					projectId={selectedProjectId}
-					open={manageSkills}
-					onOpenChange={setManageSkills}
-				/>
 			</DialogContent>
 		</Dialog>
 	);
@@ -792,6 +420,68 @@ function ProjectPicker({
 								>
 									<Box className="size-14 shrink-0 text-text-muted" />
 									<span className="truncate">{p.name}</span>
+								</CommandItem>
+							))}
+						</CommandGroup>
+					</CommandList>
+				</Command>
+			</PopoverContent>
+		</Popover>
+	);
+}
+
+function FolderPicker({
+	options,
+	selectedPath,
+	container,
+	onSelect,
+}: {
+	options: FolderOption[];
+	selectedPath: string;
+	container: HTMLElement | null;
+	onSelect: (path: string) => void;
+}) {
+	const t = useT();
+	const [open, setOpen] = useState(false);
+	const current = options.find((opt) => opt.path === selectedPath) ??
+		options[0] ?? { path: "", name: t("panels.newWorkspace.defaultFolderOption") };
+	return (
+		<Popover open={open} onOpenChange={setOpen}>
+			<PopoverTrigger
+				data-testid="ws-folder-picker"
+				data-open={open}
+				className={`${PILL} max-w-[220px]`}
+			>
+				<FolderOpen className="size-14 shrink-0 text-primary" />
+				<span className="shrink-0 text-text-muted">{t("panels.newWorkspace.folderLabel")}</span>
+				<span className="truncate">{current.name}</span>
+				<ChevronDown className="size-16 shrink-0 text-text-muted" />
+			</PopoverTrigger>
+			<PopoverContent align="start" container={container} className="w-[280px] p-0">
+				<Command>
+					<CommandInput placeholder={t("panels.newWorkspace.searchFolders")} />
+					<CommandList>
+						<CommandEmpty>{t("panels.newWorkspace.noFolders")}</CommandEmpty>
+						<CommandGroup>
+							{options.map((opt) => (
+								<CommandItem
+									key={opt.path || "__default__"}
+									value={`${opt.name} ${opt.branch ?? ""}`}
+									data-testid="ws-folder-option"
+									onSelect={() => {
+										onSelect(opt.path);
+										setOpen(false);
+									}}
+								>
+									{opt.path ? (
+										<GitBranch className="size-14 shrink-0 text-primary" />
+									) : (
+										<House className="size-14 shrink-0 text-text-muted" />
+									)}
+									<span className="min-w-0 flex-1 truncate">{opt.name}</span>
+									{opt.branch ? (
+										<span className="shrink-0 text-text-subtle tr-text-caption">{opt.branch}</span>
+									) : null}
 								</CommandItem>
 							))}
 						</CommandGroup>

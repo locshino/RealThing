@@ -14,7 +14,7 @@ function git(...args: string[]): void {
 beforeEach(() => {
 	repo = mkdtempSync(join(tmpdir(), "trpi-git-object-name-"));
 	git("init", "-b", "main");
-	git("config", "user.email", "t@thinkrail.test");
+	git("config", "user.email", "t@realthing.test");
 	git("config", "user.name", "test");
 	git("config", "commit.gpgsign", "false");
 });

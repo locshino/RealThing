@@ -1,5 +1,5 @@
 {
-	"name": "@thinkrail/website",
+	"name": "@realthing/website",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
@@ -15,7 +15,7 @@
 		"verify:deployment": "bun src/verifyDeployment.ts"
 	},
 	"dependencies": {
-		"@thinkrail/website-analytics": "workspace:*",
+		"@realthing/website-analytics": "workspace:*",
 		"lucide-react": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:"

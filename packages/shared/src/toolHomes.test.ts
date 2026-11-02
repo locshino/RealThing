@@ -7,5 +7,5 @@ test("every tool home resolves under the given home and every outside override i
 	for (const value of Object.values(toolHomeEnv(home))) {
 		expect(value === "" || value === home || value.startsWith(`${home}${sep}`)).toBe(true);
 	}
-	expect(toolHomeEnv(home).CLAUDE_CODE_OAUTH_TOKEN).toBe("");
+	expect(toolHomeEnv(home).XDG_CONFIG_HOME).toBe(join(home, ".config"));
 });

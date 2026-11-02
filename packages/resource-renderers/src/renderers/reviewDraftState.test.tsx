@@ -1,5 +1,5 @@
 import { beforeEach, expect, test } from "bun:test";
-import { TooltipProvider } from "@thinkrail/ui/tooltip";
+import { TooltipProvider } from "@realthing/ui/tooltip";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ReviewThread } from "../registry";
 import { ReviewThreadCard } from "../support/ReviewThreadCard";
@@ -19,7 +19,7 @@ beforeEach(() => sections.clear());
 
 function persistence(
 	path = "file.ts",
-	rendererId = "thinkrail/code",
+	rendererId = "realthing/code",
 	workspace = "ws",
 	id = "branch",
 ): ReviewDraftPersistence {
@@ -88,9 +88,9 @@ test("draft scratch is isolated by workspace, tab scope, file, renderer and surf
 	typeText(mount());
 	for (const scope of [
 		persistence("other.ts"),
-		persistence("file.ts", "thinkrail/json"),
-		persistence("file.ts", "thinkrail/code", "other-ws"),
-		persistence("file.ts", "thinkrail/code", "ws", "uncommitted"),
+		persistence("file.ts", "realthing/json"),
+		persistence("file.ts", "realthing/code", "other-ws"),
+		persistence("file.ts", "realthing/code", "ws", "uncommitted"),
 	]) {
 		expect(mount(scope).selection).toBeNull();
 		expect(mount(scope).input?.read()).toBeUndefined();
@@ -123,7 +123,7 @@ test("Cancel or completed Save/Send clears scratch after unmount, and cannot clo
 
 test("typing writes only the composer's text slot, never the selection slot a surface reads", () => {
 	mount().select({ side: "worktree", anchor: "L2" });
-	const selectionSlot = JSON.stringify(["thinkrail/code", "selection"]);
+	const selectionSlot = JSON.stringify(["realthing/code", "selection"]);
 	const selection = persistence().read(selectionSlot);
 	typeText(mount(), "a");
 	typeText(mount(), "ab");
@@ -154,11 +154,11 @@ test("a changed content stamp never restores a selection against a different rev
 });
 
 test("rich composers retain the same scratch across renderer switches", () => {
-	mount(persistence("file.json", "thinkrail/json")).select({ side: "worktree", anchor: "/value" });
-	typeText(mount(persistence("file.json", "thinkrail/json")), "structural note");
-	expect(mount(persistence("file.json", "thinkrail/code")).selection).toBeNull();
-	expect(mount(persistence("file.json", "thinkrail/json")).selection?.anchor).toBe("/value");
-	expect(mount(persistence("file.json", "thinkrail/json")).input?.read()?.text).toBe(
+	mount(persistence("file.json", "realthing/json")).select({ side: "worktree", anchor: "/value" });
+	typeText(mount(persistence("file.json", "realthing/json")), "structural note");
+	expect(mount(persistence("file.json", "realthing/code")).selection).toBeNull();
+	expect(mount(persistence("file.json", "realthing/json")).selection?.anchor).toBe("/value");
+	expect(mount(persistence("file.json", "realthing/json")).input?.read()?.text).toBe(
 		"structural note",
 	);
 });
@@ -187,7 +187,7 @@ test("draft thread scratch restores in rich and source cards without a host writ
 	persistence("file.json").update(JSON.stringify([null, "thread:comment-1"]), () =>
 		reviewTextState("unsaved thread edit"),
 	);
-	for (const renderer of ["thinkrail/json", "thinkrail/code"]) {
+	for (const renderer of ["realthing/json", "realthing/code"]) {
 		const markup = renderToStaticMarkup(
 			<ReviewDraftContext value={persistence("file.json", renderer)}>
 				<TooltipProvider>

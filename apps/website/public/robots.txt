@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://thinkrail.ai/sitemap-index.xml
+Sitemap: https://realthing.ai/sitemap-index.xml

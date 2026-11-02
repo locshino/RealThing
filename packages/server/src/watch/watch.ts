@@ -1,12 +1,8 @@
 import { type FSWatcher, readFileSync, statSync, watch } from "node:fs";
 import { isAbsolute, resolve } from "node:path";
-import type {
-	WorkspaceFsChangedPayload,
-	WorkspaceSkillChange,
-	WorkspaceWatchReadyResult,
-} from "@thinkrail/contracts";
+import type { WorkspaceFsChangedPayload, WorkspaceWatchReadyResult } from "@realthing/contracts";
 import { logger } from "../log";
-import { loadWorkspaces } from "../persistence";
+import { loadConfig, loadWorkspaces } from "../persistence";
 import { type Coalescer, createCoalescer } from "./coalesce";
 
 const log = logger("watch");
@@ -17,12 +13,9 @@ const MAX_PATHS = 100;
 const STARTUP_NUDGE_MS = 750;
 const MAX_PREWARM_ONLY_WATCHES = 8;
 
-const IGNORED_SEGMENTS = new Set([".git", "node_modules"]);
-const IGNORED_NAMES = new Set([".DS_Store"]);
 const REPO_META_DEBOUNCE_MS = 300;
 
 type WatchPublisher = (payload: WorkspaceFsChangedPayload) => void;
-type SkillPathClassifier = (relativePath: string) => boolean;
 type RepoMetaPublisher = (workspaceId: string) => void;
 type WatchStartedPublisher = (workspaceId: string) => void;
 
@@ -34,14 +27,9 @@ const startupFallback = Promise.resolve(STARTUP_NUDGE);
 let publish: WatchPublisher | null = null;
 let publishRepoMeta: RepoMetaPublisher | null = null;
 let publishWatchStarted: WatchStartedPublisher | null = null;
-let isSkillPath: SkillPathClassifier | null = null;
 
 export function setWatchPublisher(publisher: WatchPublisher | null): void {
 	publish = publisher;
-}
-
-export function setSkillPathClassifier(classifier: SkillPathClassifier | null): void {
-	isSkillPath = classifier;
 }
 
 export function setRepoMetaPublisher(publisher: RepoMetaPublisher | null): void {
@@ -114,11 +102,10 @@ function scheduleRepoMeta(workspaceId: string, watcher: FSWatcher): void {
 	if (entry) entry.metaTimer = timer;
 }
 
-export function isIgnoredPath(relPath: string): boolean {
-	const segments = relPath.split(/[\\/]/);
-	if (segments.some((s) => IGNORED_SEGMENTS.has(s))) return true;
-	const name = segments[segments.length - 1];
-	return name !== undefined && IGNORED_NAMES.has(name);
+export function isIgnoredPath(relPath: string, extraExcluded?: readonly string[]): boolean {
+	const excluded = new Set(extraExcluded ?? loadConfig().filesExclude);
+	excluded.add(".git");
+	return relPath.split(/[\\/]/).some((s) => excluded.has(s));
 }
 
 interface WatchEntry {
@@ -183,10 +170,8 @@ export function ensureWatch(
 		quietMs: QUIET_MS,
 		maxWaitMs: MAX_WAIT_MS,
 		maxPaths: MAX_PATHS,
-		onFlush: ({ paths, truncated, skillChange }) => {
-			deliver("fsChanged", workspaceId, () =>
-				publish?.({ workspaceId, paths, truncated, skillChange }),
-			);
+		onFlush: ({ paths, truncated }) => {
+			deliver("fsChanged", workspaceId, () => publish?.({ workspaceId, paths, truncated }));
 		},
 	});
 
@@ -195,15 +180,7 @@ export function ensureWatch(
 			const rel = typeof filename === "string" ? filename.replaceAll("\\", "/") : null;
 			if (rel === null || isRepoMetaPath(rel)) scheduleRepoMeta(workspaceId, watcher);
 			if (rel !== null && isIgnoredPath(rel)) return;
-			const skillChange: WorkspaceSkillChange =
-				rel === null
-					? "unknown"
-					: isSkillPath === null
-						? "unknown"
-						: isSkillPath(rel)
-							? "detected"
-							: "none";
-			coalescer.add(rel, skillChange);
+			coalescer.add(rel);
 		});
 		watcher.on("error", () => {
 			log.warn(`worktree watcher failed for workspace ${workspaceId}`);
@@ -232,7 +209,7 @@ export function ensureWatch(
 			if (entries.get(workspaceId) !== entry) return;
 			entry.nudgeTimer = null;
 			deliver("fsChanged", workspaceId, () =>
-				publish?.({ workspaceId, paths: [], truncated: true, skillChange: "unknown" }),
+				publish?.({ workspaceId, paths: [], truncated: true }),
 			);
 			settleReady(entry);
 		}, STARTUP_NUDGE_MS);

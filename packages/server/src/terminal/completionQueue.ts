@@ -1,5 +1,5 @@
-import type { TerminalDataPush, TerminalExitPush } from "@thinkrail/contracts";
-import { WS_CHANNELS } from "@thinkrail/contracts";
+import type { TerminalDataPush, TerminalExitPush } from "@realthing/contracts";
+import { WS_CHANNELS } from "@realthing/contracts";
 import type { TerminalDeliveryResult } from "./outputBatcher";
 
 export interface TerminalCompletion {

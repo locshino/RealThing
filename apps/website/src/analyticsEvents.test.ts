@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { WebsiteAnalyticsEventProperties } from "@thinkrail/website-analytics";
+import type { WebsiteAnalyticsEventProperties } from "@realthing/website-analytics";
 import {
 	cliDisclosureOpenedEvent,
 	contentKeyForPathname,
@@ -16,25 +16,25 @@ import {
 import { installCommands } from "./installCommands";
 
 const stableDesktopAliases = {
-	"https://github.com/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-darwin-arm64.dmg":
+	"https://github.com/JetBrains/realthing/releases/latest/download/realthing-desktop-darwin-arm64.dmg":
 		{
 			platform: "macos",
 			architecture: "arm64",
 			artifact: "dmg",
 		},
-	"https://github.com/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-windows-x64.zip":
+	"https://github.com/JetBrains/realthing/releases/latest/download/realthing-desktop-windows-x64.zip":
 		{
 			platform: "windows",
 			architecture: "x64",
 			artifact: "zip",
 		},
-	"https://github.com/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-linux-x64.tar.gz":
+	"https://github.com/JetBrains/realthing/releases/latest/download/realthing-desktop-linux-x64.tar.gz":
 		{
 			platform: "linux",
 			architecture: "x64",
 			artifact: "tar.gz",
 		},
-	"https://github.com/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-linux-arm64.tar.gz":
+	"https://github.com/JetBrains/realthing/releases/latest/download/realthing-desktop-linux-arm64.tar.gz":
 		{
 			platform: "linux",
 			architecture: "arm64",
@@ -125,9 +125,9 @@ describe("website content keys", () => {
 	test.each([
 		["/", "landing"],
 		["/blog/", "blog/index"],
-		["/blog/introducing-thinkrail/", "blog/introducing-thinkrail"],
-		["/blog/thinkrail-workspaces/", "blog/thinkrail-workspaces"],
-		["/blog/thinkrail-sdd/", "blog/thinkrail-sdd"],
+		["/blog/introducing-realthing/", "blog/introducing-realthing"],
+		["/blog/realthing-workspaces/", "blog/realthing-workspaces"],
+		["/blog/realthing-sdd/", "blog/realthing-sdd"],
 		["/vibecoding/", "vibecoding"],
 		["/agentic-development/", "agentic-development"],
 		["/agentic-ide/", "agentic-ide"],
@@ -152,7 +152,7 @@ describe("website content keys", () => {
 		"/blog/new%2dpost/",
 		`/${"a".repeat(106)}/`,
 		"/docs//setup/",
-		"https://thinkrail.ai/",
+		"https://realthing.ai/",
 	])("rejects an unsafe pathname %s", (pathname) => {
 		expect(contentKeyForPathname(pathname)).toBeUndefined();
 	});
@@ -166,10 +166,10 @@ describe("stable desktop artifacts", () => {
 	});
 
 	test.each([
-		"https://github.com/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-darwin-x64.dmg",
-		"https://github.com/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-linux-x64.tar.gz?source=test",
-		"https://github.com/JetBrains/thinkrail/releases/download/v1/thinkrail-desktop-windows-x64.zip",
-		"/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-windows-x64.zip",
+		"https://github.com/JetBrains/realthing/releases/latest/download/realthing-desktop-darwin-x64.dmg",
+		"https://github.com/JetBrains/realthing/releases/latest/download/realthing-desktop-linux-x64.tar.gz?source=test",
+		"https://github.com/JetBrains/realthing/releases/download/v1/realthing-desktop-windows-x64.zip",
+		"/JetBrains/realthing/releases/latest/download/realthing-desktop-windows-x64.zip",
 	])("rejects the unknown or non-exact URL %s", (url) => {
 		expect(desktopArtifactForUrl(url)).toBeUndefined();
 	});
@@ -191,7 +191,7 @@ describe("CTA classification", () => {
 	});
 
 	test("captures the blog-post CLI disclosure only when it opens", () => {
-		const contentKey = "blog/thinkrail-0-2-0-review-the-turn";
+		const contentKey = "blog/realthing-0-2-0-review-the-turn";
 		expect(
 			cliDisclosureOpenedEvent(contentKey, disclosure(false, ".blog-post details.cli-disclosure")),
 		).toBeUndefined();
@@ -203,7 +203,7 @@ describe("CTA classification", () => {
 		).toEqual({
 			event: "install_cta_clicked",
 			properties: {
-				content_key: "blog/thinkrail-0-2-0-review-the-turn",
+				content_key: "blog/realthing-0-2-0-review-the-turn",
 				cta_location: "blog_post",
 				install_method: "cli",
 			},
@@ -214,22 +214,22 @@ describe("CTA classification", () => {
 
 describe("GitHub link classification", () => {
 	test.each([
-		["https://github.com/JetBrains/thinkrail", "repo"],
-		["https://github.com/JetBrains/thinkrail/", "repo"],
-		["https://github.com/JetBrains/thinkrail#install", "repo"],
-		["https://github.com/JetBrains/thinkrail/releases", "releases"],
-		["https://github.com/JetBrains/thinkrail/releases/tag/v1.0.0", "releases"],
-		["https://github.com/JetBrains/thinkrail/issues", "other"],
-		["https://github.com/JetBrains/thinkrail/blob/main/LICENSE", "other"],
+		["https://github.com/JetBrains/realthing", "repo"],
+		["https://github.com/JetBrains/realthing/", "repo"],
+		["https://github.com/JetBrains/realthing#install", "repo"],
+		["https://github.com/JetBrains/realthing/releases", "releases"],
+		["https://github.com/JetBrains/realthing/releases/tag/v1.0.0", "releases"],
+		["https://github.com/JetBrains/realthing/issues", "other"],
+		["https://github.com/JetBrains/realthing/blob/main/LICENSE", "other"],
 	] as const)("classifies %s as %s", (url, target) => {
 		expect(githubTargetForUrl(url)).toBe(target);
 	});
 
 	test.each([
 		...Object.keys(stableDesktopAliases),
-		"https://github.com/JetBrains/thinkrail-other",
+		"https://github.com/JetBrains/realthing-other",
 		"https://github.com/JetBrains",
-		"https://raw.githubusercontent.com/JetBrains/thinkrail/main/install.sh",
+		"https://raw.githubusercontent.com/JetBrains/realthing/main/install.sh",
 		"#quick-start",
 	])("ignores %s", (url) => {
 		expect(githubTargetForUrl(url)).toBeUndefined();
@@ -252,7 +252,7 @@ describe("GitHub link classification", () => {
 
 	test("builds a bounded GitHub click event", () => {
 		expect(
-			githubClickedEvent("vibecoding", elementAt("#top"), "https://github.com/JetBrains/thinkrail"),
+			githubClickedEvent("vibecoding", elementAt("#top"), "https://github.com/JetBrains/realthing"),
 		).toEqual({
 			event: "github_clicked",
 			properties: { content_key: "vibecoding", cta_location: "hero", target: "repo" },
@@ -277,10 +277,10 @@ describe("install command copies and link shares", () => {
 		const button = attributeElement(".blog-post", "[data-copy]", {
 			"data-copy": installCommands.windows.powershell,
 		});
-		expect(installCommandCopiedEvent("blog/thinkrail-0-2-0-review-the-turn", button)).toEqual({
+		expect(installCommandCopiedEvent("blog/realthing-0-2-0-review-the-turn", button)).toEqual({
 			event: "install_command_copied",
 			properties: {
-				content_key: "blog/thinkrail-0-2-0-review-the-turn",
+				content_key: "blog/realthing-0-2-0-review-the-turn",
 				cta_location: "blog_post",
 				shell: "powershell",
 			},
@@ -453,7 +453,7 @@ describe("analytics event initialization", () => {
 		const touches: number[] = [];
 		initAnalyticsEvents(
 			document,
-			"/blog/thinkrail-workspaces/",
+			"/blog/realthing-workspaces/",
 			log.capture,
 			() => {},
 			() => touches.push(1),
@@ -472,7 +472,7 @@ describe("analytics event initialization", () => {
 			{
 				event: "install_cta_clicked",
 				properties: {
-					content_key: "blog/thinkrail-workspaces",
+					content_key: "blog/realthing-workspaces",
 					cta_location: "blog_post",
 					install_method: "cli",
 				},
@@ -502,7 +502,7 @@ describe("analytics event initialization", () => {
 		log.events.length = 0;
 		order.length = 0;
 
-		const github = desktopAnchor("https://github.com/JetBrains/thinkrail", "header");
+		const github = desktopAnchor("https://github.com/JetBrains/realthing", "header");
 		const copy = attributeElement("#readme", "[data-copy]", { "data-copy": installCommands.linux });
 		const share = attributeElement("#readme", "[data-share-install-link]", {});
 		document.dispatch("click", { button: 0, target: github });

@@ -29,9 +29,9 @@ translation logic: validation and file naming come from [[module-locales]].
   `locales.changed` is an **invalidation nudge, not data** — clients re-read `locales.list`, the same
   pattern as `workspace.fsChanged`; `locales.reveal` → `Ack` (`host` composes `localesDir()` with `editors`' file-manager reveal).
 - **Allowed deps:** `persistence` (`dataDir`), `log`; external
-  `@thinkrail/locales` root.
+  `@realthing/locales` root.
 - **Forbidden:** `settings` (the chosen language is an `AppConfig` field; which tag is effective is a
-  client decision), `agent`, any workspace path.
+  client decision), any workspace path.
 
 ## Get right
 
@@ -43,8 +43,7 @@ translation logic: validation and file naming come from [[module-locales]].
   (editor save = write + rename) inside one tick is one nudge; an empty folder appearing or vanishing is
   none. Bun on Linux shares one inotify watch per path across every `fs.watch` in the process, so after
   the folder or the whole data dir is deleted and recreated, re-watching the path can return a dead
-  watcher whenever another host watcher still holds it — CI's e2e setup recreates the data dir after the
-  host starts, with the jbcentral artifact watcher on it. A dozen `stat`s a second has no such failure
+  watcher whenever another host watcher still holds it. A dozen `stat`s a second has no such failure
   mode and needs no reattach logic.
 - The host creates the folder once at start and never again — re-creating a deleted folder itself would
   make a later `mv backup locales` nest the replacement inside it.

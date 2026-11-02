@@ -7,7 +7,7 @@ const SOURCES = [
 	"apps/web/src",
 	"packages/ui",
 	"packages/resource-renderers/src",
-	"thinkrail-extensions/*/web",
+	"realthing-extensions/*/web",
 ].map((root) => new Glob(`${root}/**/*.{ts,tsx,css}`));
 
 export function designSourceFiles(root = ROOT): string[] {

@@ -9,7 +9,6 @@ export const I18N_ROOTS = [
 	"apps/web/src",
 	"packages/ui",
 	"packages/resource-renderers/src",
-	"thinkrail-extensions",
 ] as const;
 
 const SKIPPED_DIRECTORIES = new Set(["node_modules", "generated", "dist", "server", "scripts"]);
@@ -52,7 +51,7 @@ const TEXT_PROPERTIES = new Set([
 	"tooltip",
 ]);
 
-const ALLOWED_TEXT = new Set(["ThinkRail"]);
+const ALLOWED_TEXT = new Set(["RealThing"]);
 
 const WORD = /\p{L}{2,}/u;
 
@@ -198,7 +197,7 @@ function sourceFiles(root: string): string[] {
 			}
 		}
 	};
-	walk(root, root.endsWith("thinkrail-extensions"));
+	walk(root, root.endsWith("realthing-extensions"));
 	return files;
 }
 

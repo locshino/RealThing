@@ -1,6 +1,6 @@
 import * as ToastPrimitive from "@radix-ui/react-toast";
 import { RiCloseLine as X } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 import { cva, type VariantProps } from "class-variance-authority";
 import type * as React from "react";
 import { IconButton } from "./button";

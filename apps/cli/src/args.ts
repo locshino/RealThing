@@ -15,7 +15,7 @@ export interface CliOptions {
 
 export type ParseEnv = Record<string, string | undefined>;
 
-const SUBCOMMANDS = ["update", "uninstall"] as const;
+const SUBCOMMANDS = ["uninstall"] as const;
 
 export type Subcommand = (typeof SUBCOMMANDS)[number];
 
@@ -23,23 +23,19 @@ export function parseSubcommand(argv: readonly string[]): Subcommand | undefined
 	return SUBCOMMANDS.find((name) => name === argv[0]);
 }
 
-export const USAGE = `Usage: thinkrail [options] [project-dir]
-       thinkrail update [--channel stable|nightly] [--version X.Y.Z|X.Y.Z-nightly.N|latest]
-       thinkrail uninstall [--remove-data|--keep-data] [-y]
+export const USAGE = `Usage: realthing [options] [project-dir]
+       realthing uninstall [--remove-data|--keep-data] [-y]
 
-Boots the ThinkRail engine host in-process and opens the browser to the app.
-The \`update\` subcommand re-downloads + installs the latest build for your channel;
-\`uninstall\` removes ThinkRail from this machine (your ~/.thinkrail app state is kept
-unless you ask for it to go). Both take \`--help\`.
+Boots the RealThing engine host in-process and opens the browser to the app.
+\`uninstall\` removes RealThing from this machine (your ~/.realthing app state is kept
+unless you ask for it to go). It takes \`--help\`.
 
 Options:
   --port <n>     Listen port (default ${DEFAULT_PORT}; falls back to a free port if taken).
   --host <h>     Bind host (default ${DEFAULT_HOST}).
   --no-open      Don't open the browser (e.g. headless / remote host).
-  --no-analytics Disable additional usage analytics this run.
-                 The saved sharing preference lives in Settings → Privacy.
   --verbose      Debug-level logging (terminal + the rotated log files under
-                 ~/.thinkrail/logs).
+                 ~/.realthing/logs).
   -v, --version  Print the version and exit.
   -h, --help     Show this help.
 
@@ -47,10 +43,9 @@ Arguments:
   project-dir    A git repo to open as a project on launch (optional).
 
 Env:
-  THINKRAIL_PORT / THINKRAIL_HOST   Defaults for --port / --host.
-  THINKRAIL_STATIC_DIR                 Override the built web app served by the host.
-  THINKRAIL_NO_ANALYTICS               Same as --no-analytics (any non-empty value; read by the host).
-  THINKRAIL_LOG_LEVEL                  Log level: debug|info|warn|error (default info; read by the host).`;
+  REALTHING_PORT / REALTHING_HOST   Defaults for --port / --host.
+  REALTHING_STATIC_DIR                 Override the built web app served by the host.
+  REALTHING_LOG_LEVEL                  Log level: debug|info|warn|error (default info; read by the host).`;
 
 function readFlagValue(arg: string, next: string | undefined): { value: string; consumed: number } {
 	const eq = arg.indexOf("=");
@@ -102,17 +97,17 @@ export function parseArgs(argv: readonly string[], env: ParseEnv = {}): CliOptio
 		}
 	}
 
-	const envPort = env.THINKRAIL_PORT !== undefined ? Number(env.THINKRAIL_PORT) : undefined;
+	const envPort = env.REALTHING_PORT !== undefined ? Number(env.REALTHING_PORT) : undefined;
 	const resolvedPort =
 		port ?? (envPort !== undefined && Number.isInteger(envPort) ? envPort : DEFAULT_PORT);
 
 	return {
 		port: resolvedPort,
-		host: host ?? env.THINKRAIL_HOST ?? DEFAULT_HOST,
+		host: host ?? env.REALTHING_HOST ?? DEFAULT_HOST,
 		open,
 		noAnalytics,
 		verbose,
-		staticDir: env.THINKRAIL_STATIC_DIR,
+		staticDir: env.REALTHING_STATIC_DIR,
 		projectDir,
 		help,
 		version,

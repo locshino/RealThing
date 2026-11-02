@@ -1,7 +1,7 @@
 import type { ResourceRenderer } from "../../registry";
 
 export const markdownRenderer: ResourceRenderer = {
-	id: "thinkrail/markdown",
+	id: "realthing/markdown",
 	labelKey: "viewer.renderer.preview",
 	match: { glob: ["*.md", "*.mdx"], text: true },
 	rank: 110,

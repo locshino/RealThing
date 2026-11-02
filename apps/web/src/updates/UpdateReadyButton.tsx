@@ -1,6 +1,6 @@
 import { RiDownloadCloud2Line as DownloadCloud } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+import { useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import type { UpdatesController } from "./useUpdates";
 
 export function UpdateReadyButton({
@@ -11,53 +11,30 @@ export function UpdateReadyButton({
 	onOpen(): void;
 }) {
 	const t = useT();
-	const hostUpdate = updates.source === "host";
-	const hostStatus = updates.source === "host" ? updates.state.status : undefined;
-	const hostRequestFailed = updates.source === "host" && updates.requestFailed;
-	const nativeState = updates.source === "native" ? updates.state : null;
-	const nativeNeedsAttention = updates.source === "native" && updates.requestError !== null;
-	const lastInstall = nativeState?.lastInstall ?? null;
+	const nativeState = updates.state;
+	const nativeNeedsAttention = updates.requestError !== null;
+	const lastInstall = nativeState.lastInstall ?? null;
 	const installFailed = lastInstall !== null && lastInstall.outcome !== "installed";
 	const nativeActionable =
 		nativeNeedsAttention ||
 		installFailed ||
-		nativeState?.status === "available" ||
-		nativeState?.status === "downloading" ||
-		nativeState?.status === "preparing" ||
-		nativeState?.status === "ready" ||
-		nativeState?.status === "installing" ||
-		nativeState?.status === "error";
-	if (!nativeActionable && !hostUpdate) return null;
+		nativeState.status === "available" ||
+		nativeState.status === "downloading" ||
+		nativeState.status === "preparing" ||
+		nativeState.status === "ready" ||
+		nativeState.status === "installing" ||
+		nativeState.status === "error";
+	if (!nativeActionable) return null;
 
 	const availableVersion = updates.state.availableVersion;
 	let label = t("updates.button.attention");
 	let ariaLabel = availableVersion
 		? t("updates.button.attentionVersionLabel", { version: availableVersion })
 		: t("updates.button.attentionLabel");
-	if (hostUpdate) {
-		if (hostRequestFailed || hostStatus === "failed") {
-			label = t("updates.button.failed");
-			ariaLabel = t("updates.button.failedLabel");
-		} else if (hostStatus === "running") {
-			label = t("updates.button.updatingHost");
-			ariaLabel = availableVersion
-				? t("updates.button.updatingHostVersionLabel", { version: availableVersion })
-				: t("updates.button.updatingHostLabel");
-		} else if (hostStatus === "succeeded") {
-			label = t("updates.button.restartHost");
-			ariaLabel = availableVersion
-				? t("updates.button.restartHostVersionLabel", { version: availableVersion })
-				: t("updates.button.restartHostLabel");
-		} else {
-			label = t("updates.button.available");
-			ariaLabel = availableVersion
-				? t("updates.button.hostAvailableVersionLabel", { version: availableVersion })
-				: t("updates.button.hostAvailableLabel");
-		}
-	} else if (installFailed) {
+	if (installFailed) {
 		label = t("updates.button.installFailed");
 		ariaLabel = t("updates.button.installFailedLabel");
-	} else if (!nativeNeedsAttention && nativeState) {
+	} else if (!nativeNeedsAttention) {
 		switch (nativeState.status) {
 			case "available":
 				label = t("updates.button.available");
@@ -97,8 +74,8 @@ export function UpdateReadyButton({
 			size="m"
 			iconLeft={DownloadCloud}
 			data-testid="update-ready"
-			data-source={updates.source}
-			data-status={nativeState?.status ?? hostStatus ?? (hostUpdate ? "legacy" : undefined)}
+			data-source="native"
+			data-status={nativeState.status}
 			aria-label={ariaLabel}
 			onClick={onOpen}
 		>

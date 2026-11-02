@@ -1,10 +1,4 @@
 import {
-	RiBookOpenFill,
-	RiBookOpenLine,
-	RiChat2Fill,
-	RiChat2Line,
-	RiDiscussFill,
-	RiDiscussLine,
 	RiFileFill,
 	RiFileLine,
 	RiFolder2Fill,
@@ -35,8 +29,6 @@ export function tabIcon(tab: LayoutTab, active = false, cls = "size-14 shrink-0"
 			);
 		case "changes":
 			return <CustomIcon name={active ? "file-diff-fill" : "file-diff-line"} className={cls} />;
-		case "chat":
-			return active ? <RiChat2Fill className={cls} /> : <RiChat2Line className={cls} />;
 		case "document":
 			return <RiListCheck3 className={cls} />;
 		case "terminal":
@@ -45,12 +37,8 @@ export function tabIcon(tab: LayoutTab, active = false, cls = "size-14 shrink-0"
 			switch (tab.tool) {
 				case "projects":
 					return active ? <RiFolder2Fill className={cls} /> : <RiFolder2Line className={cls} />;
-				case "specs":
-					return active ? <RiBookOpenFill className={cls} /> : <RiBookOpenLine className={cls} />;
 				case "files":
 					return active ? <RiFileFill className={cls} /> : <RiFileLine className={cls} />;
-				case "review":
-					return active ? <RiDiscussFill className={cls} /> : <RiDiscussLine className={cls} />;
 				case "plan":
 					return active ? <RiTaskFill className={cls} /> : <RiTaskLine className={cls} />;
 				default:

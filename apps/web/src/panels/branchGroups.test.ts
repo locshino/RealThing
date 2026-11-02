@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { BranchList } from "@thinkrail/contracts";
+import type { BranchList } from "@realthing/contracts";
 import { hasRemoteBranches, remoteBranchPresentation } from "./branchGroups";
 
 test("host-supplied remote groups drive the two-layer presentation", () => {

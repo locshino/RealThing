@@ -86,10 +86,13 @@ describe("frontend-local layout state", () => {
 	test("a document and tool selection publish atomically with sibling fan-out", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "atomic-surface");
+		session.setItem("realthing:layout-surface-id", "atomic-surface");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		await ensureWorkspaceLayoutState("A");
 		await ensureWorkspaceLayoutState("B");
+		const focus = BUILTIN_LAYOUT_PRESETS.find((preset) => preset.id === "focus");
+		if (!focus) throw new Error("Missing Focus preset");
+		applyLayoutPresetLocally(focus);
 		const before = useAppStore.getState();
 		const base = before.layoutDocumentsByWorkspace.A;
 		const attention = before.layoutAttentionByWorkspace.A;
@@ -130,7 +133,7 @@ describe("frontend-local layout state", () => {
 	test("retired recall and mixed-pane fields in saved state are dropped, and a terminal saved inside a tool pane rehomes", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "retired-fields");
+		session.setItem("realthing:layout-surface-id", "retired-fields");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		const doc = await ensureWorkspaceLayoutState("A");
 		await commitWorkspaceLayout("A", resizeSideRegion(doc, "left", 0.33));
@@ -151,7 +154,7 @@ describe("frontend-local layout state", () => {
 			groups: {
 				[toolPane.id]: {
 					tabs: [{ kind: "terminal", id: "terminal:legacy", name: "Legacy", tabKey: "legacy" }],
-					beforeToolByTabId: { "terminal:legacy": "specs" },
+					beforeToolByTabId: { "terminal:legacy": "files" },
 				},
 			},
 		};
@@ -177,7 +180,7 @@ describe("frontend-local layout state", () => {
 
 	test("a copied live surface id is reminted while an available reload id is retained", async () => {
 		const copied = new MemoryStorage();
-		copied.setItem("thinkrail:layout-surface-id", "surface-a");
+		copied.setItem("realthing:layout-surface-id", "surface-a");
 		const occupied = new Set(["surface-a"]);
 		const reminted = await claimLayoutSurfaceId(copied, async (id) => {
 			if (occupied.has(id)) return false;
@@ -185,17 +188,17 @@ describe("frontend-local layout state", () => {
 			return true;
 		});
 		expect(reminted).not.toBe("surface-a");
-		expect(copied.getItem("thinkrail:layout-surface-id")).toBe(reminted);
+		expect(copied.getItem("realthing:layout-surface-id")).toBe(reminted);
 
 		const reload = new MemoryStorage();
-		reload.setItem("thinkrail:layout-surface-id", "surface-reload");
+		reload.setItem("realthing:layout-surface-id", "surface-reload");
 		expect(await claimLayoutSurfaceId(reload, async () => true)).toBe("surface-reload");
 	});
 
 	test("local preferences persist before any workspace is opened", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		await initializeLocalLayoutState();
 		useAppStore.getState().setLocalLayoutPreferences({
@@ -218,7 +221,7 @@ describe("frontend-local layout state", () => {
 	test("a pristine surface initializes a Balanced workspace locally without transport", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 
 		const first = await ensureWorkspaceLayoutState("workspace");
@@ -227,10 +230,8 @@ describe("frontend-local layout state", () => {
 		expect(first.center).toMatchObject({ kind: "group", tabs: [] });
 		expect(first.left.groups[0]?.tabs).toEqual([toolTab("projects")]);
 		expect(first.right.groups.flatMap((group) => group.tabs)).toEqual([
-			toolTab("specs"),
 			toolTab("files"),
 			toolTab("plan"),
-			toolTab("review"),
 		]);
 		expect(first.bottom).toMatchObject({ visible: true, groups: [{ tabs: [] }] });
 		expect(second).toBe(first);
@@ -240,7 +241,7 @@ describe("frontend-local layout state", () => {
 	test("a ready layout installs a new workspace view", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		await initializeLocalLayoutState();
 
@@ -255,10 +256,13 @@ describe("frontend-local layout state", () => {
 	test("tool attention changes fan out to other workspace views", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		await ensureWorkspaceLayoutState("A");
 		await ensureWorkspaceLayoutState("B");
+		const focus = BUILTIN_LAYOUT_PRESETS.find((preset) => preset.id === "focus");
+		if (!focus) throw new Error("Missing Focus preset");
+		applyLayoutPresetLocally(focus);
 
 		const state = useAppStore.getState();
 		const document = state.layoutDocumentsByWorkspace.A;
@@ -290,7 +294,7 @@ describe("frontend-local layout state", () => {
 	test("re-applying unchanged attention writes nothing to the store", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		await ensureWorkspaceLayoutState("A");
 		const before = useAppStore.getState();
@@ -319,10 +323,13 @@ describe("frontend-local layout state", () => {
 	test("tool attention fan-out preserves a selected terminal in a mixed side group", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		await ensureWorkspaceLayoutState("A");
 		await ensureWorkspaceLayoutState("B");
+		const focus = BUILTIN_LAYOUT_PRESETS.find((preset) => preset.id === "focus");
+		if (!focus) throw new Error("Missing Focus preset");
+		applyLayoutPresetLocally(focus);
 
 		const initial = useAppStore.getState();
 		const documentA = initial.layoutDocumentsByWorkspace.A;
@@ -368,7 +375,7 @@ describe("frontend-local layout state", () => {
 	test("a first-visit projection matches the installed workspace view", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		await initializeLocalLayoutState();
 
@@ -386,9 +393,12 @@ describe("frontend-local layout state", () => {
 	test("a first visit inherits the most recently active workspace tool selection", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		await ensureWorkspaceLayoutState("A");
+		const focus = BUILTIN_LAYOUT_PRESETS.find((preset) => preset.id === "focus");
+		if (!focus) throw new Error("Missing Focus preset");
+		applyLayoutPresetLocally(focus);
 		const initial = useAppStore.getState();
 		const document = initial.layoutDocumentsByWorkspace.A;
 		const attention = initial.layoutAttentionByWorkspace.A;
@@ -422,7 +432,7 @@ describe("frontend-local layout state", () => {
 	test("an invalid local frame falls back directly to Balanced", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		local.setItem(
 			localLayoutStorageKey(endpoint, "surface-a"),
 			JSON.stringify({
@@ -455,7 +465,7 @@ describe("frontend-local layout state", () => {
 	test("a persisted changes review tab survives reload as a preview-eligible center tab", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		const initial = await ensureWorkspaceLayoutState("workspace");
 		if (initial.center.kind !== "group") throw new Error("expected a single center group");
@@ -483,7 +493,7 @@ describe("frontend-local layout state", () => {
 	test("reload restores the same surface without another host read", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		const initial = await ensureWorkspaceLayoutState("workspace");
 		await commitWorkspaceLayout("workspace", resizeSideRegion(initial, "left", 0.31));
@@ -540,7 +550,7 @@ describe("frontend-local layout state", () => {
 	test("a stale region callback rebases its change without reverting a newer frame region", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		const base = await ensureWorkspaceLayoutState("workspace");
 
@@ -559,7 +569,7 @@ describe("frontend-local layout state", () => {
 	test("geometry-only frame commits keep the projection epoch while shape changes advance it", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		const base = await ensureWorkspaceLayoutState("workspace");
 		const epoch = useAppStore.getState().layoutProjectionEpoch;
@@ -581,16 +591,13 @@ describe("frontend-local layout state", () => {
 	test("a newly shown singleton tool cannot collide with a hidden workspace resource", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		await ensureWorkspaceLayoutState("workspace-one");
 		await ensureWorkspaceLayoutState("workspace-two");
-		const withReview = useAppStore.getState().layoutDocumentsByWorkspace["workspace-one"];
-		if (!withReview) throw new Error("missing first workspace");
-		await commitWorkspaceLayout(
-			"workspace-one",
-			closeLayoutTab(withReview, "tool:review").document,
-		);
+		const withPlan = useAppStore.getState().layoutDocumentsByWorkspace["workspace-one"];
+		if (!withPlan) throw new Error("missing first workspace");
+		await commitWorkspaceLayout("workspace-one", closeLayoutTab(withPlan, "tool:plan").document);
 
 		const hidden = structuredClone(
 			useAppStore.getState().layoutDocumentsByWorkspace["workspace-two"],
@@ -599,7 +606,7 @@ describe("frontend-local layout state", () => {
 		hidden.center.tabs = [
 			{
 				kind: "terminal",
-				id: "tool:review",
+				id: "tool:plan",
 				name: "Collision",
 				tabKey: "collision",
 			},
@@ -611,14 +618,14 @@ describe("frontend-local layout state", () => {
 			useAppStore.getState().layoutDocumentsByWorkspace["workspace-one"],
 		);
 		if (!active?.right.groups[0]) throw new Error("missing active right group");
-		active.right.groups[0].tabs.push(toolTab("review"));
+		active.right.groups[0].tabs.push(toolTab("plan"));
 		const activeAttention = useAppStore.getState().layoutAttentionByWorkspace["workspace-one"];
 		if (!activeAttention) throw new Error("Missing active attention");
 		await commitWorkspaceLayout("workspace-one", active, {
 			attention: selectTab(
 				activeAttention,
 				{ area: "right", groupId: active.right.groups[0].id },
-				"tool:review",
+				"tool:plan",
 			),
 		});
 
@@ -627,21 +634,21 @@ describe("frontend-local layout state", () => {
 			? collectAllGroups(hiddenAfter).flatMap((group) => group.tabs.map((tab) => tab.id))
 			: [];
 		expect(new Set(allIds).size).toBe(allIds.length);
-		const review = hiddenAfter?.right.groups
+		const plan = hiddenAfter?.right.groups
 			.flatMap((group) => group.tabs)
-			.find((tab) => tab.kind === "tool" && tab.tool === "review");
-		expect(review?.id).not.toBe("tool:review");
+			.find((tab) => tab.kind === "tool" && tab.tool === "plan");
+		expect(plan?.id).not.toBe("tool:plan");
 		expect(
 			useAppStore.getState().layoutAttentionByWorkspace["workspace-one"]?.selectedByGroup[
 				active.right.groups[0].id
 			],
-		).toBe(review?.id);
+		).toBe(plan?.id);
 	});
 
 	test("applying a preset changes one frame and reflows every local workspace view", async () => {
 		const local = new MemoryStorage();
 		const session = new MemoryStorage();
-		session.setItem("thinkrail:layout-surface-id", "surface-a");
+		session.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session }, endpoint);
 		for (const [workspaceId, path] of [
 			["workspace", "one.ts"],
@@ -677,7 +684,7 @@ describe("frontend-local layout state", () => {
 	test("simultaneous surface identities use independent persisted frames", async () => {
 		const local = new MemoryStorage();
 		const firstSession = new MemoryStorage();
-		firstSession.setItem("thinkrail:layout-surface-id", "surface-a");
+		firstSession.setItem("realthing:layout-surface-id", "surface-a");
 		setLayoutStateStorageForTests({ local, session: firstSession }, endpoint);
 		const first = await ensureWorkspaceLayoutState("workspace");
 		await commitWorkspaceLayout("workspace", resizeSideRegion(first, "left", 0.33));
@@ -685,7 +692,7 @@ describe("frontend-local layout state", () => {
 		resetLayoutStateForTests();
 		resetStore();
 		const secondSession = new MemoryStorage();
-		secondSession.setItem("thinkrail:layout-surface-id", "surface-b");
+		secondSession.setItem("realthing:layout-surface-id", "surface-b");
 		setLayoutStateStorageForTests({ local, session: secondSession }, endpoint);
 
 		const second = await ensureWorkspaceLayoutState("workspace");

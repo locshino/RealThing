@@ -1,7 +1,7 @@
 import { RiAlertLine as Alert, RiFolderOpenLine as FolderOpen } from "@remixicon/react";
-import type { Project } from "@thinkrail/contracts";
-import { t as translate, useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+import type { Project } from "@realthing/contracts";
+import { t as translate, useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -9,12 +9,11 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "@thinkrail/ui/dialog";
-import { Switch } from "@thinkrail/ui/switch";
+} from "@realthing/ui/dialog";
 import { useState } from "react";
 import { errorText, getTransport } from "@/transport";
 
-export const DEFAULT_PROJECT_PARENT = "~/thinkrail";
+export const DEFAULT_PROJECT_PARENT = "~/realthing";
 
 const PICK_TIMEOUT_MS = 30 * 60_000;
 const FIELD_CLASS =
@@ -43,7 +42,7 @@ export function CreateProjectDialog({
 	const t = useT();
 	const [name, setName] = useState("");
 	const [parent, setParent] = useState(DEFAULT_PROJECT_PARENT);
-	const [setup, setSetup] = useState(true);
+	const setup = false;
 	const [busy, setBusy] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
@@ -149,23 +148,6 @@ export function CreateProjectDialog({
 						>
 							{folder ? joinHostPath(parentPath, folder) : t("panels.createProject.pathHint")}
 						</span>
-					</div>
-
-					<div className="flex items-center gap-12">
-						<span className="min-w-0 flex-1">
-							<span className="block tr-title-compact text-text-default">
-								{t("panels.createProject.setupTitle")}
-							</span>
-							<span className="block text-text-muted tr-text-metadata">
-								{t("panels.createProject.setupDetail")}
-							</span>
-						</span>
-						<Switch
-							checked={setup}
-							onCheckedChange={setSetup}
-							label={t("panels.createProject.setupTitle")}
-							testId="create-project-setup"
-						/>
 					</div>
 
 					{error ? (

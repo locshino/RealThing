@@ -3,12 +3,12 @@ import { DEFAULT_HOST, DEFAULT_PORT, parseArgs, parseSubcommand } from "./args";
 
 describe("parseSubcommand", () => {
 	test("only a leading, exact subcommand counts", () => {
-		expect(parseSubcommand(["update"])).toBe("update");
+		expect(parseSubcommand(["update"])).toBeUndefined();
 		expect(parseSubcommand(["uninstall", "--yes"])).toBe("uninstall");
 		expect(parseSubcommand([])).toBeUndefined();
 		expect(parseSubcommand(["--no-open"])).toBeUndefined();
-		expect(parseSubcommand(["./update"])).toBeUndefined();
-		expect(parseSubcommand(["--port", "80", "update"])).toBeUndefined();
+		expect(parseSubcommand(["./uninstall"])).toBeUndefined();
+		expect(parseSubcommand(["--port", "80", "uninstall"])).toBeUndefined();
 	});
 
 	test("a launch is not a subcommand — the host boot path must stay reachable", () => {
@@ -34,21 +34,21 @@ describe("parseArgs", () => {
 
 	test("--no-analytics mutes for the run; the env spelling is the analytics service's job", () => {
 		expect(parseArgs(["--no-analytics"], {}).noAnalytics).toBe(true);
-		expect(parseArgs([], { THINKRAIL_NO_ANALYTICS: "1" }).noAnalytics).toBe(false);
+		expect(parseArgs([], { REALTHING_NO_ANALYTICS: "1" }).noAnalytics).toBe(false);
 		expect(parseArgs([], {}).noAnalytics).toBe(false);
 	});
 
 	test("--verbose turns on debug logging; the env spelling is the log module's job", () => {
 		expect(parseArgs(["--verbose"], {}).verbose).toBe(true);
-		expect(parseArgs([], { THINKRAIL_LOG_LEVEL: "debug" }).verbose).toBe(false);
+		expect(parseArgs([], { REALTHING_LOG_LEVEL: "debug" }).verbose).toBe(false);
 		expect(parseArgs([], {}).verbose).toBe(false);
 	});
 
 	test("flags win over env over defaults", () => {
 		const env = {
-			THINKRAIL_PORT: "9000",
-			THINKRAIL_HOST: "envhost",
-			THINKRAIL_STATIC_DIR: "/web/dist",
+			REALTHING_PORT: "9000",
+			REALTHING_HOST: "envhost",
+			REALTHING_STATIC_DIR: "/web/dist",
 		};
 		expect(parseArgs(["--port", "8080", "--host", "0.0.0.0"], env)).toMatchObject({
 			port: 8080,
@@ -58,7 +58,7 @@ describe("parseArgs", () => {
 	});
 
 	test("env fills in when a flag is absent", () => {
-		expect(parseArgs([], { THINKRAIL_PORT: "9000", THINKRAIL_HOST: "envhost" })).toMatchObject({
+		expect(parseArgs([], { REALTHING_PORT: "9000", REALTHING_HOST: "envhost" })).toMatchObject({
 			port: 9000,
 			host: "envhost",
 		});
@@ -105,6 +105,6 @@ describe("parseArgs", () => {
 	});
 
 	test("ignores a non-numeric env port (falls back to default)", () => {
-		expect(parseArgs([], { THINKRAIL_PORT: "notanumber" }).port).toBe(DEFAULT_PORT);
+		expect(parseArgs([], { REALTHING_PORT: "notanumber" }).port).toBe(DEFAULT_PORT);
 	});
 });

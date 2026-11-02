@@ -1,7 +1,7 @@
 import { chmodSync, existsSync, writeFileSync } from "node:fs";
 import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { LOGIN_ENV_MARKER } from "@thinkrail/shared/shellEnv";
+import { LOGIN_ENV_MARKER } from "@realthing/shared/shellEnv";
 
 export function resolveBunExecutable(env: NodeJS.ProcessEnv = process.env): string {
 	const name = process.platform === "win32" ? "bun.exe" : "bun";

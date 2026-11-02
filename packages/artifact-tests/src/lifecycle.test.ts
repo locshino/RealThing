@@ -82,7 +82,7 @@ test("pollUntil stops polling after an early child exit", async () => {
 });
 
 test("terminateProcess kills and reaps a live root with its child and grandchild", async () => {
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-artifact-lifecycle-test-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-artifact-lifecycle-test-"));
 	const childPidPath = join(root, "child.pid");
 	const grandchildPidPath = join(root, "grandchild.pid");
 	const grandchildSource = `

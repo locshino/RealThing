@@ -5,17 +5,17 @@ import { join, relative, resolve, sep } from "node:path";
 import { dataDir, loadProjects, loadWorkspaces, saveProjects, saveWorkspaces } from "./persistence";
 
 let root: string;
-const savedDataDir = process.env.THINKRAIL_DATA_DIR;
+const savedDataDir = process.env.REALTHING_DATA_DIR;
 
 beforeEach(() => {
 	root = realpathSync(mkdtempSync(join(tmpdir(), "trpi-stored-dirs-")));
-	process.env.THINKRAIL_DATA_DIR = root;
+	process.env.REALTHING_DATA_DIR = root;
 });
 
 afterEach(() => {
 	rmSync(root, { recursive: true, force: true });
-	if (savedDataDir === undefined) delete process.env.THINKRAIL_DATA_DIR;
-	else process.env.THINKRAIL_DATA_DIR = savedDataDir;
+	if (savedDataDir === undefined) delete process.env.REALTHING_DATA_DIR;
+	else process.env.REALTHING_DATA_DIR = savedDataDir;
 });
 
 function unresolvedSpellings(dir: string): string[] {
@@ -78,7 +78,7 @@ test("a value that is not an absolute path on this host is left as stored", () =
 	expect(loadWorkspaces()[0]?.worktreePath).toBe(foreign);
 });
 
-test("a relative THINKRAIL_DATA_DIR still names one absolute data directory", () => {
-	process.env.THINKRAIL_DATA_DIR = relative(process.cwd(), root);
+test("a relative REALTHING_DATA_DIR still names one absolute data directory", () => {
+	process.env.REALTHING_DATA_DIR = relative(process.cwd(), root);
 	expect(dataDir()).toBe(root);
 });

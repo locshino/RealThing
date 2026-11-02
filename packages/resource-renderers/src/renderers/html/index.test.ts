@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { currentTranslator } from "@thinkrail/locales/react";
+import { currentTranslator } from "@realthing/locales/react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { htmlRenderer } from ".";
@@ -135,7 +135,7 @@ function hostileDocument(): FakeDocument {
 test("HTML renderer registration has no review geometry and stays sandboxed", () => {
 	expect(currentTranslator()(htmlRenderer.labelKey)).toBe("Preview");
 	expect(htmlRenderer).toMatchObject({
-		id: "thinkrail/html",
+		id: "realthing/html",
 		labelKey: "viewer.renderer.preview",
 		match: { glob: ["*.html", "*.htm"], text: true },
 		rank: 120,

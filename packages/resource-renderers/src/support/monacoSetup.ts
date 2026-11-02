@@ -1,5 +1,5 @@
 /// <reference path="../bundler.d.ts" />
-import type { Translator } from "@thinkrail/locales/react";
+import type { Translator } from "@realthing/locales/react";
 import type { ThemeRegistration } from "shiki/core";
 import { createOnigurumaEngine } from "shiki/engine/oniguruma";
 import "monaco-editor/features/codicon/register.js";
@@ -16,12 +16,12 @@ import "monaco-editor/features/unicodeHighlighter/register.js";
 import "monaco-editor/features/wordHighlighter/register.js";
 import "monaco-editor/features/quickCommand/register.js";
 import "monaco-editor/features/gotoLine/register.js";
-import { onThemeSwap } from "@thinkrail/ui/theme";
+import { onThemeSwap } from "@realthing/ui/theme";
 import type { Environment, editor } from "monaco-editor/editor/editor.api.js";
 import * as monaco from "monaco-editor/editor/editor.api.js";
 import editorWorker from "monaco-editor/editor/editor.worker?worker";
 import onigWasmUrl from "shiki/onig.wasm?url";
-import type { ResourceCodeHost } from "../host";
+import type { ResourceCodeHost, ResourcePreferences } from "../host";
 import { editorWrappingOptions } from "./editorWrapping";
 import { createShikiTokens, monacoThemeData } from "./shikiTokens";
 
@@ -37,7 +37,7 @@ window.MonacoEnvironment = {
 	},
 };
 
-const EDITOR_THEME = "thinkrail-editor";
+const EDITOR_THEME = "realthing-editor";
 
 const BRACKETS: [string, string][] = [
 	["(", ")"],
@@ -82,40 +82,61 @@ function cssVar(name: string): string | undefined {
 	return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || undefined;
 }
 
+function defaultEditorChrome() {
+	const fontSize = Number.parseFloat(cssVar("--tr-font-size-s11") ?? "") || 11;
+	const lineHeight = Number.parseFloat(cssVar("--tr-line-height-default") ?? "") || undefined;
+	const fontFamily = cssVar("--tr-font-family-code") ?? "monospace";
+	return { fontSize, lineHeight, fontFamily };
+}
+
 export function fileEditorOptions(
 	t: Translator,
 	lineWidth: number,
 	bounded: boolean,
-	path: string,
-) {
-	const fontSize = Number.parseFloat(cssVar("--tr-font-size-s11") ?? "") || 11;
-	const lineHeight = Number.parseFloat(cssVar("--tr-line-height-default") ?? "") || undefined;
+	path?: string,
+	prefs?: Partial<ResourcePreferences>,
+): editor.IStandaloneEditorConstructionOptions {
+	const defaults = defaultEditorChrome();
+	const customFontSize = prefs?.editorFontSize;
+	const hasCustomFontSize = typeof customFontSize === "number" && customFontSize > 0;
+	const fontSize = hasCustomFontSize ? customFontSize : defaults.fontSize;
+	const lineHeight = hasCustomFontSize ? Math.round(fontSize * 1.55) : defaults.lineHeight;
+	const customFontFamily = prefs?.editorFontFamily?.trim();
+	const fontFamily = customFontFamily
+		? `${customFontFamily}, ${defaults.fontFamily}`
+		: defaults.fontFamily;
 	const paddingTop = Number.parseFloat(cssVar("--space-8") ?? "");
 	const options: editor.IStandaloneEditorConstructionOptions = {
-		readOnly: true,
+		readOnly: false,
 		readOnlyMessage: { value: t("panels.monacoSetup.readOnly") },
-		ariaLabel: path,
+		...(path !== undefined ? { ariaLabel: path } : {}),
 		unicodeHighlight: { ambiguousCharacters: false },
+		lineNumbers: prefs?.editorLineNumbers ?? "on",
 		lineNumbersMinChars: 3,
 		renderLineHighlight: "all",
+		renderWhitespace: prefs?.editorRenderWhitespace ?? "none",
+		cursorStyle: prefs?.editorCursorStyle ?? "line",
+		tabSize: prefs?.editorTabSize ?? 2,
+		insertSpaces: prefs?.editorInsertSpaces ?? true,
 		smoothScrolling: true,
 		guides: { bracketPairs: "active", indentation: true },
 		occurrencesHighlight: "singleFile",
 		...editorWrappingOptions(lineWidth, bounded),
-		minimap: { enabled: false },
+		minimap: { enabled: prefs?.editorMinimap ?? false },
 		scrollBeyondLastLine: false,
 		automaticLayout: true,
 		fontSize,
-		fontFamily: cssVar("--tr-font-family-code") ?? "monospace",
+		fontFamily,
 		...(lineHeight && lineHeight > 0 ? { lineHeight } : {}),
 		scrollbar: {
 			vertical: "auto",
 			horizontal: "auto",
-			verticalScrollbarSize: 6,
+			verticalScrollbarSize: 10,
 			horizontalScrollbarSize: 6,
 			useShadows: false,
+			scrollByPage: false,
 		},
-		overviewRulerLanes: 0,
+		overviewRulerLanes: 3,
 		overviewRulerBorder: false,
 		hideCursorInOverviewRuler: true,
 	};
@@ -159,7 +180,9 @@ export function syncFileModel(
 		current?.dispose();
 		return;
 	}
-	if (input.text !== appliedText) current.setValue(input.text);
+	if (input.text !== appliedText && current.getValue() !== input.text) {
+		current.setValue(input.text);
+	}
 }
 
 export function revealLineNow(codeEditor: editor.IStandaloneCodeEditor, line: number): void {
@@ -223,38 +246,39 @@ interface MonacoSetup {
 }
 
 let setup: MonacoSetup | null = null;
-const missingProviders = new Set<string>();
+const configuredProviders = new Set<string>();
 
 function registerTokenProvider(id: string, tokens: MonacoSetup["tokens"]): void {
 	monaco.languages.registerTokensProviderFactory(id, {
 		create: async () => {
 			if (await tokens.ready(id)) return tokens.provider(id);
-			missingProviders.add(id);
 			return null;
 		},
 	});
 }
 
-async function recoverProvider(id: string, tokens: MonacoSetup["tokens"]) {
-	return missingProviders.has(id) && (await tokens.ready(id)) && missingProviders.delete(id);
-}
-
-function loadModelEmbeds(model: editor.ITextModel, tokens: MonacoSetup["tokens"]): void {
+function loadModelTokens(model: editor.ITextModel, tokens: MonacoSetup["tokens"]): void {
 	const id = model.getLanguageId();
+	if (!id || id === "plaintext") return;
 	void Promise.all([
-		recoverProvider(id, tokens),
+		tokens.ready(id),
 		tokens.loadEmbeds(id, () => (model.isDisposed() ? "" : model.getValue())),
-	]).then(([recovered, loaded]) => {
-		if (recovered || loaded) monaco.languages.setTokensProvider(id, tokens.provider(id));
+	]).then(([ready, loaded]) => {
+		if (ready && !model.isDisposed()) {
+			if (!configuredProviders.has(id) || loaded) {
+				configuredProviders.add(id);
+				monaco.languages.setTokensProvider(id, tokens.provider(id));
+			}
+		}
 	});
 }
 
 function watchModelEmbeds(tokens: MonacoSetup["tokens"]): void {
 	monaco.editor.onDidCreateModel((model) => {
-		loadModelEmbeds(model, tokens);
+		loadModelTokens(model, tokens);
 		const subscriptions = [
-			model.onDidChangeContent(() => loadModelEmbeds(model, tokens)),
-			model.onDidChangeLanguage(() => loadModelEmbeds(model, tokens)),
+			model.onDidChangeContent(() => loadModelTokens(model, tokens)),
+			model.onDidChangeLanguage(() => loadModelTokens(model, tokens)),
 		];
 		model.onWillDispose(() => {
 			for (const subscription of subscriptions) subscription.dispose();
@@ -289,4 +313,7 @@ async function refreshTheme(code: ResourceCodeHost, tokens: MonacoSetup["tokens"
 	const theme = currentTheme(code);
 	await tokens.applyTheme(theme.registration, theme.data.rules);
 	defineTheme(theme);
+	for (const id of configuredProviders) {
+		monaco.languages.setTokensProvider(id, tokens.provider(id));
+	}
 }

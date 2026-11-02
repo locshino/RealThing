@@ -1,4 +1,4 @@
-import { version } from "@thinkrail/shared/version";
+import { version } from "@realthing/shared/version";
 import type { ElectrobunConfig } from "electrobun";
 
 // Hutch reads `build.bun.version` like the other toolchain versions, but ElectrobunConfig does not type
@@ -7,15 +7,15 @@ const bun = { entrypoint: "src/index.ts", version: "1.4.4" };
 
 export default {
 	app: {
-		name: "ThinkRail",
-		identifier: "ai.thinkrail.app",
+		name: "RealThing",
+		identifier: "ai.realthing.app",
 		version,
 	},
 	runtime: {
 		exitOnLastWindowClosed: true,
 	},
 	release: {
-		baseUrl: "https://github.com/JetBrains/thinkrail/releases/download/desktop-updates",
+		baseUrl: "https://github.com/JetBrains/realthing/releases/download/desktop-updates",
 		generatePatch: false,
 	},
 	build: {

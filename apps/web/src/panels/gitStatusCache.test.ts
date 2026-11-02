@@ -1,5 +1,5 @@
 import { expect, mock, test } from "bun:test";
-import type { GitStatus } from "@thinkrail/contracts";
+import type { GitStatus } from "@realthing/contracts";
 
 type Reply = { resolve: (status: GitStatus) => void; reject: (error: unknown) => void };
 const replies: Reply[] = [];

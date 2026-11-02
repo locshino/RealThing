@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { WebsiteSurveySentProperties } from "@thinkrail/website-analytics";
+import type { WebsiteSurveySentProperties } from "@realthing/website-analytics";
 import {
 	answerSurveyStep,
 	downloadPostHogSurveyId,
@@ -171,7 +171,7 @@ describe("download survey response", () => {
 			content_key: "landing",
 			cta_location: "hero",
 			[`$survey_response_${interest.questionId}`]: [
-				"Graphical interface for Pi",
+				"Parallel Git worktrees",
 				"Spec-driven development",
 			],
 			[`$survey_response_${tools.questionId}`]: ["Cursor", "Helix"],
@@ -269,9 +269,9 @@ describe("download survey response", () => {
 	});
 
 	test("a showing names the survey and where the download was", () => {
-		expect(surveyShownProperties({ content_key: "blog/introducing-thinkrail" })).toEqual({
+		expect(surveyShownProperties({ content_key: "blog/introducing-realthing" })).toEqual({
 			$survey_id: downloadPostHogSurveyId,
-			content_key: "blog/introducing-thinkrail",
+			content_key: "blog/introducing-realthing",
 		});
 	});
 });

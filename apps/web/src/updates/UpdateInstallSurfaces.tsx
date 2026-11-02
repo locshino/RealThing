@@ -1,5 +1,5 @@
-import type { NativeUpdateInstallResult } from "@thinkrail/contracts";
-import { t as translateNow, useT } from "@thinkrail/locales/react";
+import type { NativeUpdateInstallResult } from "@realthing/contracts";
+import { t as translateNow, useT } from "@realthing/locales/react";
 import { useEffect, useRef, useState } from "react";
 import { useAppStore } from "../store";
 import { InstallDialog } from "./InstallDialog";

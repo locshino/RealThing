@@ -1,5 +1,5 @@
 import { expect, test, type WebSocketRoute } from "@playwright/test";
-import { INITIAL_TERMINAL_TAB_KEY } from "@thinkrail/contracts";
+import { INITIAL_TERMINAL_TAB_KEY } from "@realthing/contracts";
 import {
 	activeWorktreeRow,
 	createWorkspaceViaDialog,
@@ -44,7 +44,7 @@ test("a workspace opens a terminal automatically, rooted in the worktree, with w
 
 test("a shell start failure explains recovery and retries the same tab", async ({ page }) => {
 	const failure =
-		"Couldn’t start PowerShell 7 (pwsh.exe). Make sure it is installed and available to ThinkRail.";
+		"Couldn’t start PowerShell 7 (pwsh.exe). Make sure it is installed and available to RealThing.";
 	let attachFailuresRemaining = 0;
 	let holdNextSuccess = false;
 	let heldSuccessId: string | undefined;
@@ -91,10 +91,10 @@ test("a shell start failure explains recovery and retries the same tab", async (
 	await page.getByTestId("project-item").first().click();
 	await expect(page.getByTestId("terminal-panel")).toHaveCount(0);
 	await worktreeRows(page).first().getByRole("button").first().click();
-	const chatTab = page.locator('[data-testid="editor-tab"][data-kind="chat"]').getByRole("tab");
-	await expect(chatTab).toBeVisible();
-	await chatTab.focus();
-	await expect(chatTab).toBeFocused();
+	const filesRail = page.getByTestId("tool-rail-files");
+	await expect(filesRail).toBeVisible();
+	await filesRail.focus();
+	await expect(filesRail).toBeFocused();
 	await expect.poll(() => releaseFailure !== undefined).toBe(true);
 	releaseFailure?.();
 	const terminal = visibleTerminal(page);
@@ -104,7 +104,7 @@ test("a shell start failure explains recovery and retries the same tab", async (
 		"inert",
 		"",
 	);
-	await expect(chatTab).toBeFocused();
+	await expect(filesRail).toBeFocused();
 	await terminal.getByTestId("terminal-open-settings").click();
 	await expect(page.getByTestId("settings-terminal")).toBeVisible();
 	await expect(page.getByTestId("settings-nav-terminal")).toHaveAttribute("data-active", "true");

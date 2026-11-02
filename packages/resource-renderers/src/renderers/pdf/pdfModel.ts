@@ -1,5 +1,4 @@
-import type { ReviewAnchor } from "@thinkrail/contracts";
-import type { AnchorDraft, ReviewThread, SurfaceReview } from "../../registry";
+import type { AnchorDraft, ReviewAnchor, ReviewThread, SurfaceReview } from "../../registry";
 import { clampRegion, type Region, regionOfAnchor } from "../regionReview";
 
 export const MIN_PDF_ZOOM = 0.5;

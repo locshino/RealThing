@@ -4,8 +4,8 @@ import type {
 	LocalLocaleFile,
 	LocalLocaleFileErrorCode,
 	LocalLocalesSnapshot,
-} from "@thinkrail/contracts";
-import { localeTagFromFileName, validateCatalog } from "@thinkrail/locales";
+} from "@realthing/contracts";
+import { localeTagFromFileName, validateCatalog } from "@realthing/locales";
 import { logger } from "../log";
 import { dataDir } from "../persistence";
 

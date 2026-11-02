@@ -104,7 +104,7 @@ function remappedFrame(raw: string, roots: FrameRoots): NormalizedFrameFile {
 }
 
 const CHUNK_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-export const CHUNK_IDS_PROPERTY = "$thinkrail_chunk_ids";
+export const CHUNK_IDS_PROPERTY = "$realthing_chunk_ids";
 
 const SAFE_TYPE = /^[A-Za-z_$][A-Za-z0-9_$.]{0,63}$/;
 const SAFE_FUNCTION = /^[A-Za-z0-9_$.<>[\]? -]{1,128}$/;

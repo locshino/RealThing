@@ -4,13 +4,13 @@ import {
 	RiParagraph as Pilcrow,
 	RiArrowGoBackLine as Revert,
 } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 import {
 	RendererToggles,
 	ResourcePreview,
 	rendererImplementationKey,
-} from "@thinkrail/resource-renderers";
-import { withIconClass } from "@thinkrail/ui/button";
+} from "@realthing/resource-renderers";
+import { withIconClass } from "@realthing/ui/button";
 import { useMemo, useState } from "react";
 import { copyText, isPhoneViewport } from "@/lib";
 import type { DiffTab, FileComparisonTab, GitDiffTab } from "../store";
@@ -20,7 +20,6 @@ import { splitPath } from "./changesModel";
 import { DiffSurfaceBody, useDiffSurface } from "./DiffSurface";
 import { HeaderIconButton } from "./HeaderIconButton";
 import { useResetViewStateOnImplementationChange } from "./resourcePane";
-import { SendReviewButton } from "./SendReviewButton";
 import { useLiveTabContent } from "./useLiveTabContent";
 
 const CopiedCheck = withIconClass(Check, "text-feedback-success");
@@ -175,7 +174,6 @@ function GitDiffPane({ tab }: { tab: GitDiffTab }) {
 						{base}
 					</span>
 				</span>
-				<SendReviewButton workspaceId={tab.workspaceId} path={tab.path} />
 				{hunkActions ? (
 					<HeaderIconButton
 						testid="diff-revert-file"

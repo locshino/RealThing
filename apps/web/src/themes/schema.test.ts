@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_CONFIG } from "@thinkrail/contracts";
+import { DEFAULT_CONFIG } from "@realthing/contracts";
 import {
 	ANSI_COLOR_KEYS,
 	DERIVED_THEME_COLOR_KEYS,

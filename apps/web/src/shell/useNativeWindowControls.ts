@@ -1,7 +1,7 @@
-import type { NativeWindowControlsBridge, NativeWindowState } from "@thinkrail/contracts";
+import type { NativeWindowControlsBridge, NativeWindowState } from "@realthing/contracts";
 import { useEffect, useState } from "react";
 
-const NATIVE_WINDOW_CONTROLS_GLOBAL = "__THINKRAIL_NATIVE_WINDOW_CONTROLS__";
+const NATIVE_WINDOW_CONTROLS_GLOBAL = "__REALTHING_NATIVE_WINDOW_CONTROLS__";
 
 export function getNativeWindowControlsBridge(value: unknown): NativeWindowControlsBridge | null {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return null;

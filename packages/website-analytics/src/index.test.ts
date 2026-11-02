@@ -10,7 +10,7 @@ const originalWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
 const originalDocument = Object.getOwnPropertyDescriptor(globalThis, "document");
 const expectedPostHogProjectKey = "phc_test";
 const expectedPostHogOptions: PostHogOptions = {
-	api_host: "https://p.thinkrail.ai",
+	api_host: "https://p.realthing.ai",
 	ui_host: "https://eu.posthog.com",
 	defaults: "2026-05-30",
 	person_profiles: "identified_only",
@@ -21,7 +21,7 @@ const expectedPostHogOptions: PostHogOptions = {
 	before_send: expect.any(Function),
 };
 const expectedGtmScriptUrl = "https://www.googletagmanager.com/gtm.js?id=GTM-WDW2DZW4";
-const journeyStorageKey = "thinkrail_journey_id";
+const journeyStorageKey = "realthing_journey_id";
 const existingJourneyId = "01890f47-75a3-4d8f-9a72-4f0e35be292b";
 const newJourneyId = "4c1829b0-f3a7-4db7-b09c-c638fb394b4e";
 
@@ -235,7 +235,7 @@ describe("website analytics", () => {
 		expect(analytics.configurationForHostname("site.example")).toEqual({
 			postHog: {
 				projectKey: expectedPostHogProjectKey,
-				scriptUrl: "https://p.thinkrail.ai/static/array.js",
+				scriptUrl: "https://p.realthing.ai/static/array.js",
 				options: expectedPostHogOptions,
 			},
 			gtm: {
@@ -299,7 +299,7 @@ describe("website analytics", () => {
 		expect(dom.scripts).toHaveLength(2);
 		const postHogScript = dom.scripts.find((script) => script.dataset.posthogProject);
 		const gtmScript = dom.scripts.find((script) => script.dataset.gtmContainer);
-		expect(postHogScript?.src).toBe("https://p.thinkrail.ai/static/array.js");
+		expect(postHogScript?.src).toBe("https://p.realthing.ai/static/array.js");
 		expect(postHogScript?.crossOrigin).toBe("anonymous");
 		expect(gtmScript?.src).toBe(expectedGtmScriptUrl);
 		expect(dom.analyticsWindow.dataLayer).toHaveLength(1);

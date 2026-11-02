@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import { version } from "@thinkrail/shared/version";
+import { version } from "@realthing/shared/version";
 import rootManifest from "../../../package.json";
 import hutchConfig from "../hutch.config";
 import manifest from "../package.json";
@@ -25,8 +25,8 @@ test("selects real Bun and preserves the physical runtime resources without reti
 	expect(result.exitCode).toBe(0);
 	const config = JSON.parse(result.stdout.toString());
 	expect(config.app).toEqual({
-		name: "ThinkRail",
-		identifier: "ai.thinkrail.app",
+		name: "RealThing",
+		identifier: "ai.realthing.app",
 		version,
 	});
 	expect(config.runtime).toEqual({ exitOnLastWindowClosed: true });

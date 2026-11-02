@@ -13,20 +13,20 @@ type Block =
 	| { type: "done" };
 
 const worktreeExchange: Block[] = [
-	{ type: "user", text: "What is a worktree, and why does ThinkRail use them?" },
+	{ type: "user", text: "What is a worktree, and why does RealThing use them?" },
 	{ type: "activity", text: "read architecture.md · workspace spec" },
 	{
 		type: "says",
-		text: "A worktree is an isolated working directory connected to the same Git repository. ThinkRail uses worktrees so each task can have its own branch, files, terminal, and agent session without interfering with other work.",
+		text: "A worktree is an isolated working directory connected to the same Git repository. RealThing uses worktrees so each task can have its own branch, files, diffs, and terminal without interfering with other work.",
 	},
 ];
 
 const featureExchange: Block[] = [
-	{ type: "user", text: "How should I start a new feature in ThinkRail?" },
+	{ type: "user", text: "How should I start a new feature in RealThing?" },
 	{ type: "activity", text: "read specs/ · project graph" },
 	{
 		type: "says",
-		text: "Start with the spec. Define the intended behavior first, then let the implementation follow it. I can help you set up the task.",
+		text: "Start with the spec and workspace plan. Define the intended behavior first, then let the implementation follow it in an isolated worktree.",
 	},
 	{
 		type: "widget",
@@ -38,11 +38,11 @@ const featureExchange: Block[] = [
 			{ label: "Refactor existing code", desc: "no behavior change" },
 		],
 	},
-	{ type: "says", text: "Got it. How should I approach the implementation?" },
+	{ type: "says", text: "Got it. How should we organize the workspace?" },
 	{
 		type: "widget",
 		chip: "Approach",
-		title: "How should I approach the implementation?",
+		title: "How should we organize the workspace?",
 		options: [
 			{ label: "Plan first", desc: "scoped plan before any edits", rec: true },
 			{ label: "Start implementing", desc: "go straight to code" },
@@ -53,38 +53,38 @@ const featureExchange: Block[] = [
 
 const SCRIPTS: Record<Positioning, Block[]> = {
 	control: [
-		{ type: "user", text: "What is ThinkRail? Keep it brief." },
+		{ type: "user", text: "What is RealThing? Keep it brief." },
 		{ type: "activity", text: "read README · specs" },
 		{
 			type: "says",
-			text: "ThinkRail is a worktree IDE for the pi coding agent. It lets you run isolated coding sessions across worktrees, with the editor, terminal, diffs, and specs in one interface.",
+			text: "RealThing is a fast, modern developer IDE for code editing, Git worktrees, multi-scope diff review, integrated terminal, and workspace plans.",
 		},
 		...worktreeExchange,
 		...featureExchange,
 		{
 			type: "says",
-			text: "I'll inspect the relevant specs and code, propose a scoped plan, and wait for your approval before implementation.",
+			text: "Workspace ready with an isolated branch, editor, diff viewer, and integrated terminal.",
 		},
 		{ type: "done" },
 	],
 	compounding: [
-		{ type: "user", text: "What is ThinkRail? Keep it brief." },
+		{ type: "user", text: "What is RealThing? Keep it brief." },
 		{ type: "activity", text: "read README · specs" },
 		{
 			type: "says",
-			text: "ThinkRail is an agentic IDE built around the pi coding agent — isolated workspaces for every task, and project memory in living specs and reusable skills. The longer we work together, the sharper I get.",
+			text: "RealThing is a fast, modern developer IDE — isolated Git worktrees for every task, multi-scope diff review, an integrated terminal, and workspace plans.",
 		},
 		...worktreeExchange,
-		{ type: "user", text: "How do you get better over time?" },
-		{ type: "activity", text: "read specs/ · skills/" },
+		{ type: "user", text: "How does it keep my project organized?" },
+		{ type: "activity", text: "read specs/ · plans/" },
 		{
 			type: "says",
-			text: "Your project teaches me. Decisions land in living specs I check before touching code, and workflows I repeat become skills. Extensions are next — I'll build the tools your project needs.",
+			text: "Architecture decisions live in versioned specs alongside your code, while each task gets its own Git worktree, workspace plan, and multi-scope diff view.",
 		},
 		...featureExchange,
 		{
 			type: "says",
-			text: "I'll check the specs, propose a scoped plan, and save the approved design to your spec graph before writing code.",
+			text: "Workspace ready with an isolated branch, editor, diff viewer, and integrated terminal.",
 		},
 		{ type: "done" },
 	],
@@ -269,7 +269,7 @@ export function ChatDemo({ positioning }: { positioning: Positioning }) {
 		<section id="demo" className="scroll-mt-16 border-b border-border-muted">
 			<div className="mx-auto max-w-[1200px] px-6 py-8 sm:py-24">
 				<div className="mx-auto flex w-full max-w-[900px] flex-wrap items-center justify-between gap-x-4 gap-y-1">
-					<p className="label-mono">Agent session</p>
+					<p className="label-mono">Workspace walkthrough</p>
 					<p className="label-mono text-primary">this demo is interactive</p>
 				</div>
 
@@ -311,7 +311,7 @@ export function ChatDemo({ positioning }: { positioning: Positioning }) {
 									<span className="flex items-center gap-2">
 										<Check className="size-4 text-primary" aria-hidden="true" /> Done
 									</span>
-									<span>6s · 18.4k tok · $0.12</span>
+									<span>3 worktrees · clean diff</span>
 								</div>
 							);
 						})}
@@ -323,8 +323,8 @@ export function ChatDemo({ positioning }: { positioning: Positioning }) {
 						>
 							{pendingUser ??
 								(finished
-									? "Session complete — replay the demo to watch it again."
-									: "Message the agent… (@ files · / commands · Enter to send)")}
+									? "Walkthrough complete — replay the demo to watch it again."
+									: "Ask about the workspace… (Enter to continue)")}
 						</div>
 						<div className="flex min-w-0 flex-wrap items-center gap-2">
 							<ModelSelect />

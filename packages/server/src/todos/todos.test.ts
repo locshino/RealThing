@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { Todo, TodoPlan } from "pi-todos/core";
+import type { Todo, TodoPlan } from "./core";
 import { openTodoCount } from "./todos";
 
 let n = 0;
@@ -9,7 +9,7 @@ function item(status: Todo["status"]): Todo {
 		id: `t-${n}`,
 		title: `item ${n}`,
 		status,
-		origin: "agent",
+		origin: "user",
 		createdAt: "",
 		updatedAt: "",
 	};

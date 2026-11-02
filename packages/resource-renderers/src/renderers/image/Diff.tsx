@@ -1,4 +1,4 @@
-import { type Translator, useT } from "@thinkrail/locales/react";
+import { type Translator, useT } from "@realthing/locales/react";
 import { useEffect, useRef, useState } from "react";
 import type { ResourceContent, ResourceDiffProps } from "../../registry";
 import type { Size } from "../regionReview";

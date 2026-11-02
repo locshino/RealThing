@@ -1,7 +1,7 @@
-import { type ResourceDescriptor, usePreloadResourceView } from "@thinkrail/resource-renderers";
+import { type ResourceDescriptor, usePreloadResourceView } from "@realthing/resource-renderers";
 import { isRecord, usePhoneViewport, whenIdle } from "../lib";
 
-const HOVER_WARM_DELAY_MS = 150;
+const HOVER_WARM_DELAY_MS = 40;
 
 let loadingTrees = 0;
 let hoverWarm: ReturnType<typeof setTimeout> | undefined;
@@ -29,6 +29,30 @@ export function holdEditorWarm(): () => void {
 		const ready = [...parked];
 		parked.clear();
 		for (const resume of ready) resume();
+	};
+}
+
+export function whenFilesTreeReady(task: () => void, delayMs = 0): () => void {
+	if (loadingTrees === 0) {
+		task();
+		return () => {};
+	}
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	function resume() {
+		if (loadingTrees > 0) {
+			parked.add(resume);
+			return;
+		}
+		if (delayMs <= 0) {
+			task();
+			return;
+		}
+		timer = setTimeout(task, delayMs);
+	}
+	parked.add(resume);
+	return () => {
+		parked.delete(resume);
+		if (timer !== undefined) clearTimeout(timer);
 	};
 }
 

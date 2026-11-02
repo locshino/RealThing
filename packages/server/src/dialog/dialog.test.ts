@@ -154,14 +154,14 @@ test("a picked filesystem root stays a root", () => {
 	expect(windows("\\\\server\\share\\")).toBe("\\\\server\\share\\");
 });
 
-test("THINKRAIL_PICK_DIR overrides the native picker", async () => {
-	const saved = process.env.THINKRAIL_PICK_DIR;
-	process.env.THINKRAIL_PICK_DIR = "/tmp/forced/repo";
+test("REALTHING_PICK_DIR overrides the native picker", async () => {
+	const saved = process.env.REALTHING_PICK_DIR;
+	process.env.REALTHING_PICK_DIR = "/tmp/forced/repo";
 	try {
 		expect(await selectDirectory()).toEqual({ path: "/tmp/forced/repo" });
 	} finally {
-		if (saved === undefined) delete process.env.THINKRAIL_PICK_DIR;
-		else process.env.THINKRAIL_PICK_DIR = saved;
+		if (saved === undefined) delete process.env.REALTHING_PICK_DIR;
+		else process.env.REALTHING_PICK_DIR = saved;
 	}
 });
 
@@ -174,7 +174,7 @@ test("a picker override file can force a deterministic failure before native sel
 		await expect(
 			selectDirectory({
 				platform: "win32",
-				env: { THINKRAIL_PICK_DIR: pointer },
+				env: { REALTHING_PICK_DIR: pointer },
 				runPicker: async () => {
 					spawned = true;
 					return { stdout: "", stderr: "", code: 0 };
@@ -187,19 +187,19 @@ test("a picker override file can force a deterministic failure before native sel
 	}
 });
 
-test("THINKRAIL_PICK_DIR reads its value from a file when it names one (live per call)", async () => {
+test("REALTHING_PICK_DIR reads its value from a file when it names one (live per call)", async () => {
 	const dir = mkdtempSync(join(tmpdir(), "trpi-pick-"));
 	const pointer = join(dir, "pick-dir");
-	const saved = process.env.THINKRAIL_PICK_DIR;
-	process.env.THINKRAIL_PICK_DIR = pointer;
+	const saved = process.env.REALTHING_PICK_DIR;
+	process.env.REALTHING_PICK_DIR = pointer;
 	try {
 		writeFileSync(pointer, "/repos/alpha\n");
 		expect(await selectDirectory()).toEqual({ path: "/repos/alpha" });
 		writeFileSync(pointer, "/repos/beta");
 		expect(await selectDirectory()).toEqual({ path: "/repos/beta" });
 	} finally {
-		if (saved === undefined) delete process.env.THINKRAIL_PICK_DIR;
-		else process.env.THINKRAIL_PICK_DIR = saved;
+		if (saved === undefined) delete process.env.REALTHING_PICK_DIR;
+		else process.env.REALTHING_PICK_DIR = saved;
 		rmSync(dir, { recursive: true, force: true });
 	}
 });

@@ -1,4 +1,4 @@
-import { INITIAL_TERMINAL_TAB_KEY } from "@thinkrail/contracts";
+import { INITIAL_TERMINAL_TAB_KEY } from "@realthing/contracts";
 import { useEffect, useRef } from "react";
 import type { LayoutAttention } from "../../lib";
 import { useTerminalCatalog } from "../../panels/TerminalWorkbench";

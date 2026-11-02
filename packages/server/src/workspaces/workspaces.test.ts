@@ -11,10 +11,9 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
-import type { Workspace } from "@thinkrail/contracts";
-import { WORKSPACE_CONTEXT_DIR } from "@thinkrail/shared/paths";
+import type { Workspace } from "@realthing/contracts";
+import { WORKSPACE_CONTEXT_DIR } from "@realthing/shared/paths";
 import {
-	backfillWorkspaceActivity,
 	completeInitialTerminalReservation,
 	createWorkspace,
 	ensureWorkspaceScratchDir,
@@ -24,19 +23,11 @@ import {
 	listWorkspaces,
 	openExistingWorktree,
 	reclaimWorktree,
-	recordWorkspaceActivity,
-	recordWorkspaceHead,
 	refreshUserOwnedWorkspace,
 	removeWorkspace,
 	renameWorkspace,
-	seedWorkspaceHead,
-	settleWorkspace,
 	setWorkspaceDiffBase,
 	setWorkspacePublisher,
-	setWorkspaceReview,
-	setWorkspaceSubagentMaxConcurrent,
-	setWorkspaceSubagentsOverride,
-	unsettleWorkspace,
 	type WorkspaceLifecycleEvent,
 } from "./workspaces";
 
@@ -66,7 +57,7 @@ const canSymlink = (() => {
 
 let dataDir: string;
 let repo: string;
-const savedDataDir = process.env.THINKRAIL_DATA_DIR;
+const savedDataDir = process.env.REALTHING_DATA_DIR;
 
 function git(cwd: string, ...args: string[]): void {
 	const result = Bun.spawnSync(["git", "-C", cwd, ...args], { stdout: "ignore", stderr: "ignore" });
@@ -79,11 +70,11 @@ async function worktrees(projectId = "p1") {
 
 beforeEach(() => {
 	dataDir = realpathSync.native(mkdtempSync(join(tmpdir(), "trpi-ws-test-")));
-	process.env.THINKRAIL_DATA_DIR = dataDir;
+	process.env.REALTHING_DATA_DIR = dataDir;
 	repo = join(dataDir, "repo");
 	mkdirSync(repo);
 	git(repo, "init", "-b", "main");
-	git(repo, "config", "user.email", "t@thinkrail.test");
+	git(repo, "config", "user.email", "t@realthing.test");
 	git(repo, "config", "user.name", "test");
 	git(repo, "config", "commit.gpgsign", "false");
 	writeFileSync(join(repo, "README.md"), "# repo\n");
@@ -98,8 +89,8 @@ beforeEach(() => {
 afterEach(() => {
 	setWorkspacePublisher(null);
 	rmSync(dataDir, { recursive: true, force: true });
-	if (savedDataDir === undefined) delete process.env.THINKRAIL_DATA_DIR;
-	else process.env.THINKRAIL_DATA_DIR = savedDataDir;
+	if (savedDataDir === undefined) delete process.env.REALTHING_DATA_DIR;
+	else process.env.REALTHING_DATA_DIR = savedDataDir;
 });
 
 test("createWorkspace cuts a fresh branch from baseRef and records it as the base", async () => {
@@ -120,7 +111,7 @@ test("createWorkspace cuts a fresh branch from baseRef and records it as the bas
 });
 
 test("a relative data dir still creates and records a managed worktree at one absolute path", async () => {
-	process.env.THINKRAIL_DATA_DIR = relative(process.cwd(), dataDir);
+	process.env.REALTHING_DATA_DIR = relative(process.cwd(), dataDir);
 	const ws = await createWorkspace("p1");
 
 	expect(ws.worktreePath).toBe(join(dataDir, "worktrees", "repo", ws.branch));
@@ -302,7 +293,7 @@ test("openExistingWorktree adopts idempotently and removal never reclaims the ch
 	expect((await openExistingWorktree("p1", external)).id).toBe(workspace.id);
 	expect(events).toHaveLength(1);
 	expect(() => renameWorkspace(workspace.id, "hands off")).toThrow(
-		"An existing worktree cannot be renamed by ThinkRail",
+		"An existing worktree cannot be renamed by RealThing",
 	);
 
 	removeWorkspace(workspace.id);
@@ -341,7 +332,7 @@ test("existing worktrees represented by another project are rejected before its 
 		false,
 	);
 	await expect(openExistingWorktree("p1", external)).rejects.toThrow(
-		"This worktree is already open under another ThinkRail project",
+		"This worktree is already open under another RealThing project",
 	);
 });
 
@@ -379,21 +370,21 @@ test("external workspace branch metadata converges on refresh and list", async (
 	).toBe("feature/list-refresh");
 });
 
-test("createWorkspace seeds a self-ignoring .thinkrail/context scratch dir kept out of git", async () => {
+test("createWorkspace seeds a self-ignoring .realthing/context scratch dir kept out of git", async () => {
 	const ws = await createWorkspace("p1");
-	const gitignore = join(ws.worktreePath, ".thinkrail", "context", ".gitignore");
+	const gitignore = join(ws.worktreePath, ".realthing", "context", ".gitignore");
 	expect(existsSync(gitignore)).toBe(true);
 	expect(readFileSync(gitignore, "utf8")).toBe("*\n");
 
-	writeFileSync(join(ws.worktreePath, ".thinkrail", "context", "TASK-x.md"), "scratch\n");
-	expect(gitOut(ws.worktreePath, "check-ignore", ".thinkrail/context/TASK-x.md")).toBe(
-		".thinkrail/context/TASK-x.md",
+	writeFileSync(join(ws.worktreePath, ".realthing", "context", "TASK-x.md"), "scratch\n");
+	expect(gitOut(ws.worktreePath, "check-ignore", ".realthing/context/TASK-x.md")).toBe(
+		".realthing/context/TASK-x.md",
 	);
-	expect(gitOut(ws.worktreePath, "status", "--porcelain")).not.toContain(".thinkrail");
+	expect(gitOut(ws.worktreePath, "status", "--porcelain")).not.toContain(".realthing");
 });
 
 test("ensureWorkspaceScratchDir never clobbers an existing .gitignore (the Default workspace is the user's repo)", async () => {
-	const contextDir = join(repo, ".thinkrail", "context");
+	const contextDir = join(repo, ".realthing", "context");
 	mkdirSync(contextDir, { recursive: true });
 	const gitignore = join(contextDir, ".gitignore");
 	writeFileSync(gitignore, "# mine\n!keep.md\n");
@@ -422,13 +413,11 @@ test("createWorkspace marks a user-named workspace renamed; an auto-named one st
 
 test("renameWorkspace moves the branch in place: record + git follow, the worktree dir does not", async () => {
 	const ws = await createWorkspace("p1");
-	setWorkspaceReview(ws.id, { kind: "pull-request", number: 8, state: "merged" }, ws.branch);
 	const renamed = renameWorkspace(ws.id, "add login flow", { branch: "add login flow" });
 
 	expect(renamed.name).toBe("add login flow");
 	expect(renamed.branch).toBe("add-login-flow");
 	expect(renamed.renamed).toBe(true);
-	expect(renamed.review).toBeUndefined();
 	expect(renamed.worktreePath).toBe(ws.worktreePath);
 	expect(gitOut(ws.worktreePath, "rev-parse", "--abbrev-ref", "HEAD")).toBe("add-login-flow");
 	expect(gitOut(repo, "for-each-ref", "--format=%(refname:short)", "refs/heads")).not.toContain(
@@ -503,64 +492,6 @@ test("renameWorkspace re-points siblings basing their diff on the old branch", a
 	expect(after.find((w) => w.id === first.id)?.branch).toBe("core-work");
 });
 
-test("setWorkspaceSubagentsOverride persists explicit values and null restores inheritance", async () => {
-	const events: WorkspaceLifecycleEvent[] = [];
-	setWorkspacePublisher((event) => events.push(event));
-	const ws = await createWorkspace("p1");
-
-	expect(ws.subagentsOverride).toBeUndefined();
-	expect(setWorkspaceSubagentsOverride(ws.id, "on").subagentsOverride).toBe("on");
-	expect(listWorkspaceRecords("p1").find((row) => row.id === ws.id)?.subagentsOverride).toBe("on");
-	expect(events.at(-1)).toMatchObject({
-		kind: "updated",
-		workspace: { id: ws.id, subagentsOverride: "on" },
-	});
-	expect(setWorkspaceSubagentsOverride(ws.id, "off").subagentsOverride).toBe("off");
-	expect(setWorkspaceSubagentsOverride(ws.id, null).subagentsOverride).toBeUndefined();
-	expect(
-		listWorkspaceRecords("p1").find((row) => row.id === ws.id)?.subagentsOverride,
-	).toBeUndefined();
-});
-
-test("setWorkspaceSubagentsOverride rejects unknown workspaces and values outside the wire union", async () => {
-	const ws = await createWorkspace("p1");
-	expect(() => setWorkspaceSubagentsOverride("missing", "on")).toThrow(
-		"Unknown workspace: missing",
-	);
-	expect(() => setWorkspaceSubagentsOverride(ws.id, "sometimes" as "on")).toThrow(
-		"Invalid subagent override",
-	);
-});
-
-test("setWorkspaceSubagentMaxConcurrent persists a limit, null restores inheritance, bad values reject", async () => {
-	const events: WorkspaceLifecycleEvent[] = [];
-	setWorkspacePublisher((event) => events.push(event));
-	const ws = await createWorkspace("p1");
-	const stored = () =>
-		listWorkspaceRecords("p1").find((row) => row.id === ws.id)?.subagentMaxConcurrentOverride;
-
-	expect(setWorkspaceSubagentMaxConcurrent(ws.id, 7).subagentMaxConcurrentOverride).toBe(7);
-	expect(stored()).toBe(7);
-	expect(events.at(-1)).toMatchObject({
-		kind: "updated",
-		workspace: { id: ws.id, subagentMaxConcurrentOverride: 7 },
-	});
-	expect(
-		setWorkspaceSubagentMaxConcurrent(ws.id, null).subagentMaxConcurrentOverride,
-	).toBeUndefined();
-	expect(stored()).toBeUndefined();
-
-	expect(() => setWorkspaceSubagentMaxConcurrent("missing", 2)).toThrow(
-		"Unknown workspace: missing",
-	);
-	for (const value of [0, 17, 1.5]) {
-		expect(() => setWorkspaceSubagentMaxConcurrent(ws.id, value)).toThrow(
-			"Subagent limit must be a whole number from 1 to 16",
-		);
-	}
-	expect(stored()).toBeUndefined();
-});
-
 test("setWorkspaceDiffBase re-points the diff target, leaving creation provenance alone", async () => {
 	const events: WorkspaceLifecycleEvent[] = [];
 	setWorkspacePublisher((e) => events.push(e));
@@ -625,10 +556,10 @@ test("renameWorkspace broadcasts every record it re-pointed, not only the target
 
 test("an option-shaped ref is refused at both mutation doors", async () => {
 	const ws = await createWorkspace("p1");
-	expect(() => setWorkspaceDiffBase(ws.id, "--output=/tmp/thinkrail-pwn")).toThrow(
+	expect(() => setWorkspaceDiffBase(ws.id, "--output=/tmp/realthing-pwn")).toThrow(
 		/usable git ref/,
 	);
-	await expect(createWorkspace("p1", "pwn", "--output=/tmp/thinkrail-pwn")).rejects.toThrow(
+	await expect(createWorkspace("p1", "pwn", "--output=/tmp/realthing-pwn")).rejects.toThrow(
 		/usable git ref/,
 	);
 	expect(setWorkspaceDiffBase(ws.id, "gone-branch").diffBase).toBe("gone-branch");
@@ -804,7 +735,6 @@ test("refreshUserOwnedWorkspace re-syncs and publishes Default drift off the lis
 	refreshUserOwnedWorkspace(def.id);
 	expect(events).toHaveLength(0);
 
-	setWorkspaceReview(def.id, { kind: "pull-request", number: 5, state: "merged" }, def.branch);
 	events.length = 0;
 	git(repo, "switch", "-c", "feature/live");
 	refreshUserOwnedWorkspace(def.id);
@@ -812,33 +742,10 @@ test("refreshUserOwnedWorkspace re-syncs and publishes Default drift off the lis
 		{ kind: "updated", workspace: { ...def, branch: "feature/live", baseBranch: "feature/live" } },
 	]);
 	expect(listWorkspaceRecords("p1").find((w) => w.id === def.id)?.branch).toBe("feature/live");
-	expect(listWorkspaceRecords("p1").find((w) => w.id === def.id)?.review).toBeUndefined();
 
 	refreshUserOwnedWorkspace(worktree.id);
 	refreshUserOwnedWorkspace("nope");
 	expect(events).toHaveLength(1);
-});
-
-test("refreshUserOwnedWorkspace drops an external worktree's branch-bound review", async () => {
-	const path = join(dataDir, "outside");
-	git(repo, "worktree", "add", "-b", "outside-a", path);
-	const external = await openExistingWorktree("p1", path);
-	setWorkspaceReview(
-		external.id,
-		{ kind: "pull-request", number: 6, state: "merged" },
-		external.branch,
-	);
-	const events: WorkspaceLifecycleEvent[] = [];
-	setWorkspacePublisher((event) => events.push(event));
-
-	git(path, "switch", "-c", "outside-b");
-	refreshUserOwnedWorkspace(external.id);
-
-	const refreshed = listWorkspaceRecords("p1").find((workspace) => workspace.id === external.id);
-	if (!refreshed) throw new Error("expected the refreshed external workspace");
-	expect(refreshed.branch).toBe("outside-b");
-	expect(refreshed.review).toBeUndefined();
-	expect(events).toEqual([{ kind: "updated", workspace: refreshed }]);
 });
 
 test("the Default workspace is non-removable and non-renamable — loud server-side guards", async () => {
@@ -906,14 +813,14 @@ test.skipIf(!canSymlink)(
 		const outside = join(dataDir, "outside");
 		mkdirSync(outside);
 
-		symlinkSync(outside, join(repo, ".thinkrail"));
+		symlinkSync(outside, join(repo, ".realthing"));
 		expect(() => ensureWorkspaceScratchDir(def)).toThrow("not a real directory");
 		expect(existsSync(join(outside, "context"))).toBe(false);
-		rmSync(join(repo, ".thinkrail"));
+		rmSync(join(repo, ".realthing"));
 
-		mkdirSync(join(repo, ".thinkrail", "context"), { recursive: true });
+		mkdirSync(join(repo, ".realthing", "context"), { recursive: true });
 		const planted = join(outside, "planted");
-		symlinkSync(planted, join(repo, ".thinkrail", "context", ".gitignore"));
+		symlinkSync(planted, join(repo, ".realthing", "context", ".gitignore"));
 		expect(() => ensureWorkspaceScratchDir(def)).not.toThrow();
 		expect(existsSync(planted)).toBe(false);
 	},
@@ -948,12 +855,12 @@ test("ensuring the Default emits created once; listing never writes into the pro
 	await listWorkspaces("p1");
 	expect(events.map((e) => e.kind)).toEqual(["created"]);
 
-	expect(existsSync(join(repo, ".thinkrail"))).toBe(false);
+	expect(existsSync(join(repo, ".realthing"))).toBe(false);
 	const def = (await listWorkspaces("p1"))[0];
 	if (!def) throw new Error("expected the ensured Default workspace");
 	ensureWorkspaceScratchDir(def);
-	expect(readFileSync(join(repo, ".thinkrail", "context", ".gitignore"), "utf8")).toBe("*\n");
-	expect(gitOut(repo, "status", "--porcelain")).not.toContain(".thinkrail");
+	expect(readFileSync(join(repo, ".realthing", "context", ".gitignore"), "utf8")).toBe("*\n");
+	expect(gitOut(repo, "status", "--porcelain")).not.toContain(".realthing");
 });
 
 test("a diff-range execution failure omits only that workspace's badge", async () => {
@@ -997,185 +904,83 @@ test("includeDiffStats: false keeps membership/order/Default ensure while skippi
 	}
 });
 
-test("a new workspace is live by construction: creation stamps lastActiveAt", async () => {
-	const before = Date.now();
-	const ws = await createWorkspace("p1");
-	expect(ws.lastActiveAt).toBeGreaterThanOrEqual(before);
-	const attached = await (async () => {
-		const path = join(dataDir, "outside");
-		git(repo, "worktree", "add", "-b", "outside", path);
-		return openExistingWorktree("p1", path);
-	})();
-	expect(attached.lastActiveAt).toBeGreaterThanOrEqual(before);
-});
+test("non-git root project Default workspace and git subfolder workspaces work together", async () => {
+	const container = join(dataDir, "cleaner-payroll");
+	const back = join(container, "back");
+	const front = join(container, "front");
+	mkdirSync(back, { recursive: true });
+	git(back, "init", "-b", "main");
+	git(back, "config", "user.email", "t@realthing.test");
+	git(back, "config", "user.name", "test");
+	git(back, "config", "commit.gpgsign", "false");
+	writeFileSync(join(back, "server.ts"), "export const port = 3000;\n");
+	git(back, "add", "-A");
+	git(back, "commit", "-m", "init back");
 
-test("recordWorkspaceActivity coalesces within a minute, never moves backwards, and clears an override", async () => {
-	const events: WorkspaceLifecycleEvent[] = [];
-	setWorkspacePublisher((event) => events.push(event));
-	const ws = await createWorkspace("p1");
-	const t0 = ws.lastActiveAt ?? 0;
-	events.length = 0;
+	mkdirSync(front, { recursive: true });
+	git(front, "init", "-b", "dev");
+	git(front, "config", "user.email", "t@realthing.test");
+	git(front, "config", "user.name", "test");
+	git(front, "config", "commit.gpgsign", "false");
+	writeFileSync(join(front, "app.tsx"), "export const App = () => null;\n");
+	git(front, "add", "-A");
+	git(front, "commit", "-m", "init front");
 
-	expect(recordWorkspaceActivity(ws.id, t0 + 30_000)?.lastActiveAt).toBe(t0);
-	expect(events).toHaveLength(0);
-
-	expect(recordWorkspaceActivity(ws.id, t0 + 61_000)?.lastActiveAt).toBe(t0 + 61_000);
-	expect(events.map((e) => e.kind)).toEqual(["updated"]);
-
-	expect(recordWorkspaceActivity(ws.id, t0 - 10_000_000)?.lastActiveAt).toBe(t0 + 61_000);
-
-	setWorkspaceReview(
-		ws.id,
-		{ kind: "pull-request", number: 3, state: "merged", changedAt: t0 + 61_500 },
-		ws.branch,
+	writeFileSync(
+		join(dataDir, "projects.json"),
+		JSON.stringify([
+			{
+				id: "p-closed-back",
+				name: "back",
+				path: back,
+				slug: "back",
+				lastOpened: 1,
+				closed: true,
+			},
+			{
+				id: "p-container",
+				name: "cleaner-payroll",
+				path: container,
+				slug: "cleaner-payroll",
+				lastOpened: 2,
+			},
+		]),
 	);
-	events.length = 0;
-	expect(recordWorkspaceActivity(ws.id, t0 + 62_000)?.lastActiveAt).toBe(t0 + 62_000);
-	expect(events.map((e) => e.kind)).toEqual(["updated"]);
-	expect(recordWorkspaceActivity(ws.id, t0 + 63_000)?.lastActiveAt).toBe(t0 + 62_000);
-	expect(events).toHaveLength(1);
-	setWorkspaceReview(ws.id, null, ws.branch);
-
-	settleWorkspace(ws.id);
-	events.length = 0;
-	const cleared = recordWorkspaceActivity(ws.id, t0 + 64_000);
-	expect(cleared?.settledOverride).toBeUndefined();
-	expect(cleared?.settledAt).toBeUndefined();
-	expect(cleared?.lastActiveAt).toBe(t0 + 64_000);
-	expect(events.map((e) => e.kind)).toEqual(["updated"]);
-	expect(recordWorkspaceActivity("missing")).toBeNull();
-});
-
-test("coalesced activity is reconciled before a later merge snapshot can settle the row", async () => {
-	const ws = await createWorkspace("p1");
-	const t0 = ws.lastActiveAt ?? 0;
-	setWorkspaceReview(ws.id, { kind: "pull-request", number: 4, state: "open" }, ws.branch);
-
-	expect(recordWorkspaceActivity(ws.id, t0 + 30_000)?.lastActiveAt).toBe(t0);
-	const merged = setWorkspaceReview(
-		ws.id,
-		{ kind: "pull-request", number: 4, state: "merged", changedAt: t0 + 20_000 },
-		ws.branch,
-	);
-	expect(merged?.lastActiveAt).toBe(t0 + 30_000);
-});
-
-test("settle and unsettle set the override with a stamp, and the Default workspace refuses both", async () => {
-	const ws = await createWorkspace("p1");
-	const settled = settleWorkspace(ws.id);
-	expect(settled.settledOverride).toBe("settled");
-	expect(settled.settledAt).toBeGreaterThan(0);
-	const active = unsettleWorkspace(ws.id);
-	expect(active.settledOverride).toBe("active");
-	expect(listWorkspaceRecords("p1").find((row) => row.id === ws.id)?.settledOverride).toBe(
-		"active",
+	writeFileSync(
+		join(dataDir, "workspaces.json"),
+		JSON.stringify([
+			{
+				id: "ws-stale-back-default",
+				projectId: "p-closed-back",
+				kind: "default",
+				name: "Default",
+				branch: "main",
+				worktreePath: back,
+				baseBranch: "main",
+				renamed: true,
+			},
+		]),
 	);
 
-	const def = (await listWorkspaces("p1", { includeDiffStats: false })).find(
-		(w) => w.kind === "default",
-	);
-	if (!def) throw new Error("no default");
-	expect(() => settleWorkspace(def.id)).toThrow("The Default workspace cannot be settled");
-	expect(() => unsettleWorkspace(def.id)).toThrow("The Default workspace cannot be settled");
-	expect(() => settleWorkspace("missing")).toThrow("Unknown workspace: missing");
-});
+	const candidates = await listExistingWorktrees("p-container");
+	expect(candidates).toEqual([
+		{ path: back, branch: "main", status: "available" },
+		{ path: front, branch: "dev", status: "available" },
+	]);
 
-test("backfillWorkspaceActivity fills only a missing stamp and touches no override", async () => {
-	const ws = await createWorkspace("p1");
-	settleWorkspace(ws.id);
-	const stamped = ws.lastActiveAt;
-	expect(backfillWorkspaceActivity(ws.id, 5)?.lastActiveAt).toBe(stamped);
-
-	const all = JSON.parse(readFileSync(join(dataDir, "workspaces.json"), "utf8")) as Workspace[];
-	const legacy = all.find((row) => row.id === ws.id);
-	if (!legacy) throw new Error("missing");
-	delete legacy.lastActiveAt;
-	writeFileSync(join(dataDir, "workspaces.json"), JSON.stringify(all));
-
-	const filled = backfillWorkspaceActivity(ws.id, 5);
-	expect(filled?.lastActiveAt).toBe(5);
-	expect(filled?.settledOverride).toBe("settled");
-	expect(backfillWorkspaceActivity("missing", 5)).toBeNull();
-});
-
-test("recordWorkspaceHead stamps activity only when the sha actually moved after the first look", async () => {
-	const ws = await createWorkspace("p1");
-	const t0 = ws.lastActiveAt ?? 0;
-	const all = JSON.parse(readFileSync(join(dataDir, "workspaces.json"), "utf8")) as Workspace[];
-	for (const row of all) if (row.id === ws.id) row.lastActiveAt = t0 - 3_600_000;
-	writeFileSync(join(dataDir, "workspaces.json"), JSON.stringify(all));
-
-	recordWorkspaceHead(ws.id);
-	expect(listWorkspaceRecords("p1").find((row) => row.id === ws.id)?.lastActiveAt).toBe(
-		t0 - 3_600_000,
-	);
-	recordWorkspaceHead(ws.id);
-	expect(listWorkspaceRecords("p1").find((row) => row.id === ws.id)?.lastActiveAt).toBe(
-		t0 - 3_600_000,
-	);
-
-	writeFileSync(join(ws.worktreePath, "work.txt"), "work\n");
-	git(ws.worktreePath, "add", "-A");
-	git(ws.worktreePath, "commit", "-m", "work");
-	recordWorkspaceHead(ws.id);
-	expect(
-		listWorkspaceRecords("p1").find((row) => row.id === ws.id)?.lastActiveAt ?? 0,
-	).toBeGreaterThan(t0 - 3_600_000);
-});
-
-test("watch-start observation compares a retained HEAD baseline after watcher recreation", async () => {
-	const ws = await createWorkspace("p1");
-	const stale = (ws.lastActiveAt ?? 0) - 3_600_000;
-	const all = JSON.parse(readFileSync(join(dataDir, "workspaces.json"), "utf8")) as Workspace[];
-	for (const row of all) if (row.id === ws.id) row.lastActiveAt = stale;
-	writeFileSync(join(dataDir, "workspaces.json"), JSON.stringify(all));
-
-	seedWorkspaceHead(ws.id);
-	seedWorkspaceHead(ws.id);
-	writeFileSync(join(ws.worktreePath, "work.txt"), "work\n");
-	git(ws.worktreePath, "add", "-A");
-	git(ws.worktreePath, "commit", "-m", "work");
-	seedWorkspaceHead(ws.id);
-	expect(
-		listWorkspaceRecords("p1").find((row) => row.id === ws.id)?.lastActiveAt ?? 0,
-	).toBeGreaterThan(stale);
-	expect(() => seedWorkspaceHead("missing")).not.toThrow();
-});
-
-test("setWorkspaceReview persists a trimmed snapshot and stays silent when nothing changed", async () => {
-	const events: WorkspaceLifecycleEvent[] = [];
-	setWorkspacePublisher((event) => events.push(event));
-	const ws = await createWorkspace("p1");
-	events.length = 0;
-
-	const review = {
-		kind: "pull-request" as const,
-		number: 42,
-		url: "https://github.com/acme/app/pull/42",
-		state: "open" as const,
-		unpushedCommits: 3,
-	};
-	expect(setWorkspaceReview(ws.id, review, ws.branch)?.review).toEqual({
-		kind: "pull-request",
-		number: 42,
-		url: "https://github.com/acme/app/pull/42",
-		state: "open",
+	const attachedBack = await openExistingWorktree("p-container", back);
+	expect(attachedBack).toMatchObject({
+		projectId: "p-container",
+		kind: "external",
+		name: "back",
+		branch: "main",
+		worktreePath: back,
+		baseBranch: "main",
 	});
-	expect(events.map((e) => e.kind)).toEqual(["updated"]);
-	expect(setWorkspaceReview(ws.id, review, ws.branch)?.review?.number).toBe(42);
-	expect(events).toHaveLength(1);
 
-	const merged = setWorkspaceReview(
-		ws.id,
-		{ ...review, state: "merged", changedAt: 1_700_000_000_000 },
-		ws.branch,
-	);
-	expect(merged?.review).toMatchObject({ state: "merged", changedAt: 1_700_000_000_000 });
-	expect(events).toHaveLength(2);
-	expect(setWorkspaceReview(ws.id, null, ws.branch)?.review).toBeUndefined();
-	expect(events).toHaveLength(3);
-	expect(setWorkspaceReview("missing", null, "main")).toBeNull();
-	expect(setWorkspaceReview(ws.id, review, "some-other-branch")).toBeNull();
-	expect(listWorkspaceRecords("p1").find((row) => row.id === ws.id)?.review).toBeUndefined();
-	expect(events).toHaveLength(3);
+	const rows = await listWorkspaces("p-container");
+	expect(rows.map((w) => ({ name: w.name, kind: w.kind, branch: w.branch }))).toEqual([
+		{ name: "Default", kind: "default", branch: "Default" },
+		{ name: "back", kind: "external", branch: "main" },
+	]);
 });

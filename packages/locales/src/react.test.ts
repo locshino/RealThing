@@ -138,16 +138,16 @@ test("interpolation can never complete a tag: a value-built attributed tag is re
 test("plural forms follow the language's own rules, with or without the number", () => {
 	applyLocale("ru", {
 		ru: {
-			"tools.read.firstLines_one": "первая {{count}} строка",
-			"tools.read.firstLines_few": "первые {{count}} строки",
-			"tools.read.firstLines_many": "первые {{count}} строк",
+			"plan.fileCount_one": "{{count}} файл",
+			"plan.fileCount_few": "{{count}} файла",
+			"plan.fileCount_many": "{{count}} файлов",
 		},
 	});
-	expect([1, 2, 5, 21].map((count) => t("tools.read.firstLines", { count }))).toEqual([
-		"первая 1 строка",
-		"первые 2 строки",
-		"первые 5 строк",
-		"первая 21 строка",
+	expect([1, 2, 5, 21].map((count) => t("plan.fileCount", { count }))).toEqual([
+		"1 файл",
+		"2 файла",
+		"5 файлов",
+		"21 файл",
 	]);
 	applyLocale("ar", {
 		ar: {
@@ -166,12 +166,12 @@ test("plural forms follow the language's own rules, with or without the number",
 });
 
 test("a partly translated counter stays in its language instead of falling back to English", () => {
-	applyLocale("ru", { ru: { "tools.read.firstLines_other": "первые {{count}} строк" } });
-	expect(t("tools.read.firstLines", { count: 3 })).toBe("первые 3 строк");
-	applyLocale("ja", { ja: { "tools.read.firstLines_other": "最初の{{count}}行" } });
-	expect([1, 4].map((count) => t("tools.read.firstLines", { count }))).toEqual([
-		"最初の1行",
-		"最初の4行",
+	applyLocale("ru", { ru: { "plan.fileCount_other": "{{count}} файлов" } });
+	expect(t("plan.fileCount", { count: 3 })).toBe("3 файлов");
+	applyLocale("ja", { ja: { "plan.fileCount_other": "{{count}}個のファイル" } });
+	expect([1, 4].map((count) => t("plan.fileCount", { count }))).toEqual([
+		"1個のファイル",
+		"4個のファイル",
 	]);
 });
 

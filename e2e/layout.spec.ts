@@ -1,4 +1,3 @@
-import { realpathSync, rmSync } from "node:fs";
 import { expect, type Locator, type Page, test, type WebSocketRoute } from "@playwright/test";
 import {
 	createWorkspaceViaDialog,
@@ -6,15 +5,12 @@ import {
 	enterDefaultWorkspace,
 	expandDisclosure,
 	openFixtureProject,
-	openPersistedChat,
 	pressPlatformShortcut,
 	pseudoBackgroundColor,
 	revealFirstProjectWorkspaces,
 	revealWorkbenchTool,
 	waitTerminalReady,
 } from "./fixtures/app";
-import { E2E_FIXTURE_REPO } from "./fixtures/paths";
-import { seedWorkspaceSession } from "./fixtures/sessions";
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -131,7 +127,7 @@ test("workbench strips and feature toolbars keep one-row geometry with ARIA tabs
 	page,
 }) => {
 	await openDefaultWorkbench(page);
-	await page.getByTestId("start-chat").first().click();
+	await openKeptFiles(page, ["README.md"]);
 
 	const centerStrip = page.getByTestId("center-tab-strip").first();
 	const bottomStrip = page.getByTestId("bottom-tab-strip");
@@ -151,7 +147,7 @@ test("workbench strips and feature toolbars keep one-row geometry with ARIA tabs
 	const centerScroller = centerStrip.getByRole("tablist");
 	await expect(centerScroller).toHaveCSS("overflow-x", "auto");
 	await expect(centerScroller).toHaveCSS("overflow-y", "hidden");
-	for (const tool of ["projects", "specs", "files", "review"]) {
+	for (const tool of ["projects", "files", "plan"]) {
 		await expect(
 			page.getByTestId(`tab-${tool}`).getByRole("button", { name: /^Close / }),
 		).toHaveCount(0);
@@ -165,8 +161,6 @@ test("workbench strips and feature toolbars keep one-row geometry with ARIA tabs
 		await expect(header).toHaveCSS("height", "28px");
 		await expect(header.getByRole("tablist")).toHaveCount(0);
 	}
-	await expect(page.getByTestId("chat-toolbar")).toHaveCSS("height", "28px");
-	await expect(page.getByTestId("chat-toolbar")).toHaveCSS("overflow-x", "clip");
 	await expect(page.getByTestId("changes-view-toggle")).toHaveCSS("height", "28px");
 });
 
@@ -231,7 +225,7 @@ test("auxiliary panel scrollbars stay quiet at rest and expose only clipped edge
 }) => {
 	await page.setViewportSize({ width: 900, height: 420 });
 	await openDefaultWorkbench(page);
-	for (const tool of ["projects", "specs", "files", "review"] as const) {
+	for (const tool of ["projects", "files", "plan"] as const) {
 		const tab = page.getByTestId(`tool-rail-${tool}`);
 		await revealWorkbenchTool(page, tool);
 		const panelId = await tab.getAttribute("aria-controls");
@@ -410,15 +404,15 @@ test("a duplicated tab remints copied surface storage and preserves both layouts
 }) => {
 	await openDefaultWorkbench(page);
 	const originalSurfaceId = await page.evaluate(() =>
-		sessionStorage.getItem("thinkrail:layout-surface-id"),
+		sessionStorage.getItem("realthing:layout-surface-id"),
 	);
 	if (!originalSurfaceId) throw new Error("original surface id is missing");
 
 	const clone = await context.newPage();
 	await clone.addInitScript((copiedId) => {
-		if (sessionStorage.getItem("thinkrail:e2e-clone-seeded")) return;
-		sessionStorage.setItem("thinkrail:e2e-clone-seeded", "true");
-		sessionStorage.setItem("thinkrail:layout-surface-id", copiedId);
+		if (sessionStorage.getItem("realthing:e2e-clone-seeded")) return;
+		sessionStorage.setItem("realthing:e2e-clone-seeded", "true");
+		sessionStorage.setItem("realthing:layout-surface-id", copiedId);
 	}, originalSurfaceId);
 	await clone.goto("/");
 	await expect(clone.getByTestId("connection-status")).toHaveAttribute("data-status", "connected");
@@ -426,7 +420,7 @@ test("a duplicated tab remints copied surface storage and preserves both layouts
 	await defaultWorkspaceRow(clone).getByRole("button").first().click();
 	await expect(clone.getByTestId("left-nav")).toBeVisible();
 	const cloneSurfaceId = await clone.evaluate(() =>
-		sessionStorage.getItem("thinkrail:layout-surface-id"),
+		sessionStorage.getItem("realthing:layout-surface-id"),
 	);
 	if (!cloneSurfaceId) throw new Error("clone surface id is missing");
 	expect(cloneSurfaceId).not.toBe(originalSurfaceId);
@@ -436,7 +430,7 @@ test("a duplicated tab remints copied surface storage and preserves both layouts
 	await expect(clone.getByTestId("left-nav")).toBeVisible();
 
 	await reloadDefaultWorkbench(page);
-	expect(await page.evaluate(() => sessionStorage.getItem("thinkrail:layout-surface-id"))).toBe(
+	expect(await page.evaluate(() => sessionStorage.getItem("realthing:layout-surface-id"))).toBe(
 		originalSurfaceId,
 	);
 	await expect(page.getByTestId("left-layout-rail")).toBeVisible();
@@ -444,7 +438,7 @@ test("a duplicated tab remints copied surface storage and preserves both layouts
 	await clone.reload();
 	await expect(clone.getByTestId("connection-status")).toHaveAttribute("data-status", "connected");
 	await expect(clone.getByTestId("left-nav")).toBeVisible();
-	expect(await clone.evaluate(() => sessionStorage.getItem("thinkrail:layout-surface-id"))).toBe(
+	expect(await clone.evaluate(() => sessionStorage.getItem("realthing:layout-surface-id"))).toBe(
 		cloneSurfaceId,
 	);
 	await clone.close();
@@ -472,7 +466,7 @@ test("dragging outer separators hides both sides and preserves their restore sta
 
 	await page.getByTestId("tool-rail-projects").click();
 	await waitForLayoutSettled(page);
-	await page.getByTestId("tool-rail-specs").click();
+	await page.getByTestId("tool-rail-files").click();
 	await waitForLayoutSettled(page);
 
 	await expect(page.getByTestId("left-stack")).toBeVisible();
@@ -490,18 +484,18 @@ test("the side group menu shows tools for its own side and opens a terminal pane
 	page,
 }) => {
 	await openDefaultWorkbench(page);
-	const specsGroup = sideGroups(page, "right").first();
-	const specsGroupId = await specsGroup.getAttribute("data-group-id");
-	await expect(specsGroup.getByTestId("terminal-tab")).toHaveCount(0);
+	const filesGroup = sideGroups(page, "right").first();
+	const filesGroupId = await filesGroup.getAttribute("data-group-id");
+	await expect(filesGroup.getByTestId("terminal-tab")).toHaveCount(0);
 
-	await specsGroup.getByRole("button", { name: "Add to this group" }).click();
+	await filesGroup.getByRole("button", { name: "Add to this group" }).click();
 	await expect(page.getByTestId("side-new-terminal")).toHaveText("New terminal pane below");
 	await page.getByTestId("side-new-terminal").click();
 	await expect(sideGroups(page, "right")).toHaveCount(3);
 	const terminalPane = sideGroups(page, "right").nth(1);
 	await expect(terminalPane.getByTestId("terminal-tab")).toHaveCount(1);
-	await expect(terminalPane).not.toHaveAttribute("data-group-id", specsGroupId ?? "");
-	await expect(specsGroup.getByTestId("terminal-tab")).toHaveCount(0);
+	await expect(terminalPane).not.toHaveAttribute("data-group-id", filesGroupId ?? "");
+	await expect(filesGroup.getByTestId("terminal-tab")).toHaveCount(0);
 	await expect(page.getByTestId("center-tab-strip").getByTestId("terminal-tab")).toHaveCount(0);
 	await terminalPane.getByRole("button", { name: "Add to this group" }).click();
 	await expect(page.getByTestId("side-new-terminal")).toHaveText("New terminal");
@@ -509,11 +503,11 @@ test("the side group menu shows tools for its own side and opens a terminal pane
 
 	await page.getByTestId("tab-projects").click({ button: "right" });
 	await page.getByRole("menuitem", { name: "Remove tool from group", exact: true }).click();
-	await page.getByTestId("tab-review").click({ button: "right" });
+	await page.getByTestId("tab-plan").click({ button: "right" });
 	await page.getByRole("menuitem", { name: "Remove tool from group", exact: true }).click();
 
-	await specsGroup.getByRole("button", { name: "Add to this group" }).click();
-	await expect(page.getByTestId("show-tool-review")).toBeVisible();
+	await filesGroup.getByRole("button", { name: "Add to this group" }).click();
+	await expect(page.getByTestId("show-tool-plan")).toBeVisible();
 	await expect(page.getByTestId("show-tool-projects")).toHaveCount(0);
 });
 
@@ -606,42 +600,42 @@ test("side groups expose broad per-panel above and below split targets", async (
 	await expect(page.getByRole("menuitem", { name: "New group below", exact: true })).toBeEnabled();
 	await page.keyboard.press("Escape");
 
-	const reviewGroup = sideGroups(page, "right").and(page.locator('[data-tools~="review"]'));
-	const aboveTarget = reviewGroup.locator('[data-drop-label="Create right group above"]');
+	const planGroup = sideGroups(page, "right").and(page.locator('[data-tools~="plan"]'));
+	const aboveTarget = planGroup.locator('[data-drop-label="Create right group above"]');
 	const aboveHeight = await dragTabToTarget(page, files, aboveTarget);
 	expect(aboveHeight).toBeGreaterThan(40);
 
 	const groups = sideGroups(page, "right");
 	await expect(groups).toHaveCount(3);
-	await expect(groups.nth(0)).toHaveAttribute("data-tools", "specs");
+	await expect(groups.nth(0)).toContainText("Empty group");
 	await expect(groups.nth(1)).toHaveAttribute("data-tools", "files");
-	await expect(groups.nth(2)).toHaveAttribute("data-tools", /review/);
+	await expect(groups.nth(2)).toHaveAttribute("data-tools", /plan/);
 
-	const belowTarget = reviewGroup.locator('[data-drop-label="Create right group below"]');
+	const belowTarget = planGroup.locator('[data-drop-label="Create right group below"]');
 	const belowHeight = await dragTabToTarget(page, page.getByTestId("tab-files"), belowTarget);
 	expect(belowHeight).toBeGreaterThan(40);
 
 	await expect(groups).toHaveCount(4);
-	await expect(groups.nth(0)).toHaveAttribute("data-tools", "specs");
+	await expect(groups.nth(0)).toContainText("Empty group");
 	await expect(groups.nth(1)).toContainText("Empty group");
-	await expect(groups.nth(2)).toHaveAttribute("data-tools", /review/);
+	await expect(groups.nth(2)).toHaveAttribute("data-tools", /plan/);
 	await expect(groups.nth(3)).toHaveAttribute("data-tools", "files");
 
 	await waitForLayoutSettled(page);
-	await reviewGroup.getByTestId("side-group-fold").press("Space", { delay: 100 });
-	await expect(reviewGroup).toHaveCount(0);
-	const boundaryAboveFoldedReview = page
+	await planGroup.getByTestId("side-group-fold").press("Space", { delay: 100 });
+	await expect(planGroup).toHaveCount(0);
+	const boundaryAboveFoldedPlan = page
 		.getByTestId("right-layout-rail")
 		.locator('[data-drop-label="New right pane here"]')
 		.nth(2);
-	await dragTabToTarget(page, page.getByTestId("tab-files"), boundaryAboveFoldedReview);
+	await dragTabToTarget(page, page.getByTestId("tab-files"), boundaryAboveFoldedPlan);
 	await expect(groups).toHaveCount(4);
-	await expect(page.getByTestId("tool-rail-review")).toHaveAttribute("aria-pressed", "false");
-	await page.getByTestId("tool-rail-review").click({ delay: 100 });
+	await expect(page.getByTestId("tool-rail-plan")).toHaveAttribute("aria-pressed", "false");
+	await page.getByTestId("tool-rail-plan").click({ delay: 100 });
 	await expect(groups).toHaveCount(5);
-	await expect(groups.nth(0)).toHaveAttribute("data-tools", "specs");
+	await expect(groups.nth(0)).toContainText("Empty group");
 	await expect(groups.nth(2)).toHaveAttribute("data-tools", "files");
-	await expect(groups.nth(3)).toHaveAttribute("data-tools", /review/);
+	await expect(groups.nth(3)).toHaveAttribute("data-tools", /plan/);
 });
 
 test("Mod+B and Mod+J hide and restore local sides without affecting bottom", async ({ page }) => {
@@ -671,46 +665,33 @@ test("Mod+B and Mod+J hide and restore local sides without affecting bottom", as
 test("hiding a side or the bottom keeps focus outside it and recovers focus from inside it", async ({
 	page,
 }) => {
-	await openFixtureProject(page);
-	const session = seedWorkspaceSession(realpathSync(E2E_FIXTURE_REPO), {
-		name: "focus keeper",
-		messages: [{ role: "user", text: "Keep my draft focused.", timestamp: 1_700_900_000_000 }],
-	});
-	try {
-		await enterDefaultWorkspace(page);
-		await waitTerminalReady(page);
-		await openPersistedChat(page, "focus keeper");
-		const composer = page.getByTestId("chat-input");
-		await composer.click();
-		await composer.fill("draft in progress");
+	await openDefaultWorkbench(page);
+	await openKeptFiles(page, ["README.md"]);
+	const readmeTab = page
+		.getByTestId("editor-tab")
+		.filter({ hasText: "README.md" })
+		.getByRole("tab");
+	await readmeTab.focus();
+	await expect(readmeTab).toBeFocused();
 
-		for (const [shortcut, region] of [
-			["b", "left-nav"],
-			["j", "right-stack"],
-			["Shift+j", "bottom-panel"],
-		] as const) {
-			await pressPlatformShortcut(page, shortcut);
-			await expect(page.getByTestId(region)).toHaveCount(0);
-			await expect(composer).toBeFocused();
-		}
-		await expect(composer).toHaveValue("draft in progress");
-
-		await pressPlatformShortcut(page, "b");
-		await expect(page.getByTestId("left-nav")).toBeVisible();
-		const insideLeft = page.getByTestId("left-nav").getByTestId("project-expand").first();
-		await insideLeft.focus();
-		await expect(insideLeft).toBeFocused();
-		await pressPlatformShortcut(page, "b");
-		await expect(page.getByTestId("left-nav")).toHaveCount(0);
-		await expect(
-			page
-				.locator('[data-testid="editor-tab"][data-kind="chat"]')
-				.filter({ hasText: "focus keeper" })
-				.getByRole("tab"),
-		).toBeFocused();
-	} finally {
-		rmSync(session.path, { force: true });
+	for (const [shortcut, region] of [
+		["b", "left-nav"],
+		["j", "right-stack"],
+		["Shift+j", "bottom-panel"],
+	] as const) {
+		await pressPlatformShortcut(page, shortcut);
+		await expect(page.getByTestId(region)).toHaveCount(0);
+		await expect(readmeTab).toBeFocused();
 	}
+
+	await pressPlatformShortcut(page, "b");
+	await expect(page.getByTestId("left-nav")).toBeVisible();
+	const insideLeft = page.getByTestId("left-nav").getByTestId("project-expand").first();
+	await insideLeft.focus();
+	await expect(insideLeft).toBeFocused();
+	await pressPlatformShortcut(page, "b");
+	await expect(page.getByTestId("left-nav")).toHaveCount(0);
+	await expect(readmeTab).toBeFocused();
 });
 
 test("keyboard and menu commands reorder, search, recursively split, and explicitly remove empty groups", async ({
@@ -727,15 +708,15 @@ test("keyboard and menu commands reorder, search, recursively split, and explici
 	await page.getByTestId("tab-files").click({ button: "right" });
 	await page.getByRole("menuitem", { name: "Remove tool from group", exact: true }).click();
 	await expect(page.getByTestId("tab-files")).toHaveCount(0);
-	await page.getByTestId("tab-review").click({ button: "right" });
+	await page.getByTestId("tab-plan").click({ button: "right" });
 	await page.getByRole("menuitem", { name: "Show Files" }).click();
 	await expect(page.getByTestId("tab-files")).toBeVisible();
-	await page.getByTestId("tool-rail-specs").focus();
+	await page.getByTestId("tool-rail-files").focus();
 	await page.keyboard.press("Delete");
-	await expect(page.getByTestId("tab-specs")).toHaveCount(0);
-	await page.getByTestId("tab-review").click({ button: "right" });
-	await page.getByRole("menuitem", { name: "Show Specs" }).click();
-	await expect(page.getByTestId("tab-specs")).toBeVisible();
+	await expect(page.getByTestId("tab-files")).toHaveCount(0);
+	await page.getByTestId("tab-plan").click({ button: "right" });
+	await page.getByRole("menuitem", { name: "Show Files" }).click();
+	await expect(page.getByTestId("tab-files")).toBeVisible();
 
 	await openKeptFiles(page, ["README.md", "notes.txt", "LINKS.md"]);
 	const tabs = page.getByTestId("editor-tab");
@@ -1173,11 +1154,8 @@ test("a narrow viewport compresses locally without rewriting recursive topology"
 	await expect(page.getByTestId("center-group")).toHaveCount(2);
 });
 
-test("frontend windows keep chat and file placement independent", async ({ page, context }) => {
+test("frontend windows keep terminal and file placement independent", async ({ page, context }) => {
 	await openDefaultWorkbench(page);
-	await page.getByTestId("start-chat").first().click();
-	const chat = page.locator('[data-testid="editor-tab"][data-kind="chat"]');
-	await expect(chat).toHaveCount(1);
 
 	const peer = await context.newPage();
 	await peer.goto("/");
@@ -1186,25 +1164,9 @@ test("frontend windows keep chat and file placement independent", async ({ page,
 	await defaultWorkspaceRow(peer).click();
 	await expect(page.getByTestId("terminal-tab")).toHaveCount(1);
 	await expect(peer.getByTestId("terminal-tab")).toHaveCount(1);
-	const peerChat = peer.locator('[data-testid="editor-tab"][data-kind="chat"]');
-	await expect(peerChat).toHaveCount(1);
 	await peer.getByTestId("new-terminal").first().click();
 	await expect(peer.getByTestId("terminal-tab")).toHaveCount(2);
 	await expect(page.getByTestId("terminal-tab")).toHaveCount(1);
-	await expect(peerChat).toHaveCount(1);
-	await expect(chat).toHaveCount(1);
-	await peerChat.hover();
-	await peerChat.getByTestId("editor-tab-close").click();
-	await expect(peerChat).toHaveCount(0);
-	await expect(chat).toHaveCount(1);
-
-	const peerHistory = peer.getByTestId("chat-history").first();
-	await page.getByTestId("new-chat").first().click();
-	await expect(chat).toHaveCount(2);
-	await expect(peerHistory).toBeVisible();
-	await peerHistory.press("Enter");
-	await expect(peer.getByTestId("closed-chat-item")).toHaveCount(2);
-	await peer.keyboard.press("Escape");
 
 	await revealWorkbenchTool(page, "files");
 	await page.getByTestId("file-node").filter({ hasText: "README.md" }).dblclick();
@@ -1317,8 +1279,8 @@ test("local layout transitions with no gesture in progress never announce a canc
 	await expect(filesGroup).toHaveCount(0);
 	await page.getByTestId("tool-rail-files").click();
 	await expect(filesGroup).toHaveAttribute("data-folded", "false");
-	await revealWorkbenchTool(page, "review");
-	await expect(page.getByTestId("tab-review")).toHaveAttribute("data-active", "true");
+	await revealWorkbenchTool(page, "plan");
+	await expect(page.getByTestId("tab-plan")).toHaveAttribute("data-active", "true");
 	await expect(page.getByTestId("toast")).toHaveCount(0);
 });
 

@@ -6,15 +6,15 @@ import { Subtitle } from "./Subtitle";
 const transparency = {
 	n: "01",
 	Icon: View,
-	title: "See what your agents are doing",
-	body: "No black boxes. Every terminal prompt, source code lookup, and tool invocation is rendered in real-time. Know exactly what your agents are exploring.",
+	title: "See every change across your workspace",
+	body: "No hidden state. Every modified file, branch diff, and terminal command is visible in real-time across your active worktrees.",
 };
 
 const parallelism = {
 	n: "03",
 	Icon: ListTree,
-	title: "Run multiple agents without the mess",
-	body: "Each task runs inside its own isolated Git worktree. Run five distinct features in parallel without dealing with lock files, dirty indexes, or branch switching.",
+	title: "Work on multiple branches without the mess",
+	body: "Each task runs inside its own isolated Git worktree. Develop five distinct features in parallel without dealing with lock files, dirty indexes, or branch switching.",
 };
 
 const COPY: Record<
@@ -24,42 +24,42 @@ const COPY: Record<
 	control: {
 		heading: "Designed for high-trust development",
 		subtitle:
-			"We do not believe in fully-autonomous software engineering.\u00a0\nWe believe in automated agent orchestration backed by strict human gatekeeping.",
+			"We believe in structured, high-clarity software engineering.\u00a0\nEvery workspace combines code editing, isolated worktrees, multi-scope diff review, and clear plans.",
 		principles: [
 			transparency,
 			{
 				n: "02",
 				Icon: ListTodo,
 				title: "Clarify requirements before building",
-				body: "Agents write a dry-run plan and architectural outline before writing code. Review the approach, adjust the constraints, and authorize with confidence.",
+				body: "Capture a scoped workspace plan and architectural outline before writing code. Review the approach, adjust the constraints, and build with confidence.",
 			},
 			parallelism,
 			{
 				n: "04",
 				Icon: BookOpenText,
 				title: "Keep your project's memory",
-				body: "Keep requirements, module boundaries, and architecture decisions in a linked spec graph that future sessions can search before changing code.",
+				body: "Keep requirements, module boundaries, and architecture decisions in a linked spec graph right alongside your code.",
 			},
 		],
 	},
 	compounding: {
 		heading: "Designed to compound",
 		subtitle:
-			"Most agents forget everything between sessions.\u00a0\nThinkRail remembers — and what it learns today makes it faster tomorrow.",
+			"Context shouldn't vanish between tasks.\u00a0\nRealThing keeps your specs, workspace plans, and worktrees organized in one place.",
 		principles: [
 			transparency,
 			{
 				n: "02",
 				Icon: ListTodo,
 				title: "Plan first — keep the plan",
-				body: "Agents draft a plan before touching code. Approved designs land in living specs and stay with the project.",
+				body: "Draft a workspace plan before touching code. Approved designs land in living specs and stay with the project.",
 			},
 			parallelism,
 			{
 				n: "04",
 				Icon: BookOpenText,
 				title: "Living specs, not stale docs",
-				body: "Requirements, boundaries, and decisions in a linked graph the agent reads before every change — and updates as the code evolves.",
+				body: "Requirements, boundaries, and decisions live in a linked graph that stays updated as the code evolves.",
 			},
 		],
 	},

@@ -15,7 +15,7 @@ export function githubOrigin(
 	worktree: string,
 	repository = "acme/sample",
 ): { bare: string; dispose: () => void } {
-	const bare = mkdtempSync(join(tmpdir(), "thinkrail-gh-origin-"));
+	const bare = mkdtempSync(join(tmpdir(), "realthing-gh-origin-"));
 	gitAs(bare, "init", "-q", "--bare");
 	gitAs(worktree, "remote", "add", "origin", `git@github.com:${repository}.git`);
 	gitAs(

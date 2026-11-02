@@ -3,12 +3,12 @@ import type {
 	NativeUpdateBridge,
 	NativeUpdateInstallResult,
 	NativeUpdateState,
-} from "@thinkrail/contracts";
+} from "@realthing/contracts";
 import { openAppFresh } from "./fixtures/app";
 
 type TestGlobals = typeof globalThis & {
-	__THINKRAIL_TEST_UPDATE__: (next: Partial<NativeUpdateState>) => void;
-	__THINKRAIL_TEST_CALLS__: string[];
+	__REALTHING_TEST_UPDATE__: (next: Partial<NativeUpdateState>) => void;
+	__REALTHING_TEST_CALLS__: string[];
 };
 
 async function installFakeBridge(page: Page, initial: Partial<NativeUpdateState>): Promise<void> {
@@ -73,21 +73,21 @@ async function installFakeBridge(page: Page, initial: Partial<NativeUpdateState>
 				return () => listeners.delete(listener);
 			},
 		};
-		Object.defineProperty(globalThis, "__THINKRAIL_NATIVE_UPDATES__", { value: bridge });
-		Object.defineProperty(globalThis, "__THINKRAIL_TEST_UPDATE__", { value: publish });
-		Object.defineProperty(globalThis, "__THINKRAIL_TEST_CALLS__", { value: calls });
+		Object.defineProperty(globalThis, "__REALTHING_NATIVE_UPDATES__", { value: bridge });
+		Object.defineProperty(globalThis, "__REALTHING_TEST_UPDATE__", { value: publish });
+		Object.defineProperty(globalThis, "__REALTHING_TEST_CALLS__", { value: calls });
 	}, initial);
 }
 
 async function publish(page: Page, next: Partial<NativeUpdateState>): Promise<void> {
 	await page.evaluate(
-		(patch) => (globalThis as TestGlobals).__THINKRAIL_TEST_UPDATE__(patch),
+		(patch) => (globalThis as TestGlobals).__REALTHING_TEST_UPDATE__(patch),
 		next,
 	);
 }
 
 async function bridgeCalls(page: Page): Promise<string[]> {
-	return page.evaluate(() => [...(globalThis as TestGlobals).__THINKRAIL_TEST_CALLS__]);
+	return page.evaluate(() => [...(globalThis as TestGlobals).__REALTHING_TEST_CALLS__]);
 }
 
 const failedSwap: NativeUpdateInstallResult = {
@@ -127,8 +127,8 @@ test("Install & Restart shows a non-dismissable installer with steps and a log u
 
 	const dialog = page.getByTestId("update-install-dialog");
 	await expect(dialog).toBeVisible();
-	await expect(dialog).toContainText("Installing ThinkRail 0.3.0-nightly.4");
-	await expect(dialog).toContainText("ThinkRail will close and reopen by itself");
+	await expect(dialog).toContainText("Installing RealThing 0.3.0-nightly.4");
+	await expect(dialog).toContainText("RealThing will close and reopen by itself");
 	const step = (key: string) => dialog.locator(`[data-step="${key}"]`);
 	await expect(step("prepared")).toHaveAttribute("data-status", "done");
 	await expect(step("stopping")).toHaveAttribute("data-status", "active");
@@ -136,7 +136,9 @@ test("Install & Restart shows a non-dismissable installer with steps and a log u
 	await page.keyboard.press("Escape");
 	await expect(dialog).toBeVisible();
 	await page.getByTestId("update-log-toggle").click();
-	await expect(page.getByTestId("update-log")).toContainText("Stopping agents and terminals");
+	await expect(page.getByTestId("update-log")).toContainText(
+		"Stopping background tasks and terminals",
+	);
 
 	await publish(page, { installStep: "handoff" });
 	await expect(step("stopping")).toHaveAttribute("data-status", "done");
@@ -163,7 +165,7 @@ test("a failed install after relaunch explains the cause, offers recovery, and d
 	await expect(dialog).toContainText("The update didn't install");
 	await expect(dialog).toContainText("restored version 0.3.0-nightly.1");
 	await expect(page.getByTestId("update-install-cause")).toHaveText(
-		"Another program is using ThinkRail's install folder",
+		"Another program is using RealThing's install folder",
 	);
 	await expect(page.getByTestId("update-ready")).toContainText("Update didn't install");
 	const recover = page.getByTestId("update-install-recover");
@@ -220,12 +222,12 @@ test("a successful install after relaunch toasts once and keeps Details from the
 	await expect.poll(() => bridgeCalls(page)).toEqual(["dismiss"]);
 	await toast.getByRole("button", { name: "Details" }).click();
 	const details = page.getByTestId("update-install-details");
-	await expect(details).toContainText("ThinkRail 0.3.0-nightly.4 is installed");
+	await expect(details).toContainText("RealThing 0.3.0-nightly.4 is installed");
 	await expect(details.getByRole("link", { name: "What's new" })).toHaveAttribute(
 		"href",
-		"https://github.com/JetBrains/thinkrail/releases/tag/v0.3.0-nightly.4",
+		"https://github.com/JetBrains/realthing/releases/tag/v0.3.0-nightly.4",
 	);
 	await expect(page.getByTestId("update-log")).toContainText(
-		"Installer ready; restarting ThinkRail",
+		"Installer ready; restarting RealThing",
 	);
 });

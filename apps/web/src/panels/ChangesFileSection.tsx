@@ -9,29 +9,23 @@ import {
 	RiExternalLinkLine as OpenAsTab,
 	RiArrowGoBackLine as Revert,
 } from "@remixicon/react";
-import type { GitDiffScope, GitFileChange } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
-import type { HunkTriage, ReviewDraftPersistence } from "@thinkrail/resource-renderers";
-import {
-	RendererToggles,
-	ReviewDraftContext,
-	rendererImplementationKey,
-} from "@thinkrail/resource-renderers";
-import { Button, IconButton } from "@thinkrail/ui/button";
+import type { GitDiffScope, GitFileChange } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
+import type { HunkTriage } from "@realthing/resource-renderers";
+import { RendererToggles, rendererImplementationKey } from "@realthing/resource-renderers";
+import { Button, IconButton } from "@realthing/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
-} from "@thinkrail/ui/dropdown-menu";
-import { LoadingRegion } from "@thinkrail/ui/skeleton";
+} from "@realthing/ui/dropdown-menu";
+import { LoadingRegion } from "@realthing/ui/skeleton";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { copyText, isPhoneViewport } from "@/lib";
-import { statusLetter } from "../chat/planView";
 import {
 	type ChangesTabSection,
 	type DiffTabView,
-	selectChangesTabSection,
 	selectDiffTabTargetRef,
 	selectWorkspaceTick,
 	useAppStore,
@@ -41,6 +35,7 @@ import {
 	estimatedSectionHeight,
 	splitPath,
 	stackedDiffBounded,
+	statusLetter,
 	statusNameClass,
 } from "./changesModel";
 import { DiffStatBadge } from "./DiffStatBadge";
@@ -100,12 +95,6 @@ export const ChangesFileSection = memo(function ChangesFileSection({
 	const targetRef = useAppStore((state) => selectDiffTabTargetRef(state, { workspaceId, scope }));
 	const setSectionRenderer = useAppStore((state) => state.setChangesTabSectionRenderer);
 	const setSectionViewState = useAppStore((state) => state.setChangesTabSectionViewState);
-	const setSectionReviewDraft = useAppStore((state) => state.setChangesTabSectionReviewDraft);
-	const updateReviewDraft = useCallback(
-		(key: string, update: (current: unknown) => unknown) =>
-			setSectionReviewDraft(workspaceId, tabId, path, key, update),
-		[path, setSectionReviewDraft, tabId, workspaceId],
-	);
 	const setHunkKept = useAppStore((state) => state.setChangesTabHunkKept);
 	const keptKeys = useMemo(() => new Set(keptList ?? []), [keptList]);
 	const [hunkKeys, setHunkKeys] = useState<readonly string[]>([]);
@@ -185,18 +174,6 @@ export const ChangesFileSection = memo(function ChangesFileSection({
 		triage,
 	});
 	const { renderer, candidates, implementationKey, mobile, hunkActions } = surface;
-	const reviewDrafts = useMemo<ReviewDraftPersistence>(
-		() => ({
-			rendererId: renderer.id,
-			read: (key) =>
-				selectChangesTabSection(useAppStore.getState(), workspaceId, tabId, path)?.reviewDrafts?.[
-					key
-				],
-			subscribe: useAppStore.subscribe,
-			update: updateReviewDraft,
-		}),
-		[path, renderer.id, tabId, updateReviewDraft, workspaceId],
-	);
 	const view = mobile ? "inline" : (tabView ?? "split");
 	const { dir, base } = splitPath(path);
 	const openAsTab = () => void openDiffInTab(workspaceId, scope, path, "keep");
@@ -397,17 +374,15 @@ export const ChangesFileSection = memo(function ChangesFileSection({
 					<LoadingRegion rows={4} className="p-12" />
 				</div>
 			) : (
-				<ReviewDraftContext value={reviewDrafts}>
-					<DiffSurfaceBody
-						surface={surface}
-						view={view}
-						ignoreWhitespace={ignoreWhitespace}
-						viewState={ownsScroller ? section?.viewState : undefined}
-						onViewState={ownsScroller ? saveViewState : undefined}
-						onSelectRenderer={selectRenderer}
-						bodyClassName={mode === "single" ? "min-h-0 flex-1" : bounded ? "h-[60vh]" : ""}
-					/>
-				</ReviewDraftContext>
+				<DiffSurfaceBody
+					surface={surface}
+					view={view}
+					ignoreWhitespace={ignoreWhitespace}
+					viewState={ownsScroller ? section?.viewState : undefined}
+					onViewState={ownsScroller ? saveViewState : undefined}
+					onSelectRenderer={selectRenderer}
+					bodyClassName={mode === "single" ? "min-h-0 flex-1" : bounded ? "h-[60vh]" : ""}
+				/>
 			)}
 		</section>
 	);

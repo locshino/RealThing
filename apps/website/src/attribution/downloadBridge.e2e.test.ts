@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { WebsiteAnalyticsEventProperties } from "@thinkrail/website-analytics";
+import type { WebsiteAnalyticsEventProperties } from "@realthing/website-analytics";
 import { initAnalyticsEvents } from "../analyticsEvents";
 import { installCommands } from "../installCommands";
 import {
@@ -22,11 +22,11 @@ const bridgeId = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA";
 const fallbackBridgeId = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFA";
 const journeyId = "01890f47-75a3-4d8f-9a72-4f0e35be292b";
 const now = 2_000_000_000_000;
-const repositoryUrl = "https://github.com/JetBrains/thinkrail";
+const repositoryUrl = "https://github.com/JetBrains/realthing";
 const desktopUrl =
-	"https://github.com/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-darwin-arm64.dmg";
+	"https://github.com/JetBrains/realthing/releases/latest/download/realthing-desktop-darwin-arm64.dmg";
 const linuxUrl =
-	"https://github.com/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-linux-x64.tar.gz";
+	"https://github.com/JetBrains/realthing/releases/latest/download/realthing-desktop-linux-x64.tar.gz";
 
 type Capture = <EventName extends keyof WebsiteAnalyticsEventProperties>(
 	event: EventName,
@@ -135,7 +135,7 @@ describe("desktop download bridge correlation", () => {
 		const recordTouch = () => {
 			recordAttributionTouch(
 				journeyId,
-				"https://thinkrail.ai/?utm_source=newsletter",
+				"https://realthing.ai/?utm_source=newsletter",
 				"",
 				storage,
 				now,
@@ -187,9 +187,9 @@ describe("desktop download bridge correlation", () => {
 
 type Navigation = { readonly href: string; readonly referrer: string };
 
-const campaign: Navigation = { href: "https://thinkrail.ai/?utm_source=newsletter", referrer: "" };
-const search: Navigation = { href: "https://thinkrail.ai/", referrer: "https://www.google.com/" };
-const direct: Navigation = { href: "https://thinkrail.ai/", referrer: "" };
+const campaign: Navigation = { href: "https://realthing.ai/?utm_source=newsletter", referrer: "" };
+const search: Navigation = { href: "https://realthing.ai/", referrer: "https://www.google.com/" };
+const direct: Navigation = { href: "https://realthing.ai/", referrer: "" };
 
 const acquisitionNavigations = [
 	["a campaign link", campaign],
@@ -197,13 +197,13 @@ const acquisitionNavigations = [
 	[
 		"a social post",
 		{
-			href: "https://thinkrail.ai/blog/introducing-thinkrail/",
+			href: "https://realthing.ai/blog/introducing-realthing/",
 			referrer: "https://www.linkedin.com/",
 		},
 	],
 	[
 		"an external article",
-		{ href: "https://thinkrail.ai/", referrer: "https://news.ycombinator.com/" },
+		{ href: "https://realthing.ai/", referrer: "https://news.ycombinator.com/" },
 	],
 ] as const;
 
@@ -211,7 +211,7 @@ const browsingNavigations = [
 	["a direct visit", direct],
 	[
 		"internal navigation",
-		{ href: "https://thinkrail.ai/blog/", referrer: "https://thinkrail.ai/" },
+		{ href: "https://realthing.ai/blog/", referrer: "https://realthing.ai/" },
 	],
 ] as const;
 

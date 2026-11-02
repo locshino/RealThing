@@ -12,8 +12,8 @@ export function mergePath(current: string, login: string): string {
 	return [...extras, ...loginEntries].join(delimiter);
 }
 
-export const LOGIN_ENV_MARKER = "__THINKRAIL_LOGIN_ENV__";
-export const LOGIN_ENV_END = "__THINKRAIL_LOGIN_ENV_END__";
+export const LOGIN_ENV_MARKER = "__REALTHING_LOGIN_ENV__";
+export const LOGIN_ENV_END = "__REALTHING_LOGIN_ENV_END__";
 const ENV_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export function parseLoginShellEnv(stdout: string): Map<string, string> | null {
@@ -100,7 +100,7 @@ export function loginShellProbe(timeout = PROBE_TIMEOUT_MS): LoginShellEnvProbe 
 	};
 }
 
-const NEVER_IMPORTED_PREFIXES = ["PI_", "THINKRAIL_"];
+const NEVER_IMPORTED_PREFIXES = ["PI_", "REALTHING_"];
 const NEVER_IMPORTED = new Set(["PATH", "PWD", "OLDPWD", "SHLVL", "_", "HISTFILE", "HISTSIZE"]);
 
 export function loginShellImports(
@@ -160,8 +160,8 @@ export async function repairShellEnv(options: { probe?: LoginShellEnvProbe } = {
 	if (sshAgentSock && !process.env.SSH_AUTH_SOCK) process.env.SSH_AUTH_SOCK = sshAgentSock;
 }
 
-const pendingKey = Symbol.for("thinkrail.shellEnv.pending");
-const launchKeysKey = Symbol.for("thinkrail.shellEnv.launchKeys");
+const pendingKey = Symbol.for("realthing.shellEnv.pending");
+const launchKeysKey = Symbol.for("realthing.shellEnv.launchKeys");
 const processState = globalThis as typeof globalThis & {
 	[pendingKey]?: Promise<void>;
 	[launchKeysKey]?: ReadonlySet<string>;

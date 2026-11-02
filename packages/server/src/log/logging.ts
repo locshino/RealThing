@@ -118,7 +118,7 @@ export function createPrettyOptions(destination: PrettyOptions["destination"] = 
 
 export function createPinoRollOptions(directory: string): PinoRollOptions {
 	return {
-		file: join(directory, "thinkrail.jsonl"),
+		file: join(directory, "realthing.jsonl"),
 		frequency: "daily",
 		size: LOG_FILE_SIZE,
 		dateFormat: "yyyy-MM-dd",
@@ -219,7 +219,7 @@ function reportDestinationError(error: unknown): void {
 
 export async function cleanManagedLogs(directory: string): Promise<void> {
 	await removeOldFiles({
-		baseFile: join(directory, "thinkrail"),
+		baseFile: join(directory, "realthing"),
 		count: LOG_TOTAL_FILES,
 		dateFormat: "yyyy-MM-dd",
 		extension: "jsonl",
@@ -263,15 +263,15 @@ async function initializeLogging(
 
 	const log = logger("log");
 	if (invalidEnv) {
-		log.warn("THINKRAIL_LOG_LEVEL is not a level (debug|info|warn|error); using info");
+		log.warn("REALTHING_LOG_LEVEL is not a level (debug|info|warn|error); using info");
 	}
 	log.info(
-		`logging initialized (thinkrail ${appVersion ?? "source"}, pid ${process.pid}, level ${currentLevel})`,
+		`logging initialized (realthing ${appVersion ?? "source"}, pid ${process.pid}, level ${currentLevel})`,
 	);
 }
 
 export async function initLogging(options: InitLoggingOptions = {}): Promise<void> {
-	const { level, invalidEnv } = resolveLogLevel(options.level, process.env.THINKRAIL_LOG_LEVEL);
+	const { level, invalidEnv } = resolveLogLevel(options.level, process.env.REALTHING_LOG_LEVEL);
 	setLogLevel(level);
 	initialization ??= initializeLogging(options.appVersion, invalidEnv);
 	await initialization;

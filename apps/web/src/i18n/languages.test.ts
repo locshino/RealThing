@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import type { LocalLocalesSnapshot } from "@thinkrail/contracts";
-import { BUNDLED_LOCALES, languageName } from "@thinkrail/locales";
+import type { LocalLocalesSnapshot } from "@realthing/contracts";
+import { BUNDLED_LOCALES, languageName } from "@realthing/locales";
 import {
 	availableLocales,
 	effectiveLocale,

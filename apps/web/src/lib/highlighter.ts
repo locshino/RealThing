@@ -4,7 +4,7 @@ import {
 	type LanguageRegistration,
 	type RegexEngine,
 } from "shiki/core";
-import { THINKRAIL_SHIKI_THEME, THINKRAIL_SHIKI_THEME_NAME } from "@/themes";
+import { REALTHING_SHIKI_THEME, REALTHING_SHIKI_THEME_NAME } from "@/themes";
 
 interface ShikiLanguageModule {
 	default: LanguageRegistration[];
@@ -280,7 +280,7 @@ export function createChatHighlighter(engine: () => RegexEngine | Promise<RegexE
 
 	function getHighlighter() {
 		highlighterPromise ??= createHighlighterCore({
-			themes: [THINKRAIL_SHIKI_THEME],
+			themes: [REALTHING_SHIKI_THEME],
 			langs: [],
 			engine: engine(),
 		}).catch((error: unknown) => {
@@ -310,7 +310,7 @@ export function createChatHighlighter(engine: () => RegexEngine | Promise<RegexE
 		const hl = await getHighlighter();
 		try {
 			await loadLanguage(hl, canonical);
-			return hl.codeToHtml(code, { lang: canonical, theme: THINKRAIL_SHIKI_THEME_NAME });
+			return hl.codeToHtml(code, { lang: canonical, theme: REALTHING_SHIKI_THEME_NAME });
 		} catch {
 			return null;
 		}

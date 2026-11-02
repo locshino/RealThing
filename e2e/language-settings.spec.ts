@@ -87,7 +87,7 @@ test("switching language re-renders cached labels, markup strings and a mounted 
 		JSON.stringify({
 			"workbench.tool.files": files,
 			"settings.language.add.steps": "Lade <0>en.json</0> herunter und übersetze die Werte.",
-			"review.widget.commentOnSelection": "Auswahl kommentieren",
+			"panels.filePane.resourceView": "Ressourcenansicht",
 		});
 	writeLocale("de.json", german("Dateien"));
 	await openFixtureProject(page);
@@ -95,17 +95,16 @@ test("switching language re-renders cached labels, markup strings and a mounted 
 	const filesTool = page.getByTestId("tool-rail-files");
 	await expect(filesTool).toHaveAccessibleName(/Files/);
 	await revealWorkbenchTool(page, "files");
-	await page.getByTestId("file-node").filter({ hasText: "notes.txt" }).click();
-	const commentButton = page.getByTestId("review-add-icon");
-	await expect(commentButton).toHaveAttribute("title", "Comment on selection");
+	await page.getByTestId("file-node").filter({ hasText: "README.md" }).click();
+	const viewToggle = page.getByTestId("resource-view-toggle");
+	await expect(viewToggle).toHaveAttribute("aria-label", "Resource view");
 
 	const section = await openLanguageSettings(page);
 	await section.getByTestId("language-de").click();
 	await expect(section.getByTestId("language-add")).toContainText("Lade en.json herunter");
 	await page.keyboard.press("Escape");
 	await expect(filesTool).toHaveAccessibleName(/Dateien/);
-	await expect(commentButton).toHaveAttribute("title", "Auswahl kommentieren");
-	await expect(commentButton).toHaveAttribute("aria-label", "Auswahl kommentieren");
+	await expect(viewToggle).toHaveAttribute("aria-label", "Ressourcenansicht");
 
 	writeLocale("de.json", german("Dateiliste"));
 	await expect(filesTool).toHaveAccessibleName(/Dateiliste/);

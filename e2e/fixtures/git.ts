@@ -17,7 +17,7 @@ export function gitText(cwd: string, ...args: string[]): string {
 export function gitAs(cwd: string, ...args: string[]): string {
 	return execFileSync(
 		"git",
-		["-C", cwd, "-c", "user.email=e2e@thinkrail.test", "-c", "user.name=e2e", ...args],
+		["-C", cwd, "-c", "user.email=e2e@realthing.test", "-c", "user.name=e2e", ...args],
 		{ encoding: "utf8" },
 	).trim();
 }

@@ -1,5 +1,5 @@
-import type { Workspace } from "@thinkrail/contracts";
-import { t } from "@thinkrail/locales/react";
+import type { Workspace } from "@realthing/contracts";
+import { t } from "@realthing/locales/react";
 import { isDefaultWorkspace, toast, useAppStore } from "@/store";
 import { errorText, getTransport } from "@/transport";
 

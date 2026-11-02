@@ -1,5 +1,5 @@
-import type { NativeCommand } from "@thinkrail/contracts";
-import { DESKTOP_MENU_KEYS } from "@thinkrail/locales";
+import type { NativeCommand } from "@realthing/contracts";
+import { DESKTOP_MENU_KEYS } from "@realthing/locales";
 import type { ApplicationMenuItemConfig } from "electrobun/main";
 import { readLabels } from "./nativeLabels";
 

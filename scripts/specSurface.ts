@@ -1,7 +1,7 @@
 import { existsSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
+import { FIELDS, list, parseFile, SpecIndex } from "@realthing/spec-graph/core";
 import { fromMarkdown } from "mdast-util-from-markdown";
-import { FIELDS, list, parseFile, SpecIndex } from "pi-spec-graph/core";
 import ts from "typescript";
 
 export const PUBLIC_SURFACE_TAG = "public-surface-checked";

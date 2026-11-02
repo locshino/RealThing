@@ -1,7 +1,7 @@
 import type { ResourceRenderer } from "../../registry";
 
 export const jsonRenderer: ResourceRenderer = {
-	id: "thinkrail/json",
+	id: "realthing/json",
 	labelKey: "viewer.renderer.tree",
 	match: { glob: ["*.json", "*.jsonc"], text: true },
 	rank: 120,

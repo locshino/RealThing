@@ -1,6 +1,6 @@
-import { useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
-import { cn } from "@thinkrail/ui/utils";
+import { useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
+import { cn } from "@realthing/ui/utils";
 import { useEffect, useRef, useState } from "react";
 import type { AnchorDraft, SurfaceReview } from "../registry";
 import {

@@ -1,4 +1,10 @@
-import type { ResourceMeta } from "@thinkrail/contracts";
+import type {
+	EditorCursorStyle,
+	EditorLineNumbersMode,
+	EditorRenderWhitespace,
+	EditorTabSize,
+	ResourceMeta,
+} from "@realthing/contracts";
 import type { ComponentProps, ComponentType, ReactNode } from "react";
 import { createContext, useContext } from "react";
 import type ReactMarkdown from "react-markdown";
@@ -67,6 +73,7 @@ export interface ResourceHost {
 		workspaceId: string,
 		path: string,
 	): Promise<{ content: string; meta?: ResourceMeta | undefined }>;
+	readGitOriginal?(workspaceId: string, path: string): Promise<string | null>;
 	subscribeFileChanges(
 		workspaceId: string,
 		onChange: (paths: readonly string[] | null) => void,
@@ -78,6 +85,14 @@ export interface ResourceHost {
 export interface ResourcePreferences {
 	fileLineWidth: number;
 	fileLineWidthBounded: boolean;
+	editorFontSize?: number | undefined;
+	editorFontFamily?: string | undefined;
+	editorTabSize?: EditorTabSize | undefined;
+	editorInsertSpaces?: boolean | undefined;
+	editorMinimap?: boolean | undefined;
+	editorLineNumbers?: EditorLineNumbersMode | undefined;
+	editorRenderWhitespace?: EditorRenderWhitespace | undefined;
+	editorCursorStyle?: EditorCursorStyle | undefined;
 }
 
 const ResourceHostContext = createContext<ResourceHost | null>(null);

@@ -3,7 +3,7 @@ import type {
 	NativeUpdateInstallResult,
 	NativeUpdateLogEntry,
 	NativeUpdateLogEvent,
-} from "@thinkrail/contracts";
+} from "@realthing/contracts";
 
 export const UPDATE_JOURNAL_FILE = "update-journal.json";
 export const MAX_UPDATE_LOG_ENTRIES = 200;

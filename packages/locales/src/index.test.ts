@@ -193,41 +193,41 @@ describe("bundled non-English catalogs follow en.json", () => {
 describe("plural forms", () => {
 	test("any plural form may show or omit the number; other placeholders stay strict", () => {
 		const result = validateCatalog({
-			"tools.read.firstLines_one": "первая {{count}} строка",
-			"tools.read.firstLines_few": "первые {{count}} строки",
-			"tools.read.firstLines_many": "первые {{count}} строк",
+			"plan.fileCount_one": "{{count}} файл",
+			"plan.fileCount_few": "{{count}} файла",
+			"plan.fileCount_many": "{{count}} файлов",
 			"changes.review.end_zero": "نهاية التغييرات · لا ملفات",
 			"changes.review.end_one": "نهاية التغييرات · ملف واحد",
-			"mcp.entries.notReference_few": "{{labels}} — не ссылки.",
+			"changes.review.end_few": "{{labels}} — не ссылки.",
 		});
 		expect(result.ok && Object.keys(result.strings).sort()).toEqual([
 			"changes.review.end_one",
 			"changes.review.end_zero",
-			"tools.read.firstLines_few",
-			"tools.read.firstLines_many",
-			"tools.read.firstLines_one",
+			"plan.fileCount_few",
+			"plan.fileCount_many",
+			"plan.fileCount_one",
 		]);
 	});
 
 	test("a translated family gets every form its language needs from its own other form", () => {
 		const completed = completePlurals("ru", {
-			"tools.read.firstLines_one": "первая {{count}} строка",
-			"tools.read.firstLines_other": "первые {{count}} строк",
+			"plan.fileCount_one": "{{count}} файл",
+			"plan.fileCount_other": "{{count}} файлов",
 			"desktop.menu.edit": "Правка",
 		});
 		expect(completed).toEqual({
-			"tools.read.firstLines_one": "первая {{count}} строка",
-			"tools.read.firstLines_other": "первые {{count}} строк",
-			"tools.read.firstLines_few": "первые {{count}} строк",
-			"tools.read.firstLines_many": "первые {{count}} строк",
+			"plan.fileCount_one": "{{count}} файл",
+			"plan.fileCount_other": "{{count}} файлов",
+			"plan.fileCount_few": "{{count}} файлов",
+			"plan.fileCount_many": "{{count}} файлов",
 			"desktop.menu.edit": "Правка",
 		});
 	});
 
 	test("a family with only a singular form fills the rest from it; non-families are left alone", () => {
-		expect(completePlurals("de", { "tools.read.firstLines_one": "erste Zeile" })).toEqual({
-			"tools.read.firstLines_one": "erste Zeile",
-			"tools.read.firstLines_other": "erste Zeile",
+		expect(completePlurals("de", { "plan.fileCount_one": "eine Datei" })).toEqual({
+			"plan.fileCount_one": "eine Datei",
+			"plan.fileCount_other": "eine Datei",
 		});
 		expect(completePlurals("ru", { "future.key_one": "x" })).toEqual({ "future.key_one": "x" });
 	});

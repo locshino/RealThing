@@ -1,8 +1,8 @@
 import { RiAddLine as Plus } from "@remixicon/react";
-import type { TerminalTabsPush } from "@thinkrail/contracts";
-import { WS_CHANNELS } from "@thinkrail/contracts";
-import { i18n, useT } from "@thinkrail/locales/react";
-import { IconButton } from "@thinkrail/ui/button";
+import type { TerminalTabsPush } from "@realthing/contracts";
+import { WS_CHANNELS } from "@realthing/contracts";
+import { i18n, useT } from "@realthing/locales/react";
+import { IconButton } from "@realthing/ui/button";
 import { lazy, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { terminalName } from "../lib";
 import type { TerminalTab } from "../store";

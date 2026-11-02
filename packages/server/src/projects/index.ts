@@ -1,10 +1,14 @@
 export {
-	acknowledgeProjectSkills,
-	approveProjectMcpServer,
+	cancelProjectClone,
+	cloneProject,
+	inspectCloneDestination,
+	startProjectClone,
+} from "./clone";
+export {
 	closeProject,
 	createProject,
+	discoverGitSubfolders,
 	getProjects,
-	grantProjectMcpTool,
 	initProject,
 	inspectProjectPath,
 	listProjects,
@@ -12,11 +16,6 @@ export {
 	openProject,
 	refreshRecentProjectFolders,
 	renameProject,
-	revokeProjectMcpTool,
-	setPiTrustSeed,
-	setProjectGroupEnabled,
-	setProjectMcpOverride,
 	setProjectPublisher,
-	setProjectSkillEnabled,
-	setProjectTrust,
+	suggestProjectPaths,
 } from "./projects";

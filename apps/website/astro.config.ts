@@ -6,16 +6,16 @@ import { defineConfig } from "astro/config";
 import { youTubeEmbeds } from "./src/youTubeEmbeds";
 
 export default defineConfig({
-	site: "https://thinkrail.ai",
+	site: "https://realthing.ai",
 	// HTML whitespace rules; the 'jsx' default drops newline spacing around inline tags
 	compressHTML: true,
 	integrations: [
 		react(),
 		sitemap({
 			filter: (page) =>
-				page !== "https://thinkrail.ai/agentic-development/" &&
-				page !== "https://thinkrail.ai/agentic-ide/" &&
-				page !== "https://thinkrail.ai/attribution/claim/",
+				page !== "https://realthing.ai/agentic-development/" &&
+				page !== "https://realthing.ai/agentic-ide/" &&
+				page !== "https://realthing.ai/attribution/claim/",
 		}),
 	],
 	vite: {

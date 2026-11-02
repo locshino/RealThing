@@ -1,4 +1,4 @@
-import { localeOf, type Translator, useT } from "@thinkrail/locales/react";
+import { localeOf, type Translator, useT } from "@realthing/locales/react";
 import type { ResourceViewProps } from "../../registry";
 
 function fileName(path: string): string {

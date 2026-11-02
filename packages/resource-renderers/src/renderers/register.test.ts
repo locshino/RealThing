@@ -39,17 +39,17 @@ test("bundled renderer registrations declare only supported diff controls", () =
 			]),
 		),
 	).toEqual({
-		"thinkrail/binary": { copy: false, layout: false, whitespace: false },
-		"thinkrail/code": { copy: true, layout: true, whitespace: true },
-		"thinkrail/csv": { copy: true, layout: false, whitespace: false },
-		"thinkrail/html": { copy: false, layout: false, whitespace: false },
-		"thinkrail/image": { copy: false, layout: false, whitespace: false },
-		"thinkrail/json": { copy: true, layout: false, whitespace: false },
-		"thinkrail/lfs": { copy: false, layout: false, whitespace: false },
-		"thinkrail/markdown": { copy: false, layout: false, whitespace: false },
-		"thinkrail/notebook": { copy: true, layout: false, whitespace: false },
-		"thinkrail/pdf": { copy: false, layout: false, whitespace: false },
-		"thinkrail/svg": { copy: false, layout: false, whitespace: false },
+		"realthing/binary": { copy: false, layout: false, whitespace: false },
+		"realthing/code": { copy: true, layout: true, whitespace: true },
+		"realthing/csv": { copy: true, layout: false, whitespace: false },
+		"realthing/html": { copy: false, layout: false, whitespace: false },
+		"realthing/image": { copy: false, layout: false, whitespace: false },
+		"realthing/json": { copy: true, layout: false, whitespace: false },
+		"realthing/lfs": { copy: false, layout: false, whitespace: false },
+		"realthing/markdown": { copy: false, layout: false, whitespace: false },
+		"realthing/notebook": { copy: true, layout: false, whitespace: false },
+		"realthing/pdf": { copy: false, layout: false, whitespace: false },
+		"realthing/svg": { copy: false, layout: false, whitespace: false },
 	});
 });
 
@@ -67,7 +67,7 @@ test("diff capabilities resolve from a path before content loads", () => {
 			pdf: resolve("a.pdf"),
 			svg: resolve("a.svg"),
 			ts: resolve("src/a.ts"),
-			mdAsCode: resolve("docs/a.md", "thinkrail/code"),
+			mdAsCode: resolve("docs/a.md", "realthing/code"),
 		}).toEqual({
 			md: { layout: false, whitespace: false },
 			png: { layout: false, whitespace: false },

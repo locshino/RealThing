@@ -1,17 +1,10 @@
-import type { BranchStatus, OpenBranchReview } from "@thinkrail/contracts";
+import type { WsResult } from "@realthing/contracts";
 
-export type BranchFacts = Omit<BranchStatus, "review">;
+export type BranchFacts = WsResult<"workspace.branchStatus">;
 
 export type BranchStatusSnapshot = {
-	review: OpenBranchReview | null;
-	url?: string;
-	status?: BranchFacts;
-	discovery?: number;
+	status: BranchFacts | null;
 };
-
-export const CI_DISCOVERY_POLLS = 3;
-
-export type BranchAnswer = { review: OpenBranchReview | null; status: BranchFacts | null };
 
 type Entry = {
 	generation: number;
@@ -19,16 +12,6 @@ type Entry = {
 };
 
 type Listener = () => void;
-
-function sameReview(left: OpenBranchReview | null, right: OpenBranchReview | null): boolean {
-	return (
-		left !== null && right !== null && left.kind === right.kind && left.number === right.number
-	);
-}
-
-function withoutDiscovery({ discovery: _spent, ...snapshot }: BranchStatusSnapshot) {
-	return snapshot;
-}
 
 export function createBranchStatusState() {
 	const entries = new Map<string, Entry>();
@@ -41,13 +24,7 @@ export function createBranchStatusState() {
 		return created;
 	};
 	const publish = (key: string, snapshot: BranchStatusSnapshot): void => {
-		const discovery = snapshot.discovery ?? entry(key).snapshot?.discovery ?? 0;
-		entry(key).snapshot = discovery > 0 ? { ...snapshot, discovery } : withoutDiscovery(snapshot);
-		for (const listener of listeners.get(key) ?? []) listener();
-	};
-	const setDiscovery = (key: string, discovery: number): void => {
-		const snapshot = entry(key).snapshot ?? { review: null };
-		entry(key).snapshot = discovery > 0 ? { ...snapshot, discovery } : withoutDiscovery(snapshot);
+		entry(key).snapshot = snapshot;
 		for (const listener of listeners.get(key) ?? []) listener();
 	};
 
@@ -69,34 +46,11 @@ export function createBranchStatusState() {
 			current.generation += 1;
 			return current.generation;
 		},
-		resolveRequest(key: string, generation: number, answer: BranchAnswer): boolean {
+		resolveRequest(key: string, generation: number, status: BranchFacts | null): boolean {
 			const current = entry(key);
 			if (current.generation !== generation) return false;
-			const { review, status } = answer;
-			const carried =
-				review !== null && sameReview(current.snapshot?.review ?? null, review)
-					? current.snapshot?.url
-					: undefined;
-			const url = review?.url ?? carried;
-			publish(key, { review, ...(url ? { url } : {}), ...(status ? { status } : {}) });
+			publish(key, { status });
 			return true;
-		},
-		startDiscovery(key: string): void {
-			setDiscovery(key, CI_DISCOVERY_POLLS);
-		},
-		spendDiscovery(key: string): void {
-			setDiscovery(key, Math.max(0, (entry(key).snapshot?.discovery ?? 0) - 1));
-		},
-		noteOpenReview(key: string, review: OpenBranchReview, url?: string): void {
-			const current = entry(key);
-			current.generation += 1;
-			const resolved = url ?? review.url;
-			const status = current.snapshot?.status;
-			publish(key, {
-				review,
-				...(resolved ? { url: resolved } : {}),
-				...(status ? { status } : {}),
-			});
 		},
 	};
 }

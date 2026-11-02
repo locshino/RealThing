@@ -1,6 +1,6 @@
-import type { LocalLocalesSnapshot } from "@thinkrail/contracts";
-import { fallbackChain } from "@thinkrail/locales";
-import { applyLocale } from "@thinkrail/locales/react";
+import type { LocalLocalesSnapshot } from "@realthing/contracts";
+import { fallbackChain } from "@realthing/locales";
+import { applyLocale } from "@realthing/locales/react";
 import { useEffect, useRef, useSyncExternalStore } from "react";
 import { useAppStore } from "../store";
 import { effectiveLocale, localOverlays } from "./languages";

@@ -1,4 +1,4 @@
-import { T, useT } from "@thinkrail/locales/react";
+import { T, useT } from "@realthing/locales/react";
 import { formatLfsSize, type LfsPointer } from "./lfsPointer";
 
 export function LfsCard({

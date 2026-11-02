@@ -1,8 +1,7 @@
-import type { MessageKey } from "@thinkrail/locales";
-import { currentTranslator, type Translator, t } from "@thinkrail/locales/react";
+import type { MessageKey } from "@realthing/locales";
+import { currentTranslator, type Translator, t } from "@realthing/locales/react";
 import {
 	changesTabName,
-	chatDisplayName,
 	diffTabName,
 	isPreviewCompatibleTabKind,
 	type LayoutAttention,
@@ -75,52 +74,30 @@ export function createLayoutId(prefix: string): string {
 	return randomId(prefix);
 }
 
-export const LAYOUT_TOOLS: readonly LayoutToolId[] = [
-	"projects",
-	"specs",
-	"files",
-	"review",
-	"plan",
-];
+export const LAYOUT_TOOLS: readonly LayoutToolId[] = ["projects", "files", "plan"];
 
 export const LAYOUT_TOOL_DEFAULT_SIDES: Record<LayoutToolId, LayoutSide> = {
 	projects: "left",
-	specs: "right",
 	files: "right",
-	review: "right",
 	plan: "right",
 };
 
 const LAYOUT_TOOL_NAMES: Record<LayoutToolId, string> = {
 	projects: "Projects",
-	specs: "Specs",
 	files: "Files",
-	review: "Review",
 	plan: "TODO List",
 };
 
 const LAYOUT_TOOL_NAME_KEYS = {
 	projects: "workbench.tool.projects",
-	specs: "workbench.tool.specs",
 	files: "workbench.tool.files",
-	review: "workbench.tool.review",
 	plan: "workbench.tool.plan",
 } as const satisfies Record<LayoutToolId, MessageKey>;
 
-export type ChatFirstPrompts = Readonly<Record<string, string>>;
-
-const NO_FIRST_PROMPTS: ChatFirstPrompts = {};
-
-export function layoutTabName(
-	t: Translator,
-	tab: LayoutTab,
-	chatFirstPrompts: ChatFirstPrompts = NO_FIRST_PROMPTS,
-): string {
+export function layoutTabName(t: Translator, tab: LayoutTab): string {
 	switch (tab.kind) {
 		case "tool":
 			return t(LAYOUT_TOOL_NAME_KEYS[tab.tool]);
-		case "chat":
-			return chatDisplayName(t, tab.name, chatFirstPrompts[tab.sessionId]);
 		case "terminal":
 			return terminalName(t, tab.name);
 		case "changes":
@@ -128,7 +105,7 @@ export function layoutTabName(
 		case "diff":
 			return tab.before === undefined ? diffTabName(t, tab.scope, tab.path) : tab.name;
 		case "document":
-			return planDocumentName(t, chatDisplayName(t, tab.name, chatFirstPrompts[tab.sourceId]));
+			return planDocumentName(t);
 		case "file":
 			return tab.name;
 	}
@@ -592,14 +569,9 @@ export function separatePanesReason(t: Translator): string {
 	return t("workbench.layout.separatePanes");
 }
 
-export function describeLayoutGroup(
-	t: Translator,
-	tabs: readonly LayoutTab[],
-	chatFirstPrompts: ChatFirstPrompts = NO_FIRST_PROMPTS,
-	limit = 3,
-): string {
+export function describeLayoutGroup(t: Translator, tabs: readonly LayoutTab[], limit = 3): string {
 	if (tabs.length === 0) return t("workbench.layout.emptyGroupSummary");
-	const names = tabs.slice(0, limit).map((tab) => layoutTabName(t, tab, chatFirstPrompts));
+	const names = tabs.slice(0, limit).map((tab) => layoutTabName(t, tab));
 	const rest = tabs.length - names.length;
 	const list = names.join(", ");
 	return rest > 0
@@ -692,7 +664,6 @@ export function moveTabToGroup(
 		movingTab.kind === "file" ||
 		movingTab.kind === "diff" ||
 		movingTab.kind === "changes" ||
-		movingTab.kind === "chat" ||
 		movingTab.kind === "document"
 	) {
 		return { reason: t("workbench.layout.destinationGroupMissing") };
@@ -1211,21 +1182,6 @@ export function closePlacedResource(
 ): LayoutMutationResult {
 	const placed = findPlacedResource(document, tab);
 	return placed ? closeLayoutTab(document, placed.id) : { document };
-}
-
-export function removeSessionLayoutTabs(
-	document: WorkspaceLayoutDocument,
-	sessionId: string,
-): WorkspaceLayoutDocument {
-	const ids = collectAllGroups(document)
-		.flatMap((group) => group.tabs)
-		.filter(
-			(tab) =>
-				(tab.kind === "chat" && tab.sessionId === sessionId) ||
-				(tab.kind === "document" && tab.documentKind === "todo-plan" && tab.sourceId === sessionId),
-		)
-		.map((tab) => tab.id);
-	return ids.reduce(removeTabEverywhere, document);
 }
 
 export function resizeCenterSplit(

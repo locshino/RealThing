@@ -9,9 +9,9 @@ import { VerticalBars } from "./VerticalBars";
 
 const subtitles: Record<Positioning, string> = {
 	control:
-		"ThinkRail gives every AI agent a clear plan, a separate place to work, and a visible trail of progress. Run multiple agents at once while your project knowledge stays organized.",
+		"RealThing gives every task a clear plan, an isolated Git worktree, multi-scope diff review, and an integrated terminal. Work on multiple branches at once while your project stays organized.",
 	compounding:
-		"Built around the Pi coding agent. Every task gets its own workspace, every decision lands in a living spec, every workflow becomes a reusable skill.",
+		"A fast, modern developer IDE for code editing, Git worktrees, multi-scope diff review, integrated terminal, and workspace plans.",
 };
 
 export function Hero({ title, positioning }: { title: string; positioning: Positioning }) {
@@ -28,8 +28,8 @@ export function Hero({ title, positioning }: { title: string; positioning: Posit
 					<div className="lg:flex-1">
 						<Reveal delay={60}>
 							<img
-								src="/vibecoding/thinkrail-text-logo-gradient.svg"
-								alt="ThinkRail"
+								src="/vibecoding/realthing-text-logo-gradient.svg"
+								alt="RealThing"
 								className="mx-auto h-[41px] w-auto max-w-full sm:mx-0 sm:-ml-2 md:h-[58px]"
 							/>
 						</Reveal>
@@ -48,7 +48,7 @@ export function Hero({ title, positioning }: { title: string; positioning: Posit
 
 						<Reveal delay={200}>
 							<div className="mt-9 flex flex-wrap items-center justify-center gap-3 sm:justify-start">
-								<ActionButton href="https://github.com/JetBrains/thinkrail" variant="light">
+								<ActionButton href="https://github.com/JetBrains/realthing" variant="light">
 									<GithubIcon className="h-6 w-6 shrink-0" />
 									Explore on GitHub
 								</ActionButton>

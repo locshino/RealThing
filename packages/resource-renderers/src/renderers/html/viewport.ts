@@ -1,4 +1,4 @@
-import type { MessageKey } from "@thinkrail/locales";
+import type { MessageKey } from "@realthing/locales";
 
 export const HTML_VIEWPORTS = ["desktop", "tablet", "phone", "responsive"] as const;
 

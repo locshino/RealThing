@@ -1,4 +1,4 @@
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 import { useMemo } from "react";
 import type { ResourceContent, ResourceDiffProps } from "../../registry";
 import { diffContentStamp } from "../reviewComposerState";

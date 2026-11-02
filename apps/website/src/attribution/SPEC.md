@@ -9,7 +9,7 @@ tags: [website, analytics, attribution, cloudflare]
 
 ## Responsibility and boundary
 
-Own the same-origin browser-claim protocol that transfers a consented website acquisition context to an installed ThinkRail host. Cloudflare Pages Functions expose the protocol and D1 provides short-lived atomic claim state.
+Own the same-origin browser-claim protocol that transfers a consented website acquisition context to an installed RealThing host. Cloudflare Pages Functions expose the protocol and D1 provides short-lived atomic claim state.
 
 - **Public surface:** `index.ts` exposes normal-page browser attribution; target-specific `claim.ts` and `server.ts` expose the analytics-free claim page and Pages handlers. These secondary entrypoints are the code-splitting boundary that prevents normal analytics/GTM modules entering the claim page or Worker bundle. The service and D1 repository remain internal.
 - **Allowed dependencies:** the website analytics facade for normal-page recording, Web Platform APIs, Pages Functions, and the `ATTRIBUTION_DB` D1 binding.
@@ -17,7 +17,7 @@ Own the same-origin browser-claim protocol that transfers a consented website ac
 
 ## Protocol
 
-All state-changing routes require the effective hostname `thinkrail.ai`; browser binding also requires
+All state-changing routes require the effective hostname `realthing.ai`; browser binding also requires
 the exact same-origin `Origin`. The origin guard still returns not-found on preview and sibling hosts
 before D1 access. Preview deployments have no D1 binding; the guard is not the data-isolation boundary.
 Bodies and strings are bounded and unknown fields are rejected.

@@ -4,7 +4,7 @@ import {
 	RiErrorWarningLine,
 	RiInformationLine,
 } from "@remixicon/react";
-import { Button } from "@thinkrail/ui/button";
+import { Button } from "@realthing/ui/button";
 import {
 	Toast,
 	ToastAction,
@@ -13,8 +13,8 @@ import {
 	ToastProvider,
 	ToastTitle,
 	ToastViewport,
-} from "@thinkrail/ui/toast";
-import { cn } from "@thinkrail/ui/utils";
+} from "@realthing/ui/toast";
+import { cn } from "@realthing/ui/utils";
 import type { Toast as ToastType } from "@/store";
 import { useAppStore } from "@/store";
 

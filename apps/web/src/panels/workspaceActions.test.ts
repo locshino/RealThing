@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { WORKSPACE_RENAME_PROTOCOL_VERSION, type Workspace } from "@thinkrail/contracts";
+import { WORKSPACE_RENAME_PROTOCOL_VERSION, type Workspace } from "@realthing/contracts";
 import {
 	canRenameWorkspace,
 	createRenameController,
@@ -15,7 +15,7 @@ const managed: Workspace = {
 	baseBranch: "main",
 };
 
-test("manual rename requires its introducing host protocol and a ThinkRail-managed workspace", () => {
+test("manual rename requires its introducing host protocol and a RealThing-managed workspace", () => {
 	expect(WORKSPACE_RENAME_PROTOCOL_VERSION).toBe(55);
 	expect(canRenameWorkspace(54, managed)).toBe(false);
 	expect(canRenameWorkspace(55, managed)).toBe(true);

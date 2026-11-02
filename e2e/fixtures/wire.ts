@@ -1,4 +1,4 @@
-import type { WsMethodName, WsParams, WsRequest, WsResult } from "@thinkrail/contracts";
+import type { WsMethodName, WsParams, WsRequest, WsResult } from "@realthing/contracts";
 import { E2E_PORT } from "./paths";
 
 export class E2eWireTransientError extends Error {}

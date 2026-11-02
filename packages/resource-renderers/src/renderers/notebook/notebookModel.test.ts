@@ -1,7 +1,6 @@
 import { expect, spyOn, test } from "bun:test";
-import type { ReviewAnchor } from "@thinkrail/contracts";
 import * as diff from "diff";
-import { anchorLabel } from "../../registry";
+import { anchorLabel, type ReviewAnchor } from "../../registry";
 import {
 	alignNotebookCells,
 	notebookCellDraft,

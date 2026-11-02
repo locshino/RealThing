@@ -21,7 +21,7 @@ export {
 } from "./runtime";
 export type { ThemeManifest } from "./schema";
 export {
-	resolveThinkrailShikiTheme,
-	THINKRAIL_SHIKI_THEME,
-	THINKRAIL_SHIKI_THEME_NAME,
+	resolveRealthingShikiTheme,
+	REALTHING_SHIKI_THEME,
+	REALTHING_SHIKI_THEME_NAME,
 } from "./shiki";

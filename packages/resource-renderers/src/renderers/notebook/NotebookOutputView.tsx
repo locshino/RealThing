@@ -1,4 +1,4 @@
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 import { type ReactNode, useMemo } from "react";
 import type { Components } from "react-markdown";
 import { useResourceHost } from "../../host";

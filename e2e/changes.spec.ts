@@ -441,9 +441,9 @@ function seedCommitAndDirtyEdit(): string {
 	gitQuiet(
 		worktree,
 		"-c",
-		"user.email=e2e@thinkrail.test",
+		"user.email=e2e@realthing.test",
 		"-c",
-		"user.name=ThinkRail E2E",
+		"user.name=RealThing E2E",
 		"commit",
 		"-m",
 		"e2e scope commit",
@@ -468,9 +468,9 @@ function seedMutableHunks(): { path: string; base: string; modified: string } {
 	gitQuiet(
 		worktreeDir(),
 		"-c",
-		"user.email=e2e@thinkrail.test",
+		"user.email=e2e@realthing.test",
 		"-c",
-		"user.name=ThinkRail E2E",
+		"user.name=RealThing E2E",
 		"commit",
 		"-m",
 		"mutable hunk fixture",
@@ -543,9 +543,9 @@ test("Uncommitted scope converges when HEAD moves out-of-band (a commit in a ter
 	gitQuiet(
 		worktree,
 		"-c",
-		"user.email=e2e@thinkrail.test",
+		"user.email=e2e@realthing.test",
 		"-c",
-		"user.name=ThinkRail E2E",
+		"user.name=RealThing E2E",
 		"commit",
 		"-m",
 		"e2e commits the dirty edits",
@@ -593,9 +593,9 @@ test("A target that advanced past the fork point adds no phantom changes (merge-
 	gitQuiet(
 		upstreamWt,
 		"-c",
-		"user.email=e2e@thinkrail.test",
+		"user.email=e2e@realthing.test",
 		"-c",
-		"user.name=ThinkRail E2E",
+		"user.name=RealThing E2E",
 		"commit",
 		"-m",
 		"upstream work",
@@ -677,9 +677,9 @@ test("The diff viewer collapses unchanged context and has a per-tab hide-whitesp
 	gitQuiet(
 		worktree,
 		"-c",
-		"user.email=e2e@thinkrail.test",
+		"user.email=e2e@realthing.test",
 		"-c",
-		"user.name=ThinkRail E2E",
+		"user.name=RealThing E2E",
 		"commit",
 		"-m",
 		"long file",
@@ -718,13 +718,7 @@ test("revert hunk changes only that range and Undo restores it", async ({ page }
 	await page.getByTestId("change-item").filter({ hasText: "mutable.ts" }).dblclick();
 	await expect(diffText(page, "two = 200")).toBeVisible();
 	await expect(page.getByTestId("hunk-revert")).toHaveCount(2);
-	await expect(page.getByTestId("hunk-ask-agent")).toHaveCount(2);
 	await expect(page.getByTestId("diff-revert-file")).toBeVisible();
-	await page.getByTestId("hunk-ask-agent").first().click();
-	await expect(page.getByTestId("review-composer-input")).toHaveValue(
-		"Please revise this change: ",
-	);
-	await page.getByTestId("review-composer-cancel").click();
 
 	await page.getByTestId("hunk-revert").first().click();
 	await expect(
@@ -930,9 +924,9 @@ test("Re-pointing the target branch re-reads an open branch-scope diff tab — a
 	gitQuiet(
 		worktree,
 		"-c",
-		"user.email=e2e@thinkrail.test",
+		"user.email=e2e@realthing.test",
 		"-c",
-		"user.name=ThinkRail E2E",
+		"user.name=RealThing E2E",
 		"commit",
 		"-m",
 		"e2e revise commit",
@@ -1035,6 +1029,8 @@ test("A source diff keeps its scroll position across a tab switch", async ({ pag
 	commitFile(worktree, "scroll-code.ts", source("base"), "add scroll fixture");
 	writeFileSync(join(worktree, "scroll-code.ts"), source("edited"));
 
+	await revealWorkbenchTool(page, "files");
+	await page.getByTestId("file-node").filter({ hasText: "README.md" }).dblclick();
 	await revealWorkbenchTool(page, "changes");
 	await page.getByTestId("change-item").filter({ hasText: "scroll-code.ts" }).dblclick();
 	const diff = page.getByTestId("diff-view");
@@ -1045,7 +1041,7 @@ test("A source diff keeps its scroll position across a tab switch", async ({ pag
 	});
 	expect(top).toBeGreaterThan(1_000);
 
-	await page.locator('[data-testid="editor-tab"][data-kind="chat"]').click();
+	await page.locator('[data-testid="editor-tab"][data-kind="file"]').click();
 	await expect(diff).toHaveCount(0);
 	await page.locator('[data-testid="editor-tab"][data-kind="diff"]').click();
 	await expect.poll(() => diff.evaluate((node) => node.scrollTop)).toBe(top);

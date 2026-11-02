@@ -1,4 +1,4 @@
-import type { GitDiffScope, ResourceMeta } from "@thinkrail/contracts";
+import type { GitDiffScope, ResourceMeta } from "@realthing/contracts";
 import { canonicalWorkspacePath } from "./paths";
 import type { ResourceDescriptor } from "./types";
 

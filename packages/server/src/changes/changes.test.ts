@@ -13,7 +13,7 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
-import type { ChangeReceipt, GitDiffScope, LineSpan, RevertTarget } from "@thinkrail/contracts";
+import type { ChangeReceipt, GitDiffScope, LineSpan, RevertTarget } from "@realthing/contracts";
 import { hashBytes } from "../fs";
 import { setTrashImplementationForTests } from "../trash";
 import { forgetWorkspaceChanges, retainReceipts, revertChange, undoChange } from "./changes";
@@ -26,7 +26,7 @@ let dataDir: string;
 let repo: string;
 let workspaceId: string;
 let trashed: string[];
-const savedDataDir = process.env.THINKRAIL_DATA_DIR;
+const savedDataDir = process.env.REALTHING_DATA_DIR;
 let nextWorkspace = 0;
 
 function git(...args: string[]): void {
@@ -69,13 +69,13 @@ function hash(content: string | Uint8Array | null): string | null {
 function expectTrashClaim(path: string | undefined): string {
 	if (path === undefined) throw new Error("missing trash claim");
 	expect(dirname(path)).toBe(repo);
-	expect(basename(path)).toMatch(/^\.thinkrail-revert-[0-7][0-9A-HJKMNP-TV-Z]{25}$/);
+	expect(basename(path)).toMatch(/^\.realthing-revert-[0-7][0-9A-HJKMNP-TV-Z]{25}$/);
 	return path;
 }
 
 function recoveryFiles(): string[] {
 	return readdirSync(repo)
-		.filter((name) => /^\.thinkrail-recovery-[0-7][0-9A-HJKMNP-TV-Z]{25}$/.test(name))
+		.filter((name) => /^\.realthing-recovery-[0-7][0-9A-HJKMNP-TV-Z]{25}$/.test(name))
 		.map((name) => join(repo, name));
 }
 
@@ -99,11 +99,11 @@ function blobAt(ref: string, path: string): Uint8Array {
 
 beforeEach(() => {
 	dataDir = mkdtempSync(join(tmpdir(), "trpi-changes-test-"));
-	process.env.THINKRAIL_DATA_DIR = dataDir;
+	process.env.REALTHING_DATA_DIR = dataDir;
 	repo = join(dataDir, "repo");
 	mkdirSync(repo);
 	git("init", "-b", "main");
-	git("config", "user.email", "t@thinkrail.test");
+	git("config", "user.email", "t@realthing.test");
 	git("config", "user.name", "test");
 	git("config", "commit.gpgsign", "false");
 	git("config", "core.autocrlf", "false");
@@ -135,8 +135,8 @@ beforeEach(() => {
 afterEach(() => {
 	setTrashImplementationForTests(undefined);
 	rmSync(dataDir, { recursive: true, force: true });
-	if (savedDataDir === undefined) delete process.env.THINKRAIL_DATA_DIR;
-	else process.env.THINKRAIL_DATA_DIR = savedDataDir;
+	if (savedDataDir === undefined) delete process.env.REALTHING_DATA_DIR;
+	else process.env.REALTHING_DATA_DIR = savedDataDir;
 });
 
 test("a range revert restores the original lines and leaves the rest of the worktree file alone", async () => {

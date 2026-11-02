@@ -1,24 +1,16 @@
-import { useT } from "@thinkrail/locales/react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@thinkrail/ui/dialog";
-import { cn } from "@thinkrail/ui/utils";
+import { useT } from "@realthing/locales/react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@realthing/ui/dialog";
+import { cn } from "@realthing/ui/utils";
 import type { ReactNode } from "react";
 import { SettingsSection, useAppStore } from "@/store";
 import { AppearanceSettings } from "./AppearanceSettings";
-import { ChatSettings } from "./ChatSettings";
-import { EnvironmentSettings } from "./EnvironmentSettings";
-import { ExtensionsSettings } from "./ExtensionsSettings";
-import { FeedbackSettings } from "./FeedbackSettings";
-import { GithubSettings } from "./GithubSettings";
+import { EditorSettings } from "./EditorSettings";
+import { FilesSettings } from "./FilesSettings";
+import { GitAndEditorsSettings } from "./GitAndEditorsSettings";
+import { KeybindingsSettings } from "./KeybindingsSettings";
 import { LanguageSettings } from "./LanguageSettings";
-import { McpSettings } from "./McpSettings";
-import { ModelsSettings } from "./ModelsSettings";
-import { NotificationsSettings } from "./NotificationsSettings";
-import { PrivacySettings } from "./PrivacySettings";
-import { ProvidersSettings } from "./ProvidersSettings";
-import { resolveSettingsSection, settingsNavGroups } from "./settingsNav";
-import { TemplatesSettings } from "./TemplatesSettings";
+import { resolveSettingsSection, visibleSettingsNavGroups } from "./settingsNav";
 import { TerminalSettings } from "./TerminalSettings";
-import { WorkspacesSettings } from "./WorkspacesSettings";
 
 export function SettingsDialog({
 	layoutSettings,
@@ -31,9 +23,8 @@ export function SettingsDialog({
 	const open = useAppStore((s) => s.settingsOpen);
 	const section = useAppStore((s) => s.settingsSection);
 	const protocolVersion = useAppStore((s) => s.protocolVersion);
-	const filteredGroups = settingsNavGroups(protocolVersion, updateSettings !== undefined);
+	const filteredGroups = visibleSettingsNavGroups(protocolVersion, updateSettings !== undefined);
 	const selectedSection = resolveSettingsSection(section, filteredGroups);
-	const feedbackActive = selectedSection === SettingsSection.Feedback;
 
 	return (
 		<Dialog
@@ -93,56 +84,27 @@ export function SettingsDialog({
 								</div>
 							</div>
 						))}
-
-						<button
-							type="button"
-							data-testid="settings-nav-feedback"
-							data-active={feedbackActive}
-							onClick={() => useAppStore.getState().setSettingsSection(SettingsSection.Feedback)}
-							className={cn(
-								"shrink-0 rounded-sm border border-primary-soft px-8 py-4 text-left outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary md:mt-auto md:px-12 md:py-8",
-								feedbackActive ? "bg-primary-subtle" : "bg-control-bg hover:bg-control-bg-hovered",
-							)}
-						>
-							<span className="tr-text-ui text-primary">{t("settings.dialog.interviewCta")}</span>
-						</button>
 					</nav>
 
 					<div className="min-h-0 flex-1 overflow-y-auto p-16">
-						{selectedSection === SettingsSection.Models ? (
-							<ModelsSettings />
-						) : selectedSection === SettingsSection.Providers ? (
-							<ProvidersSettings />
-						) : selectedSection === SettingsSection.Mcp ? (
-							<McpSettings />
-						) : selectedSection === SettingsSection.Templates ? (
-							<TemplatesSettings />
-						) : selectedSection === SettingsSection.Environment ? (
-							<EnvironmentSettings />
-						) : selectedSection === SettingsSection.Extensions ? (
-							<ExtensionsSettings />
-						) : selectedSection === SettingsSection.Chat ? (
-							<ChatSettings />
-						) : selectedSection === SettingsSection.Appearance ? (
+						{selectedSection === SettingsSection.Appearance ? (
 							<AppearanceSettings />
+						) : selectedSection === SettingsSection.Editor ? (
+							<EditorSettings />
+						) : selectedSection === SettingsSection.Files ? (
+							<FilesSettings />
 						) : selectedSection === SettingsSection.Language ? (
 							<LanguageSettings />
 						) : selectedSection === SettingsSection.Layout ? (
 							layoutSettings
 						) : selectedSection === SettingsSection.Terminal ? (
 							<TerminalSettings />
-						) : selectedSection === SettingsSection.Workspaces ? (
-							<WorkspacesSettings />
-						) : selectedSection === SettingsSection.Github ? (
-							<GithubSettings />
-						) : selectedSection === SettingsSection.Notifications ? (
-							<NotificationsSettings />
-						) : selectedSection === SettingsSection.Privacy ? (
-							<PrivacySettings />
+						) : selectedSection === SettingsSection.Keybindings ? (
+							<KeybindingsSettings />
+						) : selectedSection === SettingsSection.Git ? (
+							<GitAndEditorsSettings />
 						) : selectedSection === SettingsSection.Updates && updateSettings !== undefined ? (
 							updateSettings
-						) : selectedSection === SettingsSection.Feedback ? (
-							<FeedbackSettings />
 						) : (
 							<AppearanceSettings />
 						)}

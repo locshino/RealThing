@@ -1,4 +1,4 @@
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 import { useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import type { SurfaceReview } from "../registry";

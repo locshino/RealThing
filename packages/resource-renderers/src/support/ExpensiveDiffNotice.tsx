@@ -1,5 +1,5 @@
-import { useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+import { useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import type { ReactNode } from "react";
 
 export function ExpensiveDiffNotice({

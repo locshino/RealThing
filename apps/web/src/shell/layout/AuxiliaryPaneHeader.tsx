@@ -1,8 +1,8 @@
 import { useDraggable } from "@dnd-kit/core";
 import { RiCloseLine as X } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { IconButton } from "@thinkrail/ui/button";
-import { cn } from "@thinkrail/ui/utils";
+import { useT } from "@realthing/locales/react";
+import { IconButton } from "@realthing/ui/button";
+import { cn } from "@realthing/ui/utils";
 import { type ComponentPropsWithoutRef, forwardRef, type ReactNode } from "react";
 import { tupleKey } from "../../lib";
 import type { LayoutTab } from "./types";

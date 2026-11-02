@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 function fixture(app: string, extra: Record<string, string> = {}): string {
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-render-reach-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-render-reach-"));
 	roots.push(root);
 	const write = (path: string, content: string) => {
 		mkdirSync(dirname(join(root, path)), { recursive: true });

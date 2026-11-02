@@ -1,4 +1,4 @@
-import { cn } from "@thinkrail/ui/utils";
+import { cn } from "@realthing/ui/utils";
 import type { ReactNode } from "react";
 
 export const SETTINGS_ROWS_CONTAINER = "flex flex-col [&>*:last-child]:border-b-0";

@@ -1,6 +1,6 @@
 import { dlopen, FFIType } from "bun:ffi";
 import { expect, test } from "bun:test";
-import { windowsIconPath } from "@thinkrail/shared/windowsIdentity";
+import { windowsIconPath } from "@realthing/shared/windowsIdentity";
 import {
 	applyWindowsWindowIcon,
 	loadWindowsIconApi,

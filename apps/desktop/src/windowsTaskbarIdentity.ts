@@ -1,7 +1,7 @@
 import { CFunction, dlopen, FFIType, type Pointer, read, toArrayBuffer } from "bun:ffi";
 import { type Dirent, existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
 import { dirname, join, win32 } from "node:path";
-import { windowsProductName } from "@thinkrail/shared/windowsIdentity";
+import { windowsProductName } from "@realthing/shared/windowsIdentity";
 
 export function desktopAppUserModelId(channel: string): string {
 	return `JetBrains.${windowsProductName(channel).replaceAll(" ", ".")}`;

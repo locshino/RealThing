@@ -24,12 +24,11 @@ const inherited = {
 	ci: "true",
 	NODE_ENV: "test",
 	node_env: "test",
-	THINKRAIL_NO_ANALYTICS: "1",
-	thinkrail_no_analytics: "1",
-	thinkrail_posthog_host: "https://production.invalid",
+	REALTHING_NO_ANALYTICS: "1",
+	realthing_no_analytics: "1",
+	realthing_posthog_host: "https://production.invalid",
 	Home: "real-home",
 	UserProfile: "real-home",
-	pi_coding_agent_dir: "real-agent",
 	https_proxy: "https://proxy.invalid",
 	all_proxy: "https://proxy.invalid",
 	PATH: "test-path",
@@ -42,32 +41,31 @@ test("the human probe removes automated and optional mutes without inheriting re
 	}
 	expect(env.CI).toBeUndefined();
 	expect(env.NODE_ENV).toBeUndefined();
-	expect(env.THINKRAIL_NO_ANALYTICS).toBeUndefined();
-	expect(env.THINKRAIL_POSTHOG_HOST).toBe("http://127.0.0.1:12345");
+	expect(env.REALTHING_NO_ANALYTICS).toBeUndefined();
+	expect(env.REALTHING_POSTHOG_HOST).toBe("http://127.0.0.1:12345");
 	expect(env.HOME).toBe(join("isolated", "home"));
 	expect(env.USERPROFILE).toBe(env.HOME);
-	expect(env.THINKRAIL_DATA_DIR).toBe(join("isolated", "data"));
-	expect(env.PI_CODING_AGENT_DIR).toBe(join("isolated", "agent"));
+	expect(env.REALTHING_DATA_DIR).toBe(join("isolated", "data"));
 	expect(env.PATH).toBe("test-path");
 });
 
 test("each controlled mute is tested alone and cannot override isolation or the collector", () => {
-	for (const mute of ["CI", "NODE_ENV", "THINKRAIL_NO_ANALYTICS"]) {
+	for (const mute of ["CI", "NODE_ENV", "REALTHING_NO_ANALYTICS"]) {
 		const value = mute === "NODE_ENV" ? "test" : "1";
 		const env = analyticsProbeEnvironment(
 			"isolated",
 			"http://127.0.0.1:12345",
-			{ [mute]: value, HOME: "real-home", THINKRAIL_POSTHOG_HOST: "https://production.invalid" },
+			{ [mute]: value, HOME: "real-home", REALTHING_POSTHOG_HOST: "https://production.invalid" },
 			inherited,
 		);
 		expect(env[mute]).toBe(value);
-		for (const other of ["CI", "NODE_ENV", "THINKRAIL_NO_ANALYTICS"].filter(
+		for (const other of ["CI", "NODE_ENV", "REALTHING_NO_ANALYTICS"].filter(
 			(key) => key !== mute,
 		)) {
 			expect(env[other]).toBeUndefined();
 		}
 		expect(env.HOME).toBe(join("isolated", "home"));
-		expect(env.THINKRAIL_POSTHOG_HOST).toBe("http://127.0.0.1:12345");
+		expect(env.REALTHING_POSTHOG_HOST).toBe("http://127.0.0.1:12345");
 	}
 });
 
@@ -111,7 +109,7 @@ test("desktop launch assertion pins first-install and restart personless provena
 	const report: CollectedEvent = {
 		event: "$exception",
 		distinct_id: launch.distinct_id,
-		properties: { ...launch.properties, source: "host_logged", handled: true, scope: "agent" },
+		properties: { ...launch.properties, source: "host_logged", handled: true, scope: "workspace" },
 	};
 	expect(assertDesktopLaunch([launch, report], expected, false)).toBe(launch.distinct_id);
 	expect(() =>

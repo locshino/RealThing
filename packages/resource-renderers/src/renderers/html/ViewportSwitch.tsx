@@ -1,5 +1,5 @@
-import { useT } from "@thinkrail/locales/react";
-import { ToggleSegment } from "@thinkrail/ui/toggle-segment";
+import { useT } from "@realthing/locales/react";
+import { ToggleSegment } from "@realthing/ui/toggle-segment";
 import { HTML_VIEWPORT_LABELS, HTML_VIEWPORTS, type HtmlViewport } from "./viewport";
 
 export function HtmlPreviewNotice({

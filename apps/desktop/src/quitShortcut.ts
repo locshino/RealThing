@@ -1,4 +1,4 @@
-import { createQuitConfirmation, type QuitConfirmationDependencies } from "@thinkrail/contracts";
+import { createQuitConfirmation, type QuitConfirmationDependencies } from "@realthing/contracts";
 import type { KeyState } from "./keyState";
 
 export interface QuitShortcutDependencies extends Omit<QuitConfirmationDependencies, "readHeld"> {

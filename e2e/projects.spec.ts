@@ -63,7 +63,7 @@ async function holdNextPickerReply(page: Page, pickerPath: string) {
 						? (frame.params as Record<string, unknown>)
 						: null;
 				if (frame?.method === "project.open" && params?.path === pickerPath) staleOpenSent = true;
-				if (frame?.method === "provider.status") barrier.send();
+				if (frame?.method === "terminal.listShells") barrier.send();
 			}
 			serverSocket.send(message);
 		});
@@ -101,8 +101,8 @@ function seedSecondRepo(): string {
 	rmSync(repo, { recursive: true, force: true });
 	mkdirSync(repo, { recursive: true });
 	git(repo, "init", "-b", "main");
-	git(repo, "config", "user.email", "e2e@thinkrail.test");
-	git(repo, "config", "user.name", "ThinkRail E2E");
+	git(repo, "config", "user.email", "e2e@realthing.test");
+	git(repo, "config", "user.name", "RealThing E2E");
 	git(repo, "config", "commit.gpgsign", "false");
 	writeFileSync(join(repo, "README.md"), "# second project\n");
 	git(repo, "add", "-A");
@@ -132,7 +132,7 @@ test("opens a project from an explicit host path", async ({ page }) => {
 
 	const dialog = page.getByTestId("open-project-path-dialog");
 	await expect(dialog).toBeVisible();
-	await expect(dialog).toContainText("computer running ThinkRail");
+	await expect(dialog).toContainText("computer running RealThing");
 	await expect(dialog.getByTestId("open-project-picker-error")).toHaveCount(0);
 	const input = dialog.getByTestId("open-project-path-input");
 	await expect(input).toBeFocused();
@@ -191,6 +191,7 @@ test("manual path from the rail supersedes a picker started from Welcome", async
 	await pickerReply.acknowledged;
 	pickerReply.armBarrier();
 	await page.getByTestId("open-settings").click();
+	await page.getByTestId("settings-nav-terminal").click();
 	await pickerReply.barrier;
 	expect(pickerReply.staleOpenWasSent()).toBe(false);
 	await page.keyboard.press("Escape");
@@ -466,7 +467,7 @@ test("project context actions stay compact and close/reopen is lossless across c
 	await expect(confirm).toHaveAttribute("role", "alertdialog");
 	await expect(confirm).toContainText("Close second-project?");
 	await expect(confirm).toContainText(
-		"Removes this project from the open projects list. Its repository, workspaces, chats, and running activity are kept. Reopen it from Add project → Recents.",
+		"Removes this project from the open projects list. Its repository, workspaces, and running activity are kept. Reopen it from Add project → Recents.",
 	);
 	const cancel = confirm.getByRole("button", { name: "Cancel" });
 	await expect(cancel).toBeFocused();
@@ -504,8 +505,8 @@ test("project context actions stay compact and close/reopen is lossless across c
 	await page.getByTestId("confirm-close-project").click();
 	await expect(page.getByTestId("project-item")).toHaveCount(0);
 	await expect(observer.getByTestId("project-item")).toHaveCount(0);
-	await expect(page.getByTestId("welcome-title")).toHaveText("ThinkRail");
-	await expect(observer.getByTestId("welcome-title")).toHaveText("ThinkRail");
+	await expect(page.getByTestId("welcome-title")).toHaveText("RealThing");
+	await expect(observer.getByTestId("welcome-title")).toHaveText("RealThing");
 	await expect(page.getByTestId("add-project-menu")).toBeFocused();
 
 	await page.getByTestId("add-project-menu").click();

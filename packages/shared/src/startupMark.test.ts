@@ -27,8 +27,8 @@ test("wide plain output pins the approved recursive host lockup", () => {
 	const lines = contentLines(output);
 
 	expect(lines).toHaveLength(20);
-	expect(lines[0]).toBe("THINKRAIL·THINKRAIL·THIN RAIL·THINK");
-	expect(lines[6]).toEndWith("THINKRAIL");
+	expect(lines[0]).toBe("REALTHING·REALTHING·THIN RAIL·THINK");
+	expect(lines[6]).toEndWith("REALTHING");
 	expect(lines[7]).toEndWith("agentic IDE for pi");
 	expect(lines[10]).toEndWith("● host ready");
 	expect(lines[11]).toEndWith("  localhost:24242");
@@ -47,7 +47,7 @@ test("medium terminals stack the identity below the complete mark", () => {
 	expect(lines[19]).toEndWith("RAIL·");
 	expect(lines[20]).toBe("");
 	expect(lines.slice(21)).toEqual([
-		"THINKRAIL",
+		"REALTHING",
 		"agentic IDE for pi",
 		"",
 		"● starting",
@@ -66,7 +66,7 @@ test("very narrow terminals use the identity without wrapping the artwork", () =
 	);
 
 	expect(lines).toEqual([
-		"THINKRAIL",
+		"REALTHING",
 		"agentic IDE for pi",
 		"",
 		"● starting",

@@ -1,10 +1,10 @@
-import { describeResource, PENDING_TEXT_META } from "@thinkrail/resource-renderers";
+import { describeResource, PENDING_TEXT_META } from "@realthing/resource-renderers";
 import { useEffect } from "react";
 import { whenPageActive } from "../lib";
 import { useEditorWarm, whenFilesTreeIdle } from "../panels/editorWarm";
 
-const IDLE_TIMEOUT_MS = 2000;
-const FALLBACK_DELAY_MS = 1500;
+const IDLE_TIMEOUT_MS = 250;
+const FALLBACK_DELAY_MS = 80;
 
 let preloaded = false;
 

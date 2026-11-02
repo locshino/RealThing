@@ -1,4 +1,4 @@
-import type { LineSpan } from "@thinkrail/contracts";
+import type { LineSpan } from "@realthing/contracts";
 
 export function splitLines(text: string): string[] {
 	const segments: string[] = [];

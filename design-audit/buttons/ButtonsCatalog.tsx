@@ -12,7 +12,7 @@ import {
 	RiLogoutBoxLine,
 	RiMore2Line,
 } from "@remixicon/react";
-import { Button, type ButtonSize, type ButtonVariant, IconButton } from "@thinkrail/ui/button";
+import { Button, type ButtonSize, type ButtonVariant, IconButton } from "@realthing/ui/button";
 import {
 	Toast,
 	ToastAction,
@@ -21,7 +21,7 @@ import {
 	ToastProvider,
 	ToastTitle,
 	ToastViewport,
-} from "@thinkrail/ui/toast";
+} from "@realthing/ui/toast";
 import { type ReactNode, useLayoutEffect, useRef, useState } from "react";
 import { HeaderIconButton } from "@/panels/HeaderIconButton";
 import {
@@ -305,7 +305,7 @@ export function ButtonsCatalog({ forcedRules }: { forcedRules: number }) {
 		<div className="bk-app">
 			<header className="bk-top">
 				<div>
-					<div className="bk-title">ThinkRail buttons</div>
+					<div className="bk-title">RealThing buttons</div>
 					<div className="bk-sub">
 						packages/ui/button.tsx — Button &amp; IconButton · 5 variants × 3 sizes × 4 content
 						configurations · production stylesheet · {forcedRules} forced-state rules
@@ -669,7 +669,7 @@ export function ButtonsCatalog({ forcedRules }: { forcedRules: number }) {
 
 			<section id="api" className="bk-section">
 				<h2>API</h2>
-				<pre className="bk-code">{`import { Button, IconButton } from "@thinkrail/ui/button";
+				<pre className="bk-code">{`import { Button, IconButton } from "@realthing/ui/button";
 
 <Button variant="primary" | "soft-primary" | "outline" | "ghost" | "destructive"   // default primary
         size="s" | "m" | "l"                                                      // default l

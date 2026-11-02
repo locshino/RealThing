@@ -16,14 +16,20 @@ never what a particular child's output means.
 
 ## Boundary
 
-- **Owns:** `runBounded(argv, { timeoutMs, cwd?, env?, stdout? })` →
-  `{ ok, out, err, timedOut, launchFailed, waitedMs }`: capture both streams and complete on the child's
+- **Owns:** `runBounded(argv, { timeoutMs, cwd?, env?, stdout?, signal? })` →
+  `{ ok, out, err, timedOut, launchFailed, waitedMs, aborted? }`: capture both streams and complete on the child's
   **exit**; stdout defaults to decoded text, while `stdout: "bytes"` preserves it as `Uint8Array` for
   callers reading opaque content (stderr remains text diagnostics). POSIX children are detached
-  process-group leaders, while Windows children retain a nonvisual console. Expiry kills the POSIX group
-  or the direct Windows child. A failed launch is a result (`ok: false`, `launchFailed: true`, the launch
-  error as `err`), never a throw; callers can distinguish infrastructure failure from a child that ran
-  and exited nonzero.
+  process-group leaders, while Windows children retain a nonvisual console. Expiry or cancellation kills
+  the POSIX group; Windows asynchronously runs `taskkill /PID <pid> /T /F` with a five-second budget,
+  waits for it to exit, and falls back to killing the direct child if taskkill fails. A failed launch is a result (`ok: false`,
+  `launchFailed: true`, the launch error as `err`), never a throw; callers can distinguish infrastructure
+  failure from a child that ran
+  and exited nonzero. A pre-aborted `signal` launches nothing. An in-flight abort competes with exit and
+  expiry. Both abort and expiry stop the tree and wait for the direct child's exit before returning,
+  so callers may safely clean up a partial clone directory. Only cancellation carries `aborted: true` (`ok: false`, neither
+  timeout nor launch failure), retaining captured stdout/stderr with the same drain grace. Once exit or
+  expiry wins, later aborts have no effect; the listener is removed before draining.
 - **Also owns:** `streamBounded(argv, { timeoutMs, cwd?, env? })` → `{ stdout, exited }` — the same
   spawn, deadline, group kill and stderr capture, for the one caller that must relay a child's stdout
   while it is still being produced (the host's `/blob` route). Completion is still the child's exit,
@@ -34,34 +40,22 @@ never what a particular child's output means.
   to the exit, and only the hang is bounded. The `stdout` stream **closes** only after a zero exit and
   **errors** after a nonzero exit, an expiry or a failed launch, so a consumer can never mistake a
   truncated relay for a complete one; cancelling the stream kills the child. `exited` resolves to the
-  same shape `runBounded` returns, minus `out`.
+  same shape `runBounded` returns, minus `out`. Streaming does not accept an abort signal; consumers
+  cancel its stdout stream instead.
 - **Public surface:** `runBounded`, `streamBounded`, `BoundedRun`, `BoundedBytesRun`, `BoundedRunOptions`,
   `BoundedBytesRunOptions`, `BoundedStream`, `BoundedStreamOptions`.
 - **Allowed deps:** Bun/Node process APIs. Nothing else — it knows no feature, no wire type, no
   persistence.
 - **Forbidden:** message wording, retry, truncation, or any policy about a specific program. `git`'s
-  stalled/stderr text and `branch-review`'s degrade-to-`null` are the callers' business.
-- **Known non-consumers.** Two callers spawn something that can outlast a human's patience and still do
-  it themselves, each deliberately and each a standing debt rather than a settled design:
-  - `@thinkrail/shared/jbcentral` — already deadline-first, and a different contract (bounded-byte reads, a
-    closed outcome vocabulary, an injectable `run` seam, Central's confidentiality rules). Folding it in
-    would grow this surface for one caller in another package.
-  - `dialog`'s `selectDirectory` (`dialog.ts`) — still the EOF-gated shape this module replaces, around
-    `zenity`/`kdialog`/`osascript`, whose forked helpers inherit stdio. Unmigrated because a picker's real
-    budget is a human at a dialog: it needs a cancellation seam, which `runBounded` does not offer.
-
-  `github`'s `githubAuthStatus` (`github.ts`) used to be a third — a `spawnSync` HTTPS call on the single
-  event loop — until it moved onto `runBounded`, which is also why `ghSetupProblem` no longer hand-rolls its
-  own TERM+KILL escalation: both `gh auth status` probes now share this module's timeout mechanics instead
-  of duplicating them.
-
-  The census above is about *unbounded waits*, not about every spawn in the repo — the rest are already
-  bounded or cannot wait on anything: `git`'s sync `git()` and `terminal/shellBusy` go through
-  `@thinkrail/shared/spawn`'s `spawnSyncCaptured` (`shared/shellEnv` keeps its own timed `Bun.spawn` — a
-  win32 no-op), and `editors`, `cli/bootstrap` and `cli/powershell` are fire-and-forget
-  `@thinkrail/shared/spawn` `spawnDetached`s whose output nobody reads. `trash`'s helper `execFile` is the
-  one true straggler: unbounded, but a local trash helper with no network and no prompt, so it fails the
-  letter of this module and not its purpose.
+  stalled/stderr text is the caller's business.
+- **Known non-consumers.** Callers that spawn outside `runBounded` do so deliberately:
+  - `dialog`'s `selectDirectory` (`dialog.ts`) — around `zenity`/`kdialog`/`osascript`, whose forked
+    helpers inherit stdio. Unmigrated because a picker's real budget is a human at a dialog: it needs a
+    cancellation seam, which `runBounded` does not offer.
+  - `git`'s sync `git()` and `terminal/shellBusy` go through `@realthing/shared/spawn`'s `spawnSyncCaptured`
+    (`shared/shellEnv` keeps its own timed `Bun.spawn` — a win32 no-op), and `editors`, `cli/bootstrap` and
+    `cli/powershell` are fire-and-forget `@realthing/shared/spawn` `spawnDetached`s whose output nobody reads.
+  - `trash`'s helper `execFile` is a local trash helper with no network and no prompt.
 
 ## Get right
 
@@ -113,18 +107,15 @@ never what a particular child's output means.
   open `/dev/tty` to prompt, which is what turns issue #209 from a 55s wait into an immediate
   `Permission denied (publickey)` for most users; `SSH_ASKPASS` is unaffected (no-tty is exactly its
   trigger), which is why the caller's budget still has to be sized for a human at a dialog. **What it costs
-  is real:** the CLI entrypoint is a `thinkrail` bin launched from a terminal that stays in the foreground, and
+  is real:** the CLI entrypoint is a `realthing` bin launched from a terminal that stays in the foreground, and
   a user sitting there could until now *see* `ssh`'s `Enter passphrase for key …` on `/dev/tty` (ssh reads
   the tty directly, so our piped stdio never hid it) and type it. They no longer can. Accepted because the
   UI is a browser client and a hidden terminal prompt is not a flow it can ever show, wait on, or report —
   a fast legible failure beats a prompt only the launching shell can see. It also puts the child outside the
   host terminal's signal group, so the budget — never a `Ctrl-C` on the host — is what ends a stalled call.
-  Surfacing the passphrase request in the UI (#209's headline ask, as opposed to its "at minimum" clause)
-  stays unbuilt and needs the cancellation seam `dialog` wants above.
 - **Windows children are hidden, not detached.** `windowsHide: true` with `detached: false` preserves a
   nonvisual console for ordinary descendants to inherit. Detachment removes that console: the immediate
-  child stays hidden, but a helper it launches can allocate a visible console. This is why a focus-triggered
-  `gh` lookup could still flash `tzutil`, Git, and SSH windows despite hiding the direct child. Windows
+  child stays hidden, but a helper it launches can allocate a visible console. Windows
   does not support the POSIX group-kill path; expiry still terminates only the direct child, not a promised
   whole tree. Non-detached children participate in libuv's normal job lifetime; this runner is for bounded
   host-owned work, not independently surviving daemons. The native Windows regression uses a no-console
@@ -143,6 +134,6 @@ never what a particular child's output means.
   `performance.now()`, so a clock adjustment cannot render a negative wait.
 - **Neither stream is capped.** `runBounded` accumulates whatever the child writes for as long as the
   budget allows, so a caller's byte ceiling (`git`'s 2000-char `boundedStderr`) bounds what reaches a
-  client, never what this module holds in memory. Adequate for `git`/`gh`/`glab`, where the worst case is a
+  client, never what this module holds in memory. Adequate for `git`, where the worst case is a
   progress log measured in hundreds of KB; a caller that can spew unboundedly needs a `maxBytes` option
   here rather than a truncation after the fact.

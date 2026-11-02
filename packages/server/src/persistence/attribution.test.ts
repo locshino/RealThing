@@ -9,7 +9,7 @@ import {
 } from "./attribution";
 
 function fixture() {
-	const directory = mkdtempSync(join(tmpdir(), "thinkrail-attribution-store-"));
+	const directory = mkdtempSync(join(tmpdir(), "realthing-attribution-store-"));
 	const now = Date.now();
 	const record = {
 		first_touch: {

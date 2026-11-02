@@ -27,18 +27,18 @@ export function HeroQuickStart() {
 		<div className="flex flex-col gap-3">
 			<p className="label-mono">Quick start</p>
 
-			<StepCard title="Install ThinkRail">
+			<StepCard title="Install RealThing">
 				<InstallPicker />
 			</StepCard>
 
 			<StepCard
 				title="Open your project"
-				description="Launch ThinkRail and choose a Git repository."
+				description="Launch RealThing and choose a Git repository."
 			/>
 
 			<StepCard
 				title="Start working"
-				description="Create isolated Git worktrees and start agent sessions."
+				description="Create isolated Git worktrees, edit code, and review diffs."
 			/>
 		</div>
 	);

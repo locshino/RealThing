@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { currentTranslator } from "@thinkrail/locales/react";
+import { currentTranslator } from "@realthing/locales/react";
 import { closeLayoutTab, removeLayoutGroup, toolTab } from "./model";
 import {
 	applyProjectedLayoutDocument,
@@ -179,7 +179,7 @@ describe("normalized workbench layout", () => {
 		projected.center.children[0] = {
 			kind: "group",
 			id: "center-a",
-			tabs: [{ ...terminal("collision"), id: "tool:review" }],
+			tabs: [{ ...terminal("collision"), id: "tool:plan" }],
 		};
 		const frame = workbenchFrameFromDocument(projected);
 		const view = workspaceViewFromDocument(projected);
@@ -193,10 +193,10 @@ describe("normalized workbench layout", () => {
 		const workspaceView = applied.viewsByWorkspace.workspace;
 		if (!workspaceView) throw new Error("missing workspace view");
 		const documentAfter = projectWorkspaceLayout(applied.frame, workspaceView);
-		const review = documentAfter.right.groups
+		const plan = documentAfter.right.groups
 			.flatMap((group) => group.tabs)
-			.find((tab) => tab.kind === "tool" && tab.tool === "review");
-		expect(review?.id).not.toBe("tool:review");
+			.find((tab) => tab.kind === "tool" && tab.tool === "plan");
+		expect(plan?.id).not.toBe("tool:plan");
 	});
 
 	test("preset reflow distributes terminals across bottom slots without duplicating frame state", () => {
@@ -397,7 +397,9 @@ describe("frameMatchesPreset", () => {
 	});
 
 	test("detects tool order changes", () => {
-		const preset = BUILTIN_LAYOUT_PRESETS[0];
+		const preset = BUILTIN_LAYOUT_PRESETS.find((candidate) =>
+			candidate.right.groups.some((group) => group.tools.length >= 2),
+		);
 		if (!preset) throw new Error("missing built-in preset");
 		const frame = instantiateWorkbenchFrame(preset);
 		const firstGroup = frame.right.groups[0];

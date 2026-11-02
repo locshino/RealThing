@@ -4,9 +4,9 @@ import type {
 	NativeUpdateLogEntry,
 	NativeUpdateLogEvent,
 	NativeUpdateState,
-} from "@thinkrail/contracts";
-import type { MessageKey } from "@thinkrail/locales";
-import type { Translator } from "@thinkrail/locales/react";
+} from "@realthing/contracts";
+import type { MessageKey } from "@realthing/locales";
+import type { Translator } from "@realthing/locales/react";
 
 export const INSTALL_STEPS = [
 	{ key: "prepared", labelKey: "updates.install.step.prepared" },
@@ -113,7 +113,7 @@ export function installRecovery(t: Translator, state: NativeUpdateState): Instal
 }
 
 export function releaseNotesUrl(version: string): string {
-	return `https://github.com/JetBrains/thinkrail/releases/tag/v${encodeURIComponent(version)}`;
+	return `https://github.com/JetBrains/realthing/releases/tag/v${encodeURIComponent(version)}`;
 }
 
 function twoDigits(value: number): string {

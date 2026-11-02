@@ -50,7 +50,7 @@ interface RenderProfilerHandle {
 
 declare global {
 	interface Window {
-		__thinkrailRenderProfiler?: RenderProfilerHandle;
+		__realthingRenderProfiler?: RenderProfilerHandle;
 	}
 }
 
@@ -247,7 +247,7 @@ function installRenderProfiler(subtreeRoots: SubtreeRoots): void {
 			setStrictMode: noop,
 		},
 	});
-	window.__thinkrailRenderProfiler = {
+	window.__realthingRenderProfiler = {
 		reset: () => {
 			commits = 0;
 			totalMs = 0;
@@ -348,7 +348,7 @@ export async function startMainThreadProbe(page: Page, cpuRate: number) {
 
 export async function resetRenderProfile(page: Page): Promise<void> {
 	await page.evaluate(() => {
-		const profiler = window.__thinkrailRenderProfiler;
+		const profiler = window.__realthingRenderProfiler;
 		if (!profiler) throw new Error("render profiler is not installed");
 		profiler.reset();
 	});
@@ -356,7 +356,7 @@ export async function resetRenderProfile(page: Page): Promise<void> {
 
 export async function readRenderProfile(page: Page): Promise<RenderProfile> {
 	return page.evaluate(() => {
-		const profiler = window.__thinkrailRenderProfiler;
+		const profiler = window.__realthingRenderProfiler;
 		if (!profiler) throw new Error("render profiler is not installed");
 		return profiler.snapshot();
 	});

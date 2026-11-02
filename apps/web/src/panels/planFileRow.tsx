@@ -1,6 +1,5 @@
-import type { GitFileChange } from "@thinkrail/contracts";
-import { statusLetter } from "../chat/planView";
-import { statusNameClass } from "./changesModel";
+import type { GitFileChange } from "@realthing/contracts";
+import { statusLetter, statusNameClass } from "./changesModel";
 import { DiffStatBadge } from "./DiffStatBadge";
 
 function FileStatusLetter({ status }: { status: GitFileChange["status"] }) {

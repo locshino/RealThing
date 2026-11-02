@@ -9,7 +9,7 @@ const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00
 let dataDir: string;
 let repo: string;
 let head: string;
-const savedDataDir = process.env.THINKRAIL_DATA_DIR;
+const savedDataDir = process.env.REALTHING_DATA_DIR;
 
 function git(...args: string[]): string {
 	const result = Bun.spawnSync(["git", "-C", repo, ...args], { stdout: "pipe", stderr: "pipe" });
@@ -19,11 +19,11 @@ function git(...args: string[]): string {
 
 beforeEach(() => {
 	dataDir = mkdtempSync(join(tmpdir(), "trpi-routes-test-"));
-	process.env.THINKRAIL_DATA_DIR = dataDir;
+	process.env.REALTHING_DATA_DIR = dataDir;
 	repo = join(dataDir, "repo");
 	mkdirSync(join(repo, "docs"), { recursive: true });
 	git("init", "-b", "main");
-	git("config", "user.email", "t@thinkrail.test");
+	git("config", "user.email", "t@realthing.test");
 	git("config", "user.name", "test");
 	git("config", "commit.gpgsign", "false");
 	writeFileSync(join(repo, "docs", "shot.png"), PNG);
@@ -55,8 +55,8 @@ beforeEach(() => {
 
 afterEach(() => {
 	rmSync(dataDir, { recursive: true, force: true });
-	if (savedDataDir === undefined) delete process.env.THINKRAIL_DATA_DIR;
-	else process.env.THINKRAIL_DATA_DIR = savedDataDir;
+	if (savedDataDir === undefined) delete process.env.REALTHING_DATA_DIR;
+	else process.env.REALTHING_DATA_DIR = savedDataDir;
 });
 
 test("/blob serves a commit's bytes with the shared type, cacheable forever", async () => {

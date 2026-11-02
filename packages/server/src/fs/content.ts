@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
-import { extname } from "node:path";
-import type { ResourceMeta } from "@thinkrail/contracts";
+import { basename, extname } from "node:path";
+import type { ResourceMeta } from "@realthing/contracts";
+import { loadConfig } from "../persistence";
 
 export const CONTENT_SNIFF_BYTES = 8 * 1024;
 const STRICT_UTF8 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true });
@@ -107,7 +108,16 @@ export function decodeText(bytes: Uint8Array): string {
 }
 
 export function mimeFromPath(path: string): string | undefined {
-	return EXTENSION_MIME[extname(path).toLowerCase()];
+	const associations = loadConfig().filesAssociations;
+	const base = basename(path);
+	if (associations[base]) return associations[base];
+	const ext = extname(path).toLowerCase();
+	if (ext) {
+		const withoutDot = ext.slice(1);
+		if (associations[ext]) return associations[ext];
+		if (associations[withoutDot]) return associations[withoutDot];
+	}
+	return EXTENSION_MIME[ext];
 }
 
 export function resourceMeta(bytes: Uint8Array | null, path: string): ResourceMeta {

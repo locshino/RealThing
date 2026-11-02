@@ -1,22 +1,16 @@
-import { type AppConfigUpdate, isLineWidth, LINE_WIDTH_COLUMNS } from "@thinkrail/contracts";
-import type { MessageKey } from "@thinkrail/locales";
-import { useT } from "@thinkrail/locales/react";
-import { cn } from "@thinkrail/ui/utils";
+import { type AppConfigUpdate, isLineWidth, LINE_WIDTH_COLUMNS } from "@realthing/contracts";
+import type { MessageKey } from "@realthing/locales";
+import { useT } from "@realthing/locales/react";
+import { cn } from "@realthing/ui/utils";
 import { useEffect, useState } from "react";
 import { toast, useAppStore } from "@/store";
 import { errorText, getTransport } from "@/transport";
 import { SETTINGS_ROWS_CONTAINER, SettingsRow } from "./SettingsRow";
 import { SettingsSwitch } from "./SettingsSwitch";
 
-type LineWidthKind = "chat" | "file";
+type LineWidthKind = "file";
 
 const COPY = {
-	chat: {
-		description: "settings.lineWidth.chat.description",
-		failure: "settings.lineWidth.chat.failure",
-		inputLabel: "settings.lineWidth.chat.inputLabel",
-		boundedLabel: "settings.lineWidth.chat.boundedLabel",
-	},
 	file: {
 		description: "settings.lineWidth.file.description",
 		failure: "settings.lineWidth.file.failure",
@@ -46,22 +40,18 @@ function updateLineWidth(config: AppConfigUpdate, failure: string): Promise<bool
 		);
 }
 
-function widthConfig(kind: LineWidthKind, value: number): AppConfigUpdate {
-	return kind === "chat" ? { chatLineWidth: value } : { fileLineWidth: value };
+function widthConfig(_kind: LineWidthKind, value: number): AppConfigUpdate {
+	return { fileLineWidth: value };
 }
 
-function boundedConfig(kind: LineWidthKind, bounded: boolean): AppConfigUpdate {
-	return kind === "chat" ? { chatLineWidthBounded: bounded } : { fileLineWidthBounded: bounded };
+function boundedConfig(_kind: LineWidthKind, bounded: boolean): AppConfigUpdate {
+	return { fileLineWidthBounded: bounded };
 }
 
-export function LineWidthControl({ kind }: { kind: LineWidthKind }) {
+export function LineWidthControl({ kind = "file" }: { kind?: LineWidthKind }) {
 	const t = useT();
-	const value = useAppStore((state) =>
-		kind === "chat" ? state.chatLineWidth : state.fileLineWidth,
-	);
-	const bounded = useAppStore((state) =>
-		kind === "chat" ? state.chatLineWidthBounded : state.fileLineWidthBounded,
-	);
+	const value = useAppStore((state) => state.fileLineWidth);
+	const bounded = useAppStore((state) => state.fileLineWidthBounded);
 	const [draft, setDraft] = useState(String(value));
 	const [submitted, setSubmitted] = useState<number | null>(null);
 	useEffect(() => {

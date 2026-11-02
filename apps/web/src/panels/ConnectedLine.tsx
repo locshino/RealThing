@@ -1,5 +1,5 @@
 import { RiCheckLine as Check } from "@remixicon/react";
-import { T, useT } from "@thinkrail/locales/react";
+import { T, useT } from "@realthing/locales/react";
 
 export interface ConnectedSummary {
 	provider: string;

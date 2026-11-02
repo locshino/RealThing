@@ -1,6 +1,6 @@
-# ThinkRail Blog Author Guide
+# RealThing Blog Author Guide
 
-This guide documents how to write and publish blog posts for thinkrail.ai/blog.
+This guide documents how to write and publish blog posts for realthing.ai/blog.
 
 ## Post Structure
 
@@ -86,7 +86,7 @@ light/dark themes that follow the site's theme toggle:
 
 ````markdown
 ```typescript
-const greeting: string = "Hello, ThinkRail!";
+const greeting: string = "Hello, RealThing!";
 console.log(greeting);
 ```
 ````
@@ -120,7 +120,7 @@ are rewritten to the nocookie domain, and a `title` + `loading="lazy"` are added
    below it — don't open with `# Same Title`.
 
 2. **Use descriptive slugs**: The slug becomes the permanent URL. Choose something readable
-   and SEO-friendly: `introducing-thinkrail` not `post-1`.
+   and SEO-friendly: `introducing-realthing` not `post-1`.
 
 3. **Write an excerpt**: The excerpt appears on index cards, in the page's meta description,
    and in the RSS feed. Without one, visitors only see the title and date.

@@ -8,12 +8,12 @@
 
 @source "../../../packages/ui";
 @source "../../../packages/resource-renderers/src";
-@source "../../../thinkrail-extensions/*/web/**/*.{ts,tsx}";
+@source "../../../realthing-extensions/*/web/**/*.{ts,tsx}";
 
 @custom-variant button-disabled (&:is([data-disabled="true"], :disabled:not([data-loading])));
 
 /*
- * Map the ThinkRail design tokens (tokens.css) onto Tailwind's theme namespaces. `inline` makes the
+ * Map the RealThing design tokens (tokens.css) onto Tailwind's theme namespaces. `inline` makes the
  * utilities resolve to the live `var(--token)` (not a baked value), so the theme engine's atomic
  * custom-property swap re-themes everything. Radius is not mapped here: `tokens.css`
  * declares the `--radius-*` family as Tailwind's radius namespace itself (`@theme static`), so
@@ -197,7 +197,7 @@
 		}
 	}
 
-	/* Toasts slide up in / down out of the bottom viewport (referenced by `@thinkrail/ui/toast`). */
+	/* Toasts slide up in / down out of the bottom viewport (referenced by `@realthing/ui/toast`). */
 	@keyframes toast-in {
 		from {
 			opacity: 0;
@@ -282,6 +282,43 @@
 }
 .review-comment-rail {
 	background: var(--text-subtle);
+}
+/* Git gutter change indicators (Monaco linesDecorationsClassName) */
+.monaco-editor .git-gutter-added {
+	box-shadow: inset 3px 0 0 var(--feedback-success);
+}
+.monaco-editor .git-gutter-modified {
+	box-shadow: inset 3px 0 0 var(--feedback-info);
+}
+.monaco-editor .git-gutter-deleted {
+	position: absolute;
+}
+.monaco-editor .git-gutter-deleted::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	top: -2px;
+	width: 0;
+	height: 0;
+	border-top: 4px solid transparent;
+	border-bottom: 4px solid transparent;
+	border-left: 5px solid var(--feedback-error);
+	z-index: 10;
+}
+.monaco-editor .git-gutter-deleted-bottom {
+	position: absolute;
+}
+.monaco-editor .git-gutter-deleted-bottom::after {
+	content: "";
+	position: absolute;
+	left: 0;
+	bottom: -2px;
+	width: 0;
+	height: 0;
+	border-top: 4px solid transparent;
+	border-bottom: 4px solid transparent;
+	border-left: 5px solid var(--feedback-error);
+	z-index: 10;
 }
 .review-add-icon-holder {
 	/* Right-above the cursor point: the nudge + the ABOVE placement make the standard floating

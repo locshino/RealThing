@@ -2,11 +2,11 @@ import type {
 	WebsiteSurveyDismissedProperties,
 	WebsiteSurveySentProperties,
 	WebsiteSurveyShownProperties,
-} from "@thinkrail/website-analytics";
+} from "@realthing/website-analytics";
 
 export const downloadPostHogSurveyId = "01a17ce8-aae4-0000-f8c2-74cf8eb20b72";
 export const downloadSurveyFreeTextLimit = 500;
-export const downloadSurveyCompletionKey = "thinkrail_download_survey_completed";
+export const downloadSurveyCompletionKey = "realthing_download_survey_completed";
 
 export type SurveyCompletionStorage = Pick<Storage, "getItem" | "setItem">;
 
@@ -47,14 +47,14 @@ export const downloadSurveySteps: readonly SurveyStep[] = [
 	{
 		index: 1,
 		questionId: "3060825b-fbc8-4a3a-b0d5-4585076084b1",
-		prompt: "What makes ThinkRail interesting to you?",
+		prompt: "What makes RealThing interesting to you?",
 		kind: "multi",
 		required: true,
 		hint: "Choose all that apply",
 		action: "Continue",
 		choices: [
-			{ id: "pi_gui", label: "Graphical interface for Pi" },
-			{ id: "agents_one_place", label: "Managing agents one place" },
+			{ id: "pi_gui", label: "Parallel Git worktrees" },
+			{ id: "agents_one_place", label: "Managing workspaces in one place" },
 			{ id: "reviewing_changes", label: "Reviewing changes" },
 			{ id: "spec_driven", label: "Spec-driven development" },
 			{ id: "trying_tools", label: "Trying new tools" },
@@ -71,7 +71,7 @@ export const downloadSurveySteps: readonly SurveyStep[] = [
 		choices: [
 			{ id: "codes_self", label: "I code myself" },
 			{ id: "ai_chats", label: "I use AI suggestions and chats" },
-			{ id: "delegates_agents", label: "I delegate coding to agents" },
+			{ id: "delegates_agents", label: "I work across multiple branches" },
 			{ id: "not_coding", label: "I'm not currently coding" },
 		],
 	},
@@ -88,7 +88,7 @@ export const downloadSurveySteps: readonly SurveyStep[] = [
 			{ id: "cursor", label: "Cursor" },
 			{ id: "claude_code", label: "Claude Code" },
 			{ id: "codex", label: "Codex" },
-			{ id: "pi", label: "Pi / oh-my-pi" },
+			{ id: "pi", label: "Neovim / Vim" },
 			{ id: "jetbrains", label: "JetBrains IDEs" },
 			{ id: "vscode", label: "VS Code" },
 			{ id: "zed", label: "Zed / Delta" },
@@ -107,8 +107,8 @@ export const downloadSurveySteps: readonly SurveyStep[] = [
 		max: 3,
 		action: "Continue",
 		choices: [
-			{ id: "reviewing_ai", label: "Understanding and reviewing AI changes" },
-			{ id: "follow_requirements", label: "Getting agents to follow my requirements" },
+			{ id: "reviewing_ai", label: "Understanding and reviewing changes" },
+			{ id: "follow_requirements", label: "Keeping implementations aligned with requirements" },
 			{ id: "repeat_context", label: "Having to explain project context repeatedly" },
 			{ id: "multiple_tasks", label: "Keeping track of multiple tasks or projects" },
 			{ id: "switching_tools", label: "Switching between tools" },
@@ -124,7 +124,7 @@ export const downloadSurveySteps: readonly SurveyStep[] = [
 	{
 		index: 5,
 		questionId: "26a0ff6b-e15b-407e-a0e7-c210e3df5d3e",
-		prompt: "What’s the first thing you’d like to try doing with ThinkRail? (optional)",
+		prompt: "What’s the first thing you’d like to try doing with RealThing? (optional)",
 		kind: "text",
 		required: false,
 		placeholder: "Optional — a few words is enough",

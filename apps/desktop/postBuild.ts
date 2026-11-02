@@ -1,7 +1,7 @@
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { channel, version } from "@thinkrail/shared/version";
-import { windowsFileIdentity, windowsIconPath } from "@thinkrail/shared/windowsIdentity";
+import { channel, version } from "@realthing/shared/version";
+import { windowsFileIdentity, windowsIconPath } from "@realthing/shared/windowsIdentity";
 import { brandWindowsExecutable } from "./src/windowsExecutableIdentity";
 
 const desktopDir = import.meta.dir;

@@ -12,26 +12,19 @@ import {
 import * as fsPromises from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import type { Project } from "@thinkrail/contracts";
 import {
-	approveProjectMcpServer,
 	closeProject,
 	createProject,
 	getProjects,
-	grantProjectMcpTool,
 	initProject,
 	inspectProjectPath,
-	isProjectTrusted,
 	listProjects,
 	listRecentProjects,
 	openProject,
 	refreshRecentProjectFolders,
 	renameProject,
-	revokeProjectMcpTool,
-	setPiTrustSeed,
-	setProjectMcpOverride,
 	setProjectPublisher,
-	setProjectTrust,
+	suggestProjectPaths,
 } from "./projects";
 
 const realStat = fsPromises.stat;
@@ -59,7 +52,7 @@ function git(cwd: string, ...args: string[]): void {
 function makeRepo(path: string): void {
 	mkdirSync(path, { recursive: true });
 	git(path, "init", "-b", "main");
-	git(path, "config", "user.email", "t@thinkrail.test");
+	git(path, "config", "user.email", "t@realthing.test");
 	git(path, "config", "user.name", "test");
 	git(path, "config", "commit.gpgsign", "false");
 	writeFileSync(join(path, "README.md"), "# repo\n");
@@ -83,19 +76,18 @@ function withoutUserGitConfig<T>(run: () => T): T {
 }
 
 let dataDir: string;
-const savedDataDir = process.env.THINKRAIL_DATA_DIR;
+const savedDataDir = process.env.REALTHING_DATA_DIR;
 
 beforeEach(() => {
 	dataDir = realpathSync.native(mkdtempSync(join(tmpdir(), "trpi-proj-test-")));
-	process.env.THINKRAIL_DATA_DIR = dataDir;
+	process.env.REALTHING_DATA_DIR = dataDir;
 });
 
 afterEach(() => {
 	setProjectPublisher(null);
-	setPiTrustSeed(null);
 	rmSync(dataDir, { recursive: true, force: true });
-	if (savedDataDir === undefined) delete process.env.THINKRAIL_DATA_DIR;
-	else process.env.THINKRAIL_DATA_DIR = savedDataDir;
+	if (savedDataDir === undefined) delete process.env.REALTHING_DATA_DIR;
+	else process.env.REALTHING_DATA_DIR = savedDataDir;
 });
 
 function seedWorkspace(worktreePath: string, kind?: "default" | "external"): void {
@@ -121,18 +113,18 @@ test("openProject refuses a checkout already attached as an external workspace",
 	makeRepo(attached);
 	seedWorkspace(attached, "external");
 
-	expect(() => openProject(attached)).toThrow("already open in ThinkRail");
+	expect(() => openProject(attached)).toThrow("already open in RealThing");
 	expect(listProjects()).toHaveLength(0);
 });
 
-test("openProject refuses a ThinkRail-managed worktree dir, whatever symlinks the path carries", () => {
+test("openProject refuses a RealThing-managed worktree dir, whatever symlinks the path carries", () => {
 	const repo = join(dataDir, "repo");
 	makeRepo(repo);
 	const managed = join(dataDir, "worktrees", "repo", "workspace-1");
 	git(repo, "worktree", "add", "-b", "workspace-1", managed);
 	seedWorkspace(managed);
 
-	expect(() => openProject(managed)).toThrow("already open in ThinkRail");
+	expect(() => openProject(managed)).toThrow("already open in RealThing");
 	expect(openProject(repo).path).toBe(realpathSync(repo));
 });
 
@@ -336,7 +328,7 @@ test("initProject: commits even with no configured git identity (the -c fallback
 
 	withoutUserGitConfig(() => initProject(dir));
 	expect(gitOut(dir, "rev-parse", "HEAD")).not.toBe("");
-	expect(gitOut(dir, "log", "-1", "--format=%an")).toBe("ThinkRail");
+	expect(gitOut(dir, "log", "-1", "--format=%an")).toBe("RealThing");
 });
 
 test("initProject: an existing repo is opened, not re-initialised (dedupe, history preserved)", () => {
@@ -427,158 +419,6 @@ test("renameProject changes only the display name, publishes it, and survives cl
 	expect(() => renameProject("missing", "Name")).toThrow("Unknown project: missing");
 });
 
-test("setProjectTrust: persists a revocable, fail-closed trust decision", () => {
-	const repo = join(dataDir, "repo");
-	makeRepo(repo);
-	const project = initProject(repo);
-
-	expect(project.trusted).toBeUndefined();
-	expect(isProjectTrusted(project.id)).toBe(false);
-
-	const trusted = setProjectTrust(project.id, true);
-	expect(trusted.trusted).toBe(true);
-	expect(isProjectTrusted(project.id)).toBe(true);
-	expect(listProjects().find((p) => p.id === project.id)?.trusted).toBe(true);
-
-	const revoked = setProjectTrust(project.id, false);
-	expect(revoked.piResourceTrust).toBe("untrusted");
-	expect(isProjectTrusted(project.id)).toBe(false);
-	expect(() => setProjectTrust("nope", true)).toThrow();
-});
-
-test("setProjectTrust: pi-level resource trust needs its own explicit grant, and a revoke clears both", () => {
-	const repo = join(dataDir, "repo");
-	makeRepo(repo);
-	const project = initProject(repo);
-	const published: Array<{ trusted: boolean | undefined; piResourceTrust: string | undefined }> =
-		[];
-	setProjectPublisher(({ trusted, piResourceTrust }) =>
-		published.push({ trusted, piResourceTrust }),
-	);
-	expect(project.piResourceTrust).toBe("untrusted");
-
-	const aliasOnly = setProjectTrust(project.id, true, ["a"]);
-	expect(aliasOnly).toMatchObject({
-		trusted: true,
-		piResourceTrust: "untrusted",
-		acknowledgedSkills: ["a"],
-	});
-
-	const both = setProjectTrust(project.id, true, ["a"], { resources: true });
-	expect(both).toMatchObject({ trusted: true, piResourceTrust: "granted" });
-	expect(setProjectTrust(project.id, true).piResourceTrust).toBe("granted");
-
-	const revoked = setProjectTrust(project.id, false, undefined, { resources: true });
-	expect(revoked).toMatchObject({ trusted: false, piResourceTrust: "untrusted" });
-	expect(storedProjects().find((stored) => stored.id === project.id)).toMatchObject({
-		trusted: false,
-		piResourceTrust: "untrusted",
-	});
-	expect(published).toEqual([
-		{ trusted: true, piResourceTrust: "untrusted" },
-		{ trusted: true, piResourceTrust: "granted" },
-		{ trusted: true, piResourceTrust: "granted" },
-		{ trusted: false, piResourceTrust: "untrusted" },
-	]);
-});
-
-function writeProjects(records: object[]): void {
-	writeFileSync(join(dataDir, "projects.json"), JSON.stringify(records));
-}
-
-function storedProjects(): Array<
-	Pick<Project, "mcpToolGrants"> & { id: string; piResourceTrust?: string; trusted?: boolean }
-> {
-	return JSON.parse(readFileSync(join(dataDir, "projects.json"), "utf8"));
-}
-
-test("a record that predates pi-level trust is not grandfathered: it stays as stored and reads untrusted", () => {
-	const repo = join(dataDir, "legacy");
-	makeRepo(repo);
-	const root = realpathSync(repo);
-	writeProjects([{ id: "legacy", name: "legacy", path: root, slug: "legacy", lastOpened: 1 }]);
-	const asked: string[] = [];
-	setPiTrustSeed((path) => {
-		asked.push(path);
-		return true;
-	});
-	expect(getProjects()[0]?.piResourceTrust).toBeUndefined();
-	expect(storedProjects()[0]?.piResourceTrust).toBeUndefined();
-	expect(openProject(repo)).toMatchObject({ id: "legacy" });
-	expect(storedProjects()[0]?.piResourceTrust).toBeUndefined();
-	expect(asked).toEqual([]);
-});
-
-test("a newly added project starts untrusted unless pi already trusts its path", () => {
-	const plain = join(dataDir, "plain");
-	const piTrusted = join(dataDir, "pi-trusted");
-	makeRepo(plain);
-	makeRepo(piTrusted);
-	const trustedRoot = realpathSync(piTrusted);
-	setPiTrustSeed((path) => realpathSync(path) === trustedRoot);
-
-	expect(openProject(plain).piResourceTrust).toBe("untrusted");
-	expect(openProject(piTrusted).piResourceTrust).toBe("granted");
-	expect(initProject(plain).piResourceTrust).toBe("untrusted");
-});
-
-test("MCP approvals and per-project overrides persist in the project record and clear cleanly", () => {
-	const repo = join(dataDir, "repo");
-	makeRepo(repo);
-	const project = openProject(repo);
-
-	approveProjectMcpServer(project.id, "linear", "fp-1");
-	expect(approveProjectMcpServer(project.id, "linear", "fp-2").mcpApprovals).toEqual({
-		linear: "fp-2",
-	});
-
-	const before = readFileSync(join(dataDir, "projects.json"), "utf8");
-	expect(setProjectMcpOverride(project.id, "missing", {}).mcpOverrides).toBeUndefined();
-	expect(readFileSync(join(dataDir, "projects.json"), "utf8")).toBe(before);
-	setProjectMcpOverride(project.id, "context7", { enabled: false });
-	const exposed = setProjectMcpOverride(project.id, "sentry", { exposure: "direct" });
-	expect(exposed.mcpOverrides).toEqual({
-		context7: { enabled: false },
-		sentry: { exposure: "direct" },
-	});
-	setProjectMcpOverride(project.id, "context7", { exposure: "hidden" });
-	expect(setProjectMcpOverride(project.id, "context7", {}).mcpOverrides?.context7).toEqual({
-		enabled: false,
-		exposure: "hidden",
-	});
-	setProjectMcpOverride(project.id, "context7", null);
-	const cleared = setProjectMcpOverride(project.id, "sentry", null);
-	expect(cleared.mcpOverrides).toBeUndefined();
-	expect(storedProjects()[0]).not.toHaveProperty("mcpOverrides");
-	expect(() => approveProjectMcpServer("nope", "x", "y")).toThrow();
-});
-
-test("MCP tool grants: deduplicated per server, reset by a new target, removed with the last tool", () => {
-	const repo = join(dataDir, "mcp-grants");
-	makeRepo(repo);
-	const project = openProject(repo);
-
-	grantProjectMcpTool(project.id, "linear", "t1", "mcp__linear__create_issue");
-	grantProjectMcpTool(project.id, "linear", "t1", "mcp__linear__create_issue");
-	grantProjectMcpTool(project.id, "linear", "t1", "mcp__linear__comment");
-	grantProjectMcpTool(project.id, "__proto__", "t9", "mcp____proto____x");
-	expect(storedProjects()[0]?.mcpToolGrants).toEqual({
-		linear: { target: "t1", tools: ["mcp__linear__create_issue", "mcp__linear__comment"] },
-		["__proto__"]: { target: "t9", tools: ["mcp____proto____x"] },
-	});
-
-	const moved = grantProjectMcpTool(project.id, "linear", "t2", "mcp__linear__comment");
-	expect(moved.mcpToolGrants?.linear).toEqual({ target: "t2", tools: ["mcp__linear__comment"] });
-
-	expect(
-		revokeProjectMcpTool(project.id, "linear", "missing").mcpToolGrants?.linear?.tools,
-	).toEqual(["mcp__linear__comment"]);
-	revokeProjectMcpTool(project.id, "linear", "mcp__linear__comment");
-	const cleared = revokeProjectMcpTool(project.id, "__proto__", "mcp____proto____x");
-	expect(cleared.mcpToolGrants).toBeUndefined();
-	expect(storedProjects()[0]).not.toHaveProperty("mcpToolGrants");
-});
-
 test("recent projects omit closed records whose folders are definitively gone", async () => {
 	const repo = join(dataDir, "repo");
 	makeRepo(repo);
@@ -667,3 +507,94 @@ test.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
 		expect(listRecentProjects().map((project) => project.id)).toEqual(["locked"]);
 	},
 );
+
+test("suggestProjectPaths: Happy Case - lists subdirectories and identifies repos", () => {
+	const testRoot = join(dataDir, "suggest-test");
+	mkdirSync(join(testRoot, "my-repo", ".git"), { recursive: true });
+	mkdirSync(join(testRoot, "plain-dir"), { recursive: true });
+	mkdirSync(join(testRoot, "another-project"), { recursive: true });
+
+	const result = suggestProjectPaths(`${testRoot}/`);
+	expect(result.parent).toBe(testRoot);
+	expect(result.candidates.length).toBe(3);
+
+	const repoCandidate = result.candidates.find((c) => c.name === "my-repo");
+	expect(repoCandidate).toBeDefined();
+	expect(repoCandidate?.kind).toBe("repo");
+	expect(repoCandidate?.path).toBe(join(testRoot, "my-repo"));
+
+	const dirCandidate = result.candidates.find((c) => c.name === "plain-dir");
+	expect(dirCandidate).toBeDefined();
+	expect(dirCandidate?.kind).toBe("directory");
+
+	const filtered = suggestProjectPaths(join(testRoot, "my"));
+	expect(filtered.candidates.map((c) => c.name)).toEqual(["my-repo"]);
+});
+
+test("suggestProjectPaths: Exception Case - missing paths and file targets return empty candidates", () => {
+	const missing = suggestProjectPaths(join(dataDir, "non-existent-folder", "sub"));
+	expect(missing.candidates).toEqual([]);
+
+	const filePath = join(dataDir, "some-file.txt");
+	writeFileSync(filePath, "content");
+	const fileTarget = suggestProjectPaths(`${filePath}/`);
+	expect(fileTarget.candidates).toEqual([]);
+});
+
+test("suggestProjectPaths: Hacking Case - traversal, null bytes, and dotfiles/git isolation", () => {
+	const testRoot = join(dataDir, "security-test");
+	mkdirSync(join(testRoot, ".git"), { recursive: true });
+	mkdirSync(join(testRoot, ".hidden-dir"), { recursive: true });
+	mkdirSync(join(testRoot, "visible-dir"), { recursive: true });
+
+	const result = suggestProjectPaths(`${testRoot}/`);
+	const names = result.candidates.map((c) => c.name);
+	expect(names).toContain("visible-dir");
+	expect(names).not.toContain(".git");
+	expect(names).not.toContain(".hidden-dir");
+
+	const traversal = suggestProjectPaths(join(testRoot, "../../../../../../../../../etc/"));
+	expect(Array.isArray(traversal.candidates)).toBe(true);
+});
+
+test.skipIf(process.platform === "win32" || process.getuid?.() === 0)(
+	"suggestProjectPaths: 403 Case - unreadable folder fails gracefully without throwing",
+	() => {
+		const locked = join(dataDir, "locked-suggest");
+		mkdirSync(join(locked, "secret"), { recursive: true });
+		chmodSync(locked, 0o000);
+		try {
+			const res = suggestProjectPaths(`${locked}/`);
+			expect(res.candidates).toEqual([]);
+		} finally {
+			chmodSync(locked, 0o755);
+		}
+	},
+);
+
+test("inspectProjectPath and openProject: Happy, Exception, Hacking, and 403 Cases for multi-repo non-git root folders", () => {
+	const root = join(dataDir, "cleaner-payroll");
+	makeRepo(join(root, "back"));
+	makeRepo(join(root, "front"));
+	makeRepo(join(root, "jobs"));
+	mkdirSync(join(root, "docs"), { recursive: true });
+	mkdirSync(join(root, "node_modules", "ignored-pkg", ".git"), { recursive: true });
+	mkdirSync(join(root, ".hidden-repo", ".git"), { recursive: true });
+
+	const inspected = inspectProjectPath(root);
+	expect(inspected.kind).toBe("initable");
+	expect(inspected.gitFolders?.map((f) => f.name)).toEqual(["back", "front", "jobs"]);
+
+	expect(() => openProject(root)).toThrow("Not a git repository");
+	expect(() =>
+		openProject(join(dataDir, "missing-folder"), undefined, { allowNonGit: true }),
+	).toThrow("Not a folder");
+
+	const opened = openProject(root, undefined, { allowNonGit: true });
+	expect(opened.name).toBe("cleaner-payroll");
+	expect(opened.path).toBe(realpathSync(root));
+
+	closeProject(opened.id);
+	const reopened = openProject(root);
+	expect(reopened.id).toBe(opened.id);
+});

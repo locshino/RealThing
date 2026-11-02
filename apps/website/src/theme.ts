@@ -1,4 +1,4 @@
-export const THEME_STORAGE_KEY = "thinkrail-site-theme";
+export const THEME_STORAGE_KEY = "realthing-site-theme";
 
 export type SiteTheme = "dark" | "light";
 

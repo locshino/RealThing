@@ -1,6 +1,6 @@
 import { RiChatNewLine as MessageSquarePlus } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { IconButton } from "@thinkrail/ui/button";
+import { useT } from "@realthing/locales/react";
+import { IconButton } from "@realthing/ui/button";
 import { useEffect, useMemo, useRef } from "react";
 import { useResourceHost } from "../../host";
 import { anchorLabel, type ResourceViewProps, type ReviewThread } from "../../registry";

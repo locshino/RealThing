@@ -1,7 +1,7 @@
 import type { ResourceRenderer } from "../../registry";
 
 export const imageRenderer: ResourceRenderer = {
-	id: "thinkrail/image",
+	id: "realthing/image",
 	labelKey: "viewer.renderer.image",
 	match: { mime: ["image/*"], text: false },
 	rank: 120,

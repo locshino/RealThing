@@ -1,4 +1,4 @@
-import type { ThemeId } from "@thinkrail/contracts";
+import type { ThemeId } from "@realthing/contracts";
 
 export const THEME_COLOR_KEYS = [
 	"accent",

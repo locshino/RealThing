@@ -1,6 +1,6 @@
-import type { WsMethodName, WsParams, WsResult, WsServerMessage } from "@thinkrail/contracts";
-import { PROTOCOL_VERSION, WS_CHANNELS } from "@thinkrail/contracts";
-import { t } from "@thinkrail/locales/react";
+import type { WsMethodName, WsParams, WsResult, WsServerMessage } from "@realthing/contracts";
+import { PROTOCOL_VERSION, WS_CHANNELS } from "@realthing/contracts";
+import { t } from "@realthing/locales/react";
 import { randomId } from "../lib";
 import { RequestError } from "./requestError";
 
@@ -22,11 +22,6 @@ const NON_REPLAYABLE_CHANNELS: ReadonlySet<string> = new Set([
 	WS_CHANNELS.terminalData,
 	WS_CHANNELS.terminalExit,
 	WS_CHANNELS.terminalDetached,
-	WS_CHANNELS.sessionDeleted,
-	WS_CHANNELS.sessionResourcesChanged,
-	WS_CHANNELS.mcpStatus,
-	WS_CHANNELS.providerChanged,
-	WS_CHANNELS.feedbackInterview,
 ]);
 
 let clientId: string | undefined;
@@ -44,7 +39,6 @@ function withClientId(url: string): string {
 }
 
 export interface RequestOptions {
-	sessionId?: string;
 	timeoutMs?: number;
 }
 
@@ -112,9 +106,9 @@ export class WsTransport {
 		params: WsParams<M>,
 		options: RequestOptions = {},
 	): Promise<WsResult<M>> {
-		const { sessionId, timeoutMs = DEFAULT_TIMEOUT_MS } = options;
-		const id = `trpi_${++this.seq}`;
-		const frame = JSON.stringify({ id, method, params, ...(sessionId ? { sessionId } : {}) });
+		const { timeoutMs = DEFAULT_TIMEOUT_MS } = options;
+		const id = `tr_${++this.seq}`;
+		const frame = JSON.stringify({ id, method, params });
 		return new Promise<WsResult<M>>((resolve, reject) => {
 			const timer = setTimeout(() => {
 				this.pending.delete(id);

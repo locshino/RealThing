@@ -1,7 +1,7 @@
 import type { ResourceRenderer } from "../../registry";
 
 export const csvRenderer: ResourceRenderer = {
-	id: "thinkrail/csv",
+	id: "realthing/csv",
 	labelKey: "viewer.renderer.table",
 	match: { glob: ["*.csv", "*.tsv"], text: true },
 	rank: 120,

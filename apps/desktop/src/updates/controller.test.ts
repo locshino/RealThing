@@ -137,7 +137,7 @@ test("enables only supported packaged production identities and blocks artifact 
 	expect(nativeUpdatesEnabled({ ...enabled, platform: "win32", arch: "arm64" as never })).toBe(
 		false,
 	);
-	expect(hasDesktopArtifactTestSeam({ THINKRAIL_DESKTOP_READY_FILE: "/tmp/ready" })).toBe(true);
+	expect(hasDesktopArtifactTestSeam({ REALTHING_DESKTOP_READY_FILE: "/tmp/ready" })).toBe(true);
 	expect(hasDesktopArtifactTestSeam({})).toBe(false);
 });
 

@@ -35,8 +35,8 @@ import type { RedeemedAttribution } from "../packages/server/src/persistence/att
 const claimId = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 const bridgeId = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBA";
 const journeyId = "01890f47-75a3-4d8f-9a72-4f0e35be292b";
-const endpoint = "https://thinkrail.ai";
-const host = "thinkrail.ai";
+const endpoint = "https://realthing.ai";
+const host = "realthing.ai";
 
 class MemoryClaimRepository implements ClaimRepository {
 	record: ClaimRecord | undefined;
@@ -86,7 +86,7 @@ function memoryStorage(): AttributionStorage {
 }
 
 test("website HTTP, browser claim, server client, and product persistence share one contract", async () => {
-	const directory = mkdtempSync(join(tmpdir(), "thinkrail-attribution-contract-"));
+	const directory = mkdtempSync(join(tmpdir(), "realthing-attribution-contract-"));
 	try {
 		const now = Date.now();
 		const repository = new MemoryClaimRepository();
@@ -105,15 +105,15 @@ test("website HTTP, browser claim, server client, and product persistence share 
 		const storage = memoryStorage();
 		recordAttributionTouch(
 			journeyId,
-			"https://thinkrail.ai/?utm_source=google&utm_medium=cpc&utm_campaign=agentic-launch&utm_content=hero",
-			"https://www.google.com/search?q=thinkrail",
+			"https://realthing.ai/?utm_source=google&utm_medium=cpc&utm_campaign=agentic-launch&utm_content=hero",
+			"https://www.google.com/search?q=realthing",
 			storage,
 			now - 5_000,
 		);
 		recordAttributionTouch(
 			journeyId,
-			"https://thinkrail.ai/blog/introducing-thinkrail/?utm_source=newsletter&utm_medium=email&utm_campaign=agentic-launch&utm_content=article",
-			"https://www.linkedin.com/company/thinkrail",
+			"https://realthing.ai/blog/introducing-realthing/?utm_source=newsletter&utm_medium=email&utm_campaign=agentic-launch&utm_content=article",
+			"https://www.linkedin.com/company/realthing",
 			storage,
 			now - 1_000,
 		);

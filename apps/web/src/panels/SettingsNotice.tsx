@@ -4,7 +4,7 @@ import {
 	RiCheckLine as Check,
 	RiInformationLine as Info,
 } from "@remixicon/react";
-import { cn } from "@thinkrail/ui/utils";
+import { cn } from "@realthing/ui/utils";
 import type { ReactNode } from "react";
 
 export type SettingsNoticeVariant = "neutral" | "info" | "success" | "warning" | "error";

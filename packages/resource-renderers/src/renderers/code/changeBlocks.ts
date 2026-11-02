@@ -1,5 +1,5 @@
-import type { LineSpan } from "@thinkrail/contracts";
-import { t } from "@thinkrail/locales/react";
+import type { LineSpan } from "@realthing/contracts";
+import { t } from "@realthing/locales/react";
 import { structuredPatch } from "diff";
 import type { AnchorDraft } from "../../registry";
 

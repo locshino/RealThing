@@ -1,4 +1,4 @@
-import type { NativeCommand, NativeQuitHint, NativeShortcutsBridge } from "@thinkrail/contracts";
+import type { NativeCommand, NativeQuitHint, NativeShortcutsBridge } from "@realthing/contracts";
 import { useEffect, useState } from "react";
 import { platformShortcutLabel } from "../lib";
 import { useAppStore } from "../store";
@@ -11,7 +11,7 @@ import {
 	MODAL_LAYER_SELECTOR,
 } from "./shortcutLayers";
 
-const NATIVE_SHORTCUTS_GLOBAL = "__THINKRAIL_NATIVE_SHORTCUTS__";
+const NATIVE_SHORTCUTS_GLOBAL = "__REALTHING_NATIVE_SHORTCUTS__";
 
 export function getNativeShortcutsBridge(value: unknown): NativeShortcutsBridge | null {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return null;

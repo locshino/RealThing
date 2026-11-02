@@ -1,4 +1,4 @@
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 import { useEffect, useMemo, useRef } from "react";
 import type { ResourceDiffProps, ReviewThread, SurfaceReview } from "../../registry";
 import { ReviewComposer } from "../../support/ReviewComposer";

@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { DEFAULT_CONFIG } from "@thinkrail/contracts";
+import { DEFAULT_CONFIG } from "@realthing/contracts";
 import {
 	buildThemeCatalog,
 	clearUserThemes,
@@ -125,9 +125,9 @@ test("system appearance observation defaults light and cleans up its listener", 
 });
 
 test("theme hints migrate legacy ids and use the native stable adapter", () => {
-	const HINT_KEY = "thinkrail-theme";
+	const HINT_KEY = "realthing-theme";
 	const stored = new Map<string, string>([[HINT_KEY, "light"]]);
-	Reflect.set(globalThis, "__THINKRAIL_STABLE_PREFERENCES__", {
+	Reflect.set(globalThis, "__REALTHING_STABLE_PREFERENCES__", {
 		getItem: (key: string) => stored.get(key) ?? null,
 		setItem: (key: string, value: string) => stored.set(key, value),
 		removeItem: (key: string) => stored.delete(key),
@@ -144,7 +144,7 @@ test("theme hints migrate legacy ids and use the native stable adapter", () => {
 		stored.set(HINT_KEY, JSON.stringify({ version: 1, theme: "dark", themeMode: "system" }));
 		expect(readThemeHint()).toEqual({ theme: "dark", themeMode: "fixed" });
 	} finally {
-		Reflect.deleteProperty(globalThis, "__THINKRAIL_STABLE_PREFERENCES__");
+		Reflect.deleteProperty(globalThis, "__REALTHING_STABLE_PREFERENCES__");
 	}
 });
 
@@ -206,7 +206,7 @@ test("a user theme copied before dangerHover/onDanger existed still installs", (
 
 test("only the user themes the hint needs are cached and reinstalled before the host answers", () => {
 	const stored = new Map<string, string>();
-	Reflect.set(globalThis, "__THINKRAIL_STABLE_PREFERENCES__", {
+	Reflect.set(globalThis, "__REALTHING_STABLE_PREFERENCES__", {
 		getItem: (key: string) => stored.get(key) ?? null,
 		setItem: (key: string, value: string) => stored.set(key, value),
 		removeItem: (key: string) => stored.delete(key),
@@ -231,9 +231,9 @@ test("only the user themes the hint needs are cached and reinstalled before the 
 		expect(ids).not.toContain("user.forest");
 		expect(getUserThemeIssues()).toEqual([]);
 		writeThemeHint({ theme: "dark", themeMode: "fixed" });
-		expect(stored.has("thinkrail-user-themes")).toBe(false);
+		expect(stored.has("realthing-user-themes")).toBe(false);
 	} finally {
-		Reflect.deleteProperty(globalThis, "__THINKRAIL_STABLE_PREFERENCES__");
+		Reflect.deleteProperty(globalThis, "__REALTHING_STABLE_PREFERENCES__");
 	}
 });
 
@@ -251,7 +251,7 @@ test("a user theme id shaped like an object prototype key stays an ordinary id",
 
 test("an unsupported host clears user themes, and an oversized cache is dropped, not written", () => {
 	const stored = new Map<string, string>();
-	Reflect.set(globalThis, "__THINKRAIL_STABLE_PREFERENCES__", {
+	Reflect.set(globalThis, "__REALTHING_STABLE_PREFERENCES__", {
 		getItem: (key: string) => stored.get(key) ?? null,
 		setItem: (key: string, value: string) => stored.set(key, value),
 		removeItem: (key: string) => stored.delete(key),
@@ -266,13 +266,13 @@ test("an unsupported host clears user themes, and an oversized cache is dropped,
 			},
 		]);
 		writeThemeHint({ theme: "user.huge", themeMode: "fixed" });
-		expect(stored.has("thinkrail-user-themes")).toBe(false);
+		expect(stored.has("realthing-user-themes")).toBe(false);
 		expect(getThemes().map((theme) => theme.id)).toContain("user.huge");
 		clearUserThemes();
 		expect(getThemes().map((theme) => theme.id)).not.toContain("user.huge");
 		expect(resolveThemePreference({ theme: "user.huge", themeMode: "fixed" }).fallback).toBe(true);
 	} finally {
-		Reflect.deleteProperty(globalThis, "__THINKRAIL_STABLE_PREFERENCES__");
+		Reflect.deleteProperty(globalThis, "__REALTHING_STABLE_PREFERENCES__");
 	}
 });
 

@@ -1,5 +1,5 @@
-import type { LayoutPreset } from "@thinkrail/contracts";
-import { t } from "@thinkrail/locales/react";
+import type { LayoutPreset } from "@realthing/contracts";
+import { t } from "@realthing/locales/react";
 import { useEffect, useLayoutEffect } from "react";
 import { getStablePreferenceAdapter, type StablePreferenceAdapter } from "../../clientPreferences";
 import { type LayoutAttention, randomId, sameLayoutAttention } from "../../lib";
@@ -35,7 +35,7 @@ import {
 } from "../layout";
 
 const LOCAL_LAYOUT_VERSION = 1;
-const SURFACE_ID_KEY = "thinkrail:layout-surface-id";
+const SURFACE_ID_KEY = "realthing:layout-surface-id";
 const NATIVE_LAYOUT_PREFERENCE_KEY = "workbench-layout";
 const NATIVE_LAYOUT_MAX_CHARACTERS = 256 * 1024;
 const TOOL_IDS = new Set<string>(LAYOUT_TOOLS);
@@ -112,7 +112,7 @@ function acquireBroadcastLease(
 	id: string,
 ): Promise<(() => void) | null | undefined> {
 	if (typeof BroadcastChannel === "undefined") return Promise.resolve(undefined);
-	const channel = new BroadcastChannel(`thinkrail:layout-surfaces:${endpoint}`);
+	const channel = new BroadcastChannel(`realthing:layout-surfaces:${endpoint}`);
 	const token = randomId("surface-claim");
 	let occupied = false;
 	return new Promise((resolve) => {
@@ -168,7 +168,7 @@ async function resolveSurfaceId(storage: StoragePair, endpoint: string): Promise
 	const pendingLease: { release?: () => void } = {};
 	try {
 		const id = await claimLayoutSurfaceId(storage.session, async (candidate) => {
-			const name = `thinkrail:layout-surface:${JSON.stringify([endpoint, candidate])}`;
+			const name = `realthing:layout-surface:${JSON.stringify([endpoint, candidate])}`;
 			const webLock = await acquireWebLock(name);
 			if (webLock === null) return false;
 			const lease = webLock ?? (await acquireBroadcastLease(endpoint, candidate));
@@ -187,7 +187,7 @@ async function resolveSurfaceId(storage: StoragePair, endpoint: string): Promise
 }
 
 export function localLayoutStorageKey(endpoint: string, id: string): string {
-	return `thinkrail:workbench:${JSON.stringify([endpoint, id])}`;
+	return `realthing:workbench:${JSON.stringify([endpoint, id])}`;
 }
 
 function hasOnlyKeys(value: Record<string, unknown>, allowed: readonly string[]): boolean {
@@ -321,14 +321,6 @@ function isWorkspaceView(value: unknown): value is WorkspaceViewState {
 				return hasOnlyKeys(scope, ["kind", "sha"]) && typeof scope.sha === "string";
 			case "pinned":
 				return hasOnlyKeys(scope, ["kind", "baseRef"]) && typeof scope.baseRef === "string";
-			case "turn":
-				return (
-					hasOnlyKeys(scope, ["kind", "id", "baseTree", "headTree", "startedAt"]) &&
-					typeof scope.id === "string" &&
-					typeof scope.baseTree === "string" &&
-					typeof scope.headTree === "string" &&
-					typeof scope.startedAt === "number"
-				);
 			default:
 				return false;
 		}
@@ -355,10 +347,6 @@ function isWorkspaceView(value: unknown): value is WorkspaceViewState {
 				);
 			case "changes":
 				return hasOnlyKeys(tab, ["kind", "id", "name", "scope"]) && validDiffScope(tab.scope);
-			case "chat":
-				return (
-					hasOnlyKeys(tab, ["kind", "id", "name", "sessionId"]) && typeof tab.sessionId === "string"
-				);
 			case "document":
 				return (
 					hasOnlyKeys(tab, ["kind", "id", "name", "documentKind", "sourceId", "docPath"]) &&

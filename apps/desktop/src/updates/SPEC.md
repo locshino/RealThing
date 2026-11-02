@@ -21,7 +21,7 @@ operation, while the controller keeps only the cross-operation sequencing needed
 - **Public surface:** Electrobun update-controller and quit-coordinator construction, plus
   `readPendingInstallVersion` for the startup splash, are exported only through `index.ts`. The pure
   controller, enablement policy, journal store, dependency shapes, and lifecycle implementation stay internal.
-- **Allowed deps:** the type-only native update contract from `@thinkrail/contracts`, `electrobun/main` in the
+- **Allowed deps:** the type-only native update contract from `@realthing/contracts`, `electrobun/main` in the
   SDK adapter, and injected clocks/randomness/lifecycle callbacks in the pure controller.
 - **Forbidden:** web or server imports; renderer-selected feed URLs; host wire methods; release publication,
   signing, or authentication; draft persistence; shutdown ownership; a second SDK subscription.
@@ -58,7 +58,7 @@ or else "couldn't start the installer". The final two transitions happen in one 
 before quit, so their pushes are best-effort.
 
 Electrobun's native helper has no UI and writes only a final result, which the SDK reconciles once
-after relaunch and immediately marks observed. ThinkRail therefore keeps one validated, bounded
+after relaunch and immediately marks observed. RealThing therefore keeps one validated, bounded
 `update-journal.json` in userData with two states:
 - **pending.** From/to version, start time and log. Written synchronously at `launching-new-version`,
   the checkpoint after the helper is armed. A write failure stays local, outside the SDK's cleanup

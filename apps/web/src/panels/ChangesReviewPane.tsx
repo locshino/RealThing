@@ -4,15 +4,14 @@ import {
 	RiArrowLeftSLine as ChevronLeft,
 	RiArrowRightSLine as ChevronRight,
 	RiArrowUpSLine as ChevronUp,
-	RiGuideLine as Guide,
 	RiParagraph as Pilcrow,
 } from "@remixicon/react";
-import type { GitFileChange, GitStatus } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
-import { diffRendererCapabilities } from "@thinkrail/resource-renderers";
-import { Button } from "@thinkrail/ui/button";
-import { LoadingRegion } from "@thinkrail/ui/skeleton";
-import { ToggleSegment } from "@thinkrail/ui/toggle-segment";
+import type { GitFileChange, GitStatus } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
+import { diffRendererCapabilities } from "@realthing/resource-renderers";
+import { Button } from "@realthing/ui/button";
+import { LoadingRegion } from "@realthing/ui/skeleton";
+import { ToggleSegment } from "@realthing/ui/toggle-segment";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso } from "react-virtuoso";
 import { useShallow } from "zustand/react/shallow";
@@ -27,17 +26,14 @@ import {
 } from "../store";
 import { errorText, wsErrorCode } from "../transport";
 import { ChangesFileSection } from "./ChangesFileSection";
-import { ChangesReviewGuide, guideSteps } from "./ChangesReviewGuide";
 import { LARGE_SCOPE_FILES, scopeKey, scopeLabel, sectionCollapsedByDefault } from "./changesModel";
 import { DiffStatBadge } from "./DiffStatBadge";
 import { peekGitStatus, readGitStatus } from "./gitStatusCache";
 import { HeaderIconButton } from "./HeaderIconButton";
 import { ownsReviewShortcut } from "./reviewShortcuts";
-import { SendAllReviewsButton } from "./SendReviewButton";
 import { createSectionContentCache } from "./sectionContentCache";
 import { useReviewReveal } from "./useReviewReveal";
 import { useWorkspaceRead } from "./useWorkspaceRead";
-import { useWorkspaceTurns } from "./useWorkspaceTurns";
 
 const VIEWED_KEY = "v";
 const NEXT_UNREVIEWED_KEY = "j";
@@ -85,15 +81,6 @@ export function ChangesReviewPane({ tab }: { tab: ChangesTab }) {
 	const setCollapsed = useAppStore((state) => state.setChangesTabCollapsed);
 	const requestReveal = useAppStore((state) => state.requestChangesTabReveal);
 	const [cache] = useState(createSectionContentCache);
-	const turns = useWorkspaceTurns(workspaceId);
-	const reviewGuide = useAppStore((state) => state.reviewsByWorkspace[workspaceId]?.review.guide);
-	const reviewComments = useAppStore((state) => state.reviewsByWorkspace[workspaceId]?.comments);
-	const guideAvailable = useMemo(
-		() => reviewGuide !== undefined || guideSteps(reviewGuide, reviewComments).length > 0,
-		[reviewComments, reviewGuide],
-	);
-	const [guideHidden, setGuideHidden] = useState(false);
-	const guideOpen = guideAvailable && !guideHidden && layout === "stacked" && !mobile;
 	const [largeNoticeDismissed, setLargeNoticeDismissed] = useState(false);
 
 	const readKey = `${scopeKey(scope)}:${targetRef}`;
@@ -113,9 +100,7 @@ export function ChangesReviewPane({ tab }: { tab: ChangesTab }) {
 				if (wsErrorCode(failure) === "UNKNOWN_COMMIT") {
 					setStatus(null);
 					setScopeGone(true);
-					setError(
-						scope.kind === "turn" ? t("changes.review.turnGone") : t("changes.review.commitGone"),
-					);
+					setError(t("changes.review.commitGone"));
 					return;
 				}
 				if (status && !warnedRef.current) {
@@ -284,9 +269,7 @@ export function ChangesReviewPane({ tab }: { tab: ChangesTab }) {
 			? t("changes.review.versusBase", { ref: baseRef })
 			: scope.kind === "uncommitted"
 				? t("changes.review.worktree")
-				: scope.kind === "turn"
-					? t("changes.review.agentSnapshot")
-					: null;
+				: null;
 	const showLargeNotice =
 		layout === "stacked" && files.length > LARGE_SCOPE_FILES && !largeNoticeDismissed;
 
@@ -302,7 +285,7 @@ export function ChangesReviewPane({ tab }: { tab: ChangesTab }) {
 					data-testid="changes-review-scope"
 					className="flex min-w-0 shrink items-baseline gap-4 truncate tr-text-metadata"
 				>
-					<span className="text-text-default">{scopeLabel(t, scope, [], turns)}</span>
+					<span className="text-text-default">{scopeLabel(t, scope)}</span>
 					{targetLabel ? <span className="truncate text-text-muted">{targetLabel}</span> : null}
 				</span>
 				{status ? (
@@ -318,11 +301,6 @@ export function ChangesReviewPane({ tab }: { tab: ChangesTab }) {
 					</span>
 				) : null}
 				<span className="ml-auto flex shrink-0 items-center gap-4">
-					<SendAllReviewsButton
-						workspaceId={workspaceId}
-						testid="changes-review-send"
-						verb={t("changes.review.sendVerb")}
-					/>
 					{layout === "stacked" && files.length > 0 ? (
 						<>
 							<HeaderIconButton
@@ -350,15 +328,6 @@ export function ChangesReviewPane({ tab }: { tab: ChangesTab }) {
 								icon={ChevronDown}
 							/>
 						</>
-					) : null}
-					{guideAvailable && layout === "stacked" && !mobile ? (
-						<HeaderIconButton
-							testid="changes-review-guide-toggle"
-							label={guideOpen ? t("changes.review.hideGuide") : t("changes.review.showGuide")}
-							active={guideOpen}
-							onClick={() => setGuideHidden((hidden) => !hidden)}
-							icon={Guide}
-						/>
 					) : null}
 					{controls.whitespace ? (
 						<HeaderIconButton
@@ -502,17 +471,6 @@ export function ChangesReviewPane({ tab }: { tab: ChangesTab }) {
 								handoffPath !== null ? "invisible absolute inset-0 flex" : "flex min-h-0 flex-1"
 							}
 						>
-							{guideOpen ? (
-								<ChangesReviewGuide
-									tab={tab}
-									files={files}
-									guide={reviewGuide}
-									comments={reviewComments}
-									onReveal={(path, commentId) =>
-										requestReveal(workspaceId, tab.id, path, commentId)
-									}
-								/>
-							) : null}
 							<div className="relative min-h-0 flex-1 bg-container-content-bg">
 								{showLargeNotice ? (
 									<div

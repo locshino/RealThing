@@ -1,4 +1,4 @@
-import type { GitDiffScope } from "@thinkrail/contracts";
+import type { GitDiffScope, ResourceMeta } from "@realthing/contracts";
 import {
 	DOUBLE_CLICK_SETTLE_MS,
 	fileName,
@@ -28,6 +28,90 @@ function baseName(path: string): string {
 	return path.split("/").pop() || path;
 }
 
+const MAX_PREFETCHED_FILES = 64;
+
+interface PrefetchedFile {
+	workspaceId: string;
+	path: string;
+	content: string;
+	meta: ResourceMeta;
+	loadedTick: number;
+}
+
+const fileContentCache = new Map<string, PrefetchedFile>();
+const filePrefetchInFlight = new Map<
+	string,
+	{ loadedTick: number; promise: Promise<{ content: string; meta: ResourceMeta }> }
+>();
+let watchingPrefetchStore = false;
+
+function ensurePrefetchStoreWatcher(): void {
+	if (watchingPrefetchStore) return;
+	watchingPrefetchStore = true;
+	useAppStore.subscribe((state, previous) => {
+		if (state.removedWorkspaceIds !== previous.removedWorkspaceIds) {
+			for (const [key, entry] of fileContentCache) {
+				if (state.removedWorkspaceIds[entry.workspaceId]) fileContentCache.delete(key);
+			}
+		}
+		if (state.fsChangesByWorkspace !== previous.fsChangesByWorkspace) {
+			for (const [key, entry] of fileContentCache) {
+				const change = state.fsChangesByWorkspace[entry.workspaceId];
+				const prevChange = previous.fsChangesByWorkspace[entry.workspaceId];
+				if (!change || change === prevChange) continue;
+				if (!change.truncated && change.paths.includes(entry.path)) {
+					fileContentCache.delete(key);
+				} else if (!change.truncated && change.tick === entry.loadedTick + 1) {
+					entry.loadedTick = change.tick;
+				}
+			}
+		}
+	});
+}
+
+function rememberPrefetchedFile(id: string, entry: PrefetchedFile): void {
+	ensurePrefetchStoreWatcher();
+	if (fileContentCache.has(id)) fileContentCache.delete(id);
+	else if (fileContentCache.size >= MAX_PREFETCHED_FILES) {
+		const oldest = fileContentCache.keys().next().value;
+		if (oldest !== undefined) fileContentCache.delete(oldest);
+	}
+	fileContentCache.set(id, entry);
+}
+
+export function prefetchFileContent(workspaceId: string, reported: string): void {
+	const state = useAppStore.getState();
+	if (state.removedWorkspaceIds[workspaceId]) return;
+	const path = projectRelativePath(reported, selectWorkspaceById(state, workspaceId)?.worktreePath);
+	const id = tupleKey("file", workspaceId, path);
+	const loadedTick = selectWorkspaceTick(state, workspaceId);
+	const cached = fileContentCache.get(id);
+	if (cached && cached.loadedTick === loadedTick) return;
+	const existing = filePrefetchInFlight.get(id);
+	if (existing && existing.loadedTick === loadedTick) return;
+	const promise = getTransport()
+		.request("fs.readFile", { workspaceId, path })
+		.then((result) => {
+			if (!useAppStore.getState().removedWorkspaceIds[workspaceId]) {
+				rememberPrefetchedFile(id, {
+					workspaceId,
+					path,
+					content: result.content,
+					meta: result.meta,
+					loadedTick: selectWorkspaceTick(useAppStore.getState(), workspaceId),
+				});
+			}
+			return result;
+		})
+		.finally(() => {
+			if (filePrefetchInFlight.get(id)?.promise === promise) {
+				filePrefetchInFlight.delete(id);
+			}
+		});
+	void promise.catch(() => {});
+	filePrefetchInFlight.set(id, { loadedTick, promise });
+}
+
 const inFlight = new Map<
 	string,
 	{
@@ -51,6 +135,7 @@ async function openReadTab<T>(
 	build: (payload: T, loadedTick: number) => EditorTab,
 	requestedNavigation?: CenterNavigationStamp | null,
 	claimPreview = false,
+	prefetched?: { payload: T; loadedTick: number },
 ): Promise<void> {
 	const navigation =
 		requestedNavigation === undefined
@@ -79,6 +164,16 @@ async function openReadTab<T>(
 			(!navigation || isCenterNavigationCurrent(store, workspaceId, navigation));
 		const options = layoutOpenOptionsForNavigation(store, workspaceId, navigation);
 		store.openTab(cached, intent, true, claim ? { ...options, claimPreview: true } : options);
+		return;
+	}
+	if (prefetched) {
+		const tab = build(prefetched.payload, prefetched.loadedTick);
+		const claim =
+			intent === "keep" &&
+			claimPreview &&
+			(!navigation || isCenterNavigationCurrent(store, workspaceId, navigation));
+		const options = layoutOpenOptionsForNavigation(store, workspaceId, navigation);
+		store.openTab(tab, intent, true, claim ? { ...options, claimPreview: true } : options);
 		return;
 	}
 	const flight = {
@@ -125,17 +220,42 @@ export function openFileInTab(
 	intent: TabIntent,
 	requestedNavigation?: CenterNavigationStamp | null,
 ): Promise<void> {
-	const path = projectRelativePath(
-		reported,
-		selectWorkspaceById(useAppStore.getState(), workspaceId)?.worktreePath,
-	);
+	const state = useAppStore.getState();
+	const path = projectRelativePath(reported, selectWorkspaceById(state, workspaceId)?.worktreePath);
 	const id = tupleKey("file", workspaceId, path);
+	const currentTick = selectWorkspaceTick(state, workspaceId);
+	const cachedContent = fileContentCache.get(id);
+	const freshPrefetch = cachedContent
+		? {
+				payload: { content: cachedContent.content, meta: cachedContent.meta },
+				loadedTick: cachedContent.loadedTick,
+			}
+		: undefined;
 	return openReadTab(
 		workspaceId,
 		id,
 		layoutResourceIdentity({ kind: "file", id, name: baseName(path), path }),
 		intent,
-		() => getTransport().request("fs.readFile", { workspaceId, path }),
+		() => {
+			const pendingPrefetch = filePrefetchInFlight.get(id);
+			if (pendingPrefetch) {
+				return pendingPrefetch.promise;
+			}
+			return getTransport()
+				.request("fs.readFile", { workspaceId, path })
+				.then((result) => {
+					if (!useAppStore.getState().removedWorkspaceIds[workspaceId]) {
+						rememberPrefetchedFile(id, {
+							workspaceId,
+							path,
+							content: result.content,
+							meta: result.meta,
+							loadedTick: currentTick,
+						});
+					}
+					return result;
+				});
+		},
 		({ content, meta }, loadedTick) => ({
 			kind: "file",
 			id,
@@ -147,6 +267,8 @@ export function openFileInTab(
 			loadedTick,
 		}),
 		requestedNavigation,
+		false,
+		freshPrefetch,
 	);
 }
 

@@ -1,5 +1,5 @@
 import { RiExpandUpDownLine as Expand } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 import { diffArrays } from "diff";
 import { createElement, type ReactNode, useEffect, useMemo, useState } from "react";
 import { renderToStaticMarkup } from "react-dom/server";

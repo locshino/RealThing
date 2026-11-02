@@ -32,7 +32,7 @@ function surface(threads: ReviewThread[], focusId?: string): SurfaceReview {
 }
 
 const renderer: ResourceRenderer = {
-	id: "thinkrail/code",
+	id: "realthing/code",
 	labelKey: "viewer.renderer.source",
 	match: { text: true },
 	rank: 100,

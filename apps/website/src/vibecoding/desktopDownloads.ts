@@ -15,7 +15,7 @@ type InstallPlatformOption = {
 	};
 };
 
-const stableDesktopReleaseUrl = "https://github.com/JetBrains/thinkrail/releases/latest/download";
+const stableDesktopReleaseUrl = "https://github.com/JetBrains/realthing/releases/latest/download";
 
 const installPlatformOptions = {
 	macos: {
@@ -27,7 +27,7 @@ const installPlatformOptions = {
 				{
 					architecture: "Apple Silicon",
 					label: "Download .dmg",
-					href: `${stableDesktopReleaseUrl}/thinkrail-desktop-darwin-arm64.dmg`,
+					href: `${stableDesktopReleaseUrl}/realthing-desktop-darwin-arm64.dmg`,
 				},
 			],
 		},
@@ -41,7 +41,7 @@ const installPlatformOptions = {
 				{
 					architecture: "x64",
 					label: "Download .zip",
-					href: `${stableDesktopReleaseUrl}/thinkrail-desktop-windows-x64.zip`,
+					href: `${stableDesktopReleaseUrl}/realthing-desktop-windows-x64.zip`,
 				},
 			],
 		},
@@ -55,12 +55,12 @@ const installPlatformOptions = {
 				{
 					architecture: "x64",
 					label: "x64 .tar.gz",
-					href: `${stableDesktopReleaseUrl}/thinkrail-desktop-linux-x64.tar.gz`,
+					href: `${stableDesktopReleaseUrl}/realthing-desktop-linux-x64.tar.gz`,
 				},
 				{
 					architecture: "ARM64",
 					label: "ARM64 .tar.gz",
-					href: `${stableDesktopReleaseUrl}/thinkrail-desktop-linux-arm64.tar.gz`,
+					href: `${stableDesktopReleaseUrl}/realthing-desktop-linux-arm64.tar.gz`,
 				},
 			],
 		},

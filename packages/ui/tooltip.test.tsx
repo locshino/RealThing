@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { renderToStaticMarkup } from "react-dom/server";
@@ -34,15 +34,7 @@ describe("IconTooltip over another Radix trigger", () => {
 });
 
 const ROOT = fileURLToPath(new URL("../../", import.meta.url));
-const EXTENSIONS = join(ROOT, "thinkrail-extensions");
-const SOURCE_ROOTS = [
-	join(ROOT, "apps/web/src"),
-	join(ROOT, "packages/ui"),
-	...readdirSync(EXTENSIONS, { withFileTypes: true })
-		.filter((entry) => entry.isDirectory())
-		.map((entry) => join(EXTENSIONS, entry.name, "web"))
-		.filter((path) => existsSync(path)),
-];
+const SOURCE_ROOTS = [join(ROOT, "apps/web/src"), join(ROOT, "packages/ui")];
 
 function sourceFiles(dir: string): string[] {
 	const out: string[] = [];

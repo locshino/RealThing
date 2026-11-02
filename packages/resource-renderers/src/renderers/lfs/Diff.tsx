@@ -1,4 +1,4 @@
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 import type { ResourceContent, ResourceDiffProps } from "../../registry";
 import { LfsCard } from "./LfsCard";
 import { parseLfsPointer } from "./lfsPointer";

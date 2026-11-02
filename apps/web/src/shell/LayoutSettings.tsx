@@ -12,11 +12,11 @@ import {
 	RiDeleteBin6Line as Trash2,
 	RiCloseLine as X,
 } from "@remixicon/react";
-import { LAYOUT_PLAN_PRESET_PROTOCOL_VERSION, type LayoutPreset } from "@thinkrail/contracts";
-import type { MessageKey } from "@thinkrail/locales";
-import { t as translate, useT } from "@thinkrail/locales/react";
-import { Button, IconButton } from "@thinkrail/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@thinkrail/ui/popover";
+import { LAYOUT_PLAN_PRESET_PROTOCOL_VERSION, type LayoutPreset } from "@realthing/contracts";
+import type { MessageKey } from "@realthing/locales";
+import { t as translate, useT } from "@realthing/locales/react";
+import { Button, IconButton } from "@realthing/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@realthing/ui/popover";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { randomId } from "../lib";
 import { ConfirmDialog } from "../panels/ConfirmDialog";

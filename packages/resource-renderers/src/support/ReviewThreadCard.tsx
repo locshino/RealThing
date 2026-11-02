@@ -1,6 +1,6 @@
 import { RiSendPlaneLine as Send, RiDeleteBin6Line as Trash2 } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { IconButton } from "@thinkrail/ui/button";
+import { useT } from "@realthing/locales/react";
+import { IconButton } from "@realthing/ui/button";
 import { useEffect, useRef, useState } from "react";
 import type { ReviewThread, ReviewThreadActions } from "../registry";
 import { outdatedReason, threadLabel } from "../registry";

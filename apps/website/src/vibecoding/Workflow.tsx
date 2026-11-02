@@ -6,7 +6,7 @@ const specFirstCopy: Record<Positioning, { heading: string; subtitle: string }> 
 	control: {
 		heading: "Spec-first architecture.",
 		subtitle:
-			"Before touching code, your agent records requirements, boundaries, and expected outcomes in the project spec graph. Once approved, implementation follows that design and is checked against focused tests and repository gates.",
+			"Before touching code, record requirements, boundaries, and expected outcomes in the project spec graph. Once approved, implementation follows that design and is checked against focused tests and repository gates.",
 	},
 	compounding: {
 		heading: "Living specs.",
@@ -49,7 +49,7 @@ export function SpecFirst({ positioning }: { positioning: Positioning }) {
 						{"\n"}
 						<span className="text-text-default">- Ensure robust token rotation logging</span>
 						{"\n\n"}
-						<span className="text-primary">✓ Spec validation passed. Ready to spawn agent.</span>
+						<span className="text-primary">✓ Spec validation passed. Ready to open worktree.</span>
 					</CodePanel>
 				</Reveal>
 			</div>
@@ -67,7 +67,7 @@ export function Isolation() {
 						Parallel workspaces.&nbsp;
 					</h2>
 					<Subtitle className="mt-6">
-						No more switching branches back and forth. ThinkRail uses local Git worktrees so
+						No more switching branches back and forth. RealThing uses local Git worktrees so
 						concurrent tasks can work in separate directories and branches without sharing a dirty
 						index or overwriting one another's files.
 					</Subtitle>
@@ -76,14 +76,14 @@ export function Isolation() {
 					<CodePanel>
 						<span className="text-text-muted">$ git worktree list</span>
 						{"\n\n"}
-						<span className="text-text-default">/Users/thinkrail/dev/app d4c55b6 [main]</span>
+						<span className="text-text-default">/Users/realthing/dev/app d4c55b6 [main]</span>
 						{"\n"}
 						<span className="text-text-default">
-							/Users/thinkrail/dev/app-auth-fix 7b4aef9 [auth-jwt-fix]
+							/Users/realthing/dev/app-auth-fix 7b4aef9 [auth-jwt-fix]
 						</span>
 						{"\n"}
 						<span className="text-text-default">
-							/Users/thinkrail/dev/app-tests-refactor da4c55b [tests-refactor]
+							/Users/realthing/dev/app-tests-refactor da4c55b [tests-refactor]
 						</span>
 						{"\n\n"}
 						<span className="text-primary">

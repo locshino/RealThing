@@ -1,5 +1,5 @@
 import "./buttons.css";
-import { TooltipProvider } from "@thinkrail/ui/tooltip";
+import { TooltipProvider } from "@realthing/ui/tooltip";
 import { createRoot } from "react-dom/client";
 import { installForcedPseudoStates } from "../catalog/pseudo";
 import { ButtonsCatalog } from "./ButtonsCatalog";

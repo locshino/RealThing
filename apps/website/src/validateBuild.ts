@@ -7,16 +7,16 @@ const forbiddenOutput = [
 ] as const;
 
 const requiredSitemapUrls = [
-	"https://thinkrail.ai/",
-	"https://thinkrail.ai/blog/",
-	"https://thinkrail.ai/vibecoding/",
+	"https://realthing.ai/",
+	"https://realthing.ai/blog/",
+	"https://realthing.ai/vibecoding/",
 ] as const;
 
 const desktopDownloadUrls = [
-	"https://github.com/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-darwin-arm64.dmg",
-	"https://github.com/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-windows-x64.zip",
-	"https://github.com/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-linux-x64.tar.gz",
-	"https://github.com/JetBrains/thinkrail/releases/latest/download/thinkrail-desktop-linux-arm64.tar.gz",
+	"https://github.com/JetBrains/realthing/releases/latest/download/realthing-desktop-darwin-arm64.dmg",
+	"https://github.com/JetBrains/realthing/releases/latest/download/realthing-desktop-windows-x64.zip",
+	"https://github.com/JetBrains/realthing/releases/latest/download/realthing-desktop-linux-x64.tar.gz",
+	"https://github.com/JetBrains/realthing/releases/latest/download/realthing-desktop-linux-arm64.tar.gz",
 ] as const;
 
 const analyticsFreePages = new Set(["404.html", "attribution/claim/index.html"]);
@@ -53,7 +53,7 @@ async function pageRuntimeContent(distDirectory: string, html: string): Promise<
 		for (const match of content.matchAll(/(?:from|import)\s*["']([^"']+\.js)["']/g)) {
 			const imported = match[1];
 			if (imported === undefined) continue;
-			const importedUrl = new URL(imported, `https://thinkrail.ai${url}`).pathname;
+			const importedUrl = new URL(imported, `https://realthing.ai${url}`).pathname;
 			if (!visited.has(importedUrl)) pending.push(importedUrl);
 		}
 	}
@@ -61,7 +61,7 @@ async function pageRuntimeContent(distDirectory: string, html: string): Promise<
 }
 
 async function outputPathExists(distDirectory: string, url: string): Promise<boolean> {
-	const pathname = new URL(url, "https://thinkrail.ai").pathname;
+	const pathname = new URL(url, "https://realthing.ai").pathname;
 	const relativePath = pathname.replace(/^\/+/, "");
 	const candidates = pathname.endsWith("/")
 		? [`${distDirectory}/${relativePath}index.html`]
@@ -115,19 +115,19 @@ export async function validateBuild(distDirectory = `${import.meta.dir}/../dist`
 	const pages = {
 		landing: requiredPage("index.html"),
 		blog: requiredPage("blog/index.html"),
-		introducingThinkRail: requiredPage("blog/introducing-thinkrail/index.html"),
+		introducingRealThing: requiredPage("blog/introducing-realthing/index.html"),
 		vibecoding: requiredPage("vibecoding/index.html"),
 		agenticDevelopment: requiredPage("agentic-development/index.html"),
 		agenticIde: requiredPage("agentic-ide/index.html"),
 		claim: requiredPage("attribution/claim/index.html"),
 	};
 	const islandPages = ["vibecoding", "agenticDevelopment", "agenticIde"] as const;
-	const staticPages = ["landing", "blog", "introducingThinkRail", "claim"] as const;
+	const staticPages = ["landing", "blog", "introducingRealThing", "claim"] as const;
 	const installPages = [
 		{ name: "landing", html: pages.landing, expectedDownloads: 1 },
 		{
-			name: "introducingThinkRail",
-			html: pages.introducingThinkRail,
+			name: "introducingRealThing",
+			html: pages.introducingRealThing,
 			expectedDownloads: 2,
 		},
 		...islandPages.map((name) => ({ name, html: pages[name], expectedDownloads: 1 })),
@@ -135,11 +135,11 @@ export async function validateBuild(distDirectory = `${import.meta.dir}/../dist`
 
 	for (const name of islandPages) {
 		for (const required of [
-			'<link rel="canonical" href="https://thinkrail.ai/vibecoding/">',
-			'<meta property="og:url" content="https://thinkrail.ai/vibecoding/">',
-			'<meta property="og:image" content="https://thinkrail.ai/vibecoding/og.png">',
+			'<link rel="canonical" href="https://realthing.ai/vibecoding/">',
+			'<meta property="og:url" content="https://realthing.ai/vibecoding/">',
+			'<meta property="og:image" content="https://realthing.ai/vibecoding/og.png">',
 			'<link rel="icon" href="/vibecoding/favicon.svg" type="image/svg+xml">',
-			'src="/vibecoding/thinkrail-text-logo-gradient.svg"',
+			'src="/vibecoding/realthing-text-logo-gradient.svg"',
 		]) {
 			if (!pages[name].includes(required)) {
 				failures.push(`${name}: missing ${required}`);
@@ -207,7 +207,7 @@ export async function validateBuild(distDirectory = `${import.meta.dir}/../dist`
 	if (!pages.landing.includes("data-hero-download")) {
 		failures.push("landing: hero download is missing");
 	}
-	if (!pages.landing.includes("Thanks for downloading ThinkRail!")) {
+	if (!pages.landing.includes("Thanks for downloading RealThing!")) {
 		failures.push("landing: download thanks dialog is missing");
 	}
 	if (
@@ -233,8 +233,8 @@ export async function validateBuild(distDirectory = `${import.meta.dir}/../dist`
 	for (const name of islandPages) {
 		for (const forbiddenCommandLineCopy of [
 			"Browser UI via command line",
-			"raw.githubusercontent.com/JetBrains/thinkrail/main/install.sh",
-			"raw.githubusercontent.com/JetBrains/thinkrail/main/install.ps1",
+			"raw.githubusercontent.com/JetBrains/realthing/main/install.sh",
+			"raw.githubusercontent.com/JetBrains/realthing/main/install.ps1",
 		]) {
 			if (pages[name].includes(forbiddenCommandLineCopy)) {
 				failures.push(`${name}: command-line option leaked: ${forbiddenCommandLineCopy}`);
@@ -246,7 +246,7 @@ export async function validateBuild(distDirectory = `${import.meta.dir}/../dist`
 		const secondaryLabel =
 			name === "landing"
 				? "Browser UI via command line"
-				: name === "introducingThinkRail"
+				: name === "introducingRealThing"
 					? "Prefer the command line?"
 					: null;
 		const secondaryIndex = secondaryLabel ? html.indexOf(secondaryLabel) : -1;
@@ -299,20 +299,20 @@ export async function validateBuild(distDirectory = `${import.meta.dir}/../dist`
 	}
 
 	const robots = await Bun.file(`${distDirectory}/robots.txt`).text();
-	if (!robots.includes("Sitemap: https://thinkrail.ai/sitemap-index.xml")) {
+	if (!robots.includes("Sitemap: https://realthing.ai/sitemap-index.xml")) {
 		failures.push("robots.txt missing production sitemap");
 	}
 	const sitemap = await Bun.file(`${distDirectory}/sitemap-0.xml`).text();
 	for (const url of requiredSitemapUrls) {
 		if (!sitemap.includes(`<loc>${url}</loc>`)) failures.push(`sitemap missing: ${url}`);
 	}
-	if (sitemap.includes("https://thinkrail.ai/agentic-development/")) {
+	if (sitemap.includes("https://realthing.ai/agentic-development/")) {
 		failures.push("sitemap lists the non-canonical agentic-development route");
 	}
-	if (sitemap.includes("https://thinkrail.ai/agentic-ide/")) {
+	if (sitemap.includes("https://realthing.ai/agentic-ide/")) {
 		failures.push("sitemap lists the non-canonical agentic-ide route");
 	}
-	if (sitemap.includes("https://thinkrail.ai/attribution/claim/")) {
+	if (sitemap.includes("https://realthing.ai/attribution/claim/")) {
 		failures.push("sitemap lists the non-indexed attribution claim route");
 	}
 	const headers = await Bun.file(`${distDirectory}/_headers`).text();

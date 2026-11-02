@@ -1,14 +1,24 @@
-import type {
-	GitDiffScope,
-	LineSpan,
-	ReviewAnchor,
-	ReviewAnchorState,
-	ReviewCommentStatus,
-	ReviewSelector,
-} from "@thinkrail/contracts";
-import type { MessageKey } from "@thinkrail/locales";
+import type { GitDiffScope, LineSpan } from "@realthing/contracts";
+import type { MessageKey } from "@realthing/locales";
 import type { ComponentType } from "react";
 import type { ResourceHost } from "../host";
+
+export type ReviewCommentStatus = "draft" | "sent" | "resolved" | "dismissed";
+export type ReviewAnchorState = "anchored" | "outdated";
+
+export type ReviewSelector =
+	| { kind: "lineRange"; startLine: number; endLine: number }
+	| { kind: "textQuote"; exact: string; prefix: string; suffix: string }
+	| { kind: "diffHunk"; hunkHeader: string }
+	| { kind: "structural"; scheme: string; ref: string }
+	| { kind: "region"; x: number; y: number; width: number; height: number; page?: number };
+
+export interface ReviewAnchor {
+	path: string;
+	side: "base" | "worktree";
+	contentHash?: string;
+	selectors: ReviewSelector[];
+}
 
 export interface ResourceDescriptor {
 	workspaceId: string;
@@ -63,6 +73,8 @@ export interface ResourceViewProps {
 	onPlacedThreadIds?(ids: ReadonlySet<string>): void;
 	viewState?: unknown;
 	onViewState?(state: unknown): void;
+	onChangeContent?: (text: string) => void;
+	onSaveContent?: (text: string) => void;
 }
 
 export interface HunkActions {

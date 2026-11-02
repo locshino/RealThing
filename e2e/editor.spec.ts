@@ -8,10 +8,6 @@ test("opens a file in a center Monaco tab, focuses on re-open, and closes", asyn
 	await openFixtureProject(page);
 
 	await createWorkspaceViaDialog(page);
-	const chatTab = page.locator('[data-testid="editor-tab"][data-kind="chat"]');
-	await chatTab.hover();
-	await chatTab.getByTestId("editor-tab-close").click();
-	await expect(chatTab).toHaveCount(0);
 	await revealWorkbenchTool(page, "files");
 	const readme = page.getByTestId("file-node").filter({ hasText: "README.md" });
 	await expect(readme).toBeVisible();
@@ -35,9 +31,6 @@ test("opens a file in a center Monaco tab, focuses on re-open, and closes", asyn
 	await tab.getByTestId("editor-tab-close").click();
 	await expect(page.getByTestId("editor-tab")).toHaveCount(0);
 	await expect(page.getByTestId("workspace-ready")).toContainText("Workspace ready");
-	await expect(page.getByTestId("workspace-ready")).toContainText(
-		"Files, chats, changes, and terminals are scoped to this workspace",
-	);
 });
 
 test("hides YAML frontmatter in the rendered view but shows it in source", async ({ page }) => {

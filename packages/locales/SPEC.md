@@ -10,16 +10,16 @@ tags: [i18n]
 
 ## Responsibility
 
-The single owner of ThinkRail's UI strings and of the rules every locale source obeys
+The single owner of RealThing's UI strings and of the rules every locale source obeys
 ([[architecture]] Decision 23). It ships the bundled catalogs — `en.json` is the English source of truth
 and the file translators start from, and each `<tag>.json` beside it is a translation — and the pure
 functions that validate a catalog, name a file's language, and pick the language to render. Its `./react`
-entry holds the **one** i18next instance every browser surface (`apps/web`, `packages/ui`, extension web
-halves) renders through, so they cannot drift onto separate instances.
+entry holds the **one** i18next instance every browser surface (`apps/web`, `packages/ui`) renders through,
+so they cannot drift onto separate instances.
 
 ## Public surface
 
-- **Root `@thinkrail/locales`** (pure, browser- and server-safe, no React):
+- **Root `@realthing/locales`** (pure, browser- and server-safe, no React):
   - `EN` — the English catalog; `MessageKey` — its key union (plural suffixes `_one`/`_other`/… fold
     into the base key).
   - `BUNDLED_LOCALES` — the tags shipped with this build (`en` first, then the `BUNDLED` registry) and
@@ -54,7 +54,7 @@ halves) renders through, so they cannot drift onto separate instances.
     Scripts never cross: `zh-TW` and `zh-HK` maximize to `zh-Hant` and fall through to `en` rather than
     borrowing the Simplified catalog.
   - `baseLanguage(tag)` and `fallbackChain(tag)` (`[tag, base, "en"]`, deduped).
-- **`@thinkrail/locales/react`** (browser): the initialized i18next instance (`i18n`), `useT()` — the
+- **`@realthing/locales/react`** (browser): the initialized i18next instance (`i18n`), `useT()` — the
   `Translator` for render, a value that is **replaced whenever the language or its strings change** (a
   `useSyncExternalStore` subscription), so anything computed from it, including React Compiler caches,
   recomputes; `localeOf(t)` — the language a translator was issued for, for `Intl` formatting at render;
@@ -75,7 +75,7 @@ indexed markup only for `<T>` strings. No metadata block. The instance runs with
 `applyLocale` publishes a new translator. It initializes **synchronously with English at import**, so any surface — including tests with
 no setup — renders English.
 
-Keys are named by surface (`settings.language.title`, `chat.composer.placeholder`), never English text: a
+Keys are named by surface (`settings.language.title`, `panels.files.empty`), never English text: a
 wording fix must not orphan translations. `en.json` stays sorted; a bundled translation holds a sorted
 subset of its keys plus the CLDR categories its language needs that English lacks (Spanish adds `_many`),
 so the files diff cleanly.
@@ -84,7 +84,7 @@ so the files diff cleanly.
 
 - **Allowed deps:** none in the workspace; external `i18next`, `react-i18next` (`./react` only), `react`
   (peer).
-- **Consumers:** `apps/web`, `packages/ui`, `thinkrail-extensions/*/web` (both entries);
+- **Consumers:** `apps/web`, `packages/ui` (both entries);
   `packages/server` and `apps/desktop` (root only).
 - **Forbidden:** wire types, transport, stores, file-system access (the host reads files), any
   knowledge of where local files live.
@@ -104,25 +104,22 @@ so the files diff cleanly.
   changes the meaning deletes the translation too, rather than leaving it stale.
 - **A literal the user must type stays verbatim.** A protocol answer, JSON key, flag, or command quoted
   inside translated prose keeps its exact spelling: OpenSSH accepts only `yes` for a host key, so
-  `panels.prSetup.hostKeyHint` keeps `yes` in every catalog — a translated «sí» makes ssh re-prompt and
+  host-key hints keep `yes` in every catalog — a translated «sí» makes ssh re-prompt and
   the push stays broken. Translate the sentence, never the token.
 - **Render reads the translator as a value, never the global.** The React Compiler caches each render
   expression by its own inputs, so a helper that reads the global `t` / `currentLocale()` (or a getter
   that does) keeps the old language after a switch. Every function evaluated at render — component and
   hook bodies, their `useMemo` / `useState` initializers, `.map`-style callbacks, store selectors, and
   every helper they reach — takes `useT()`'s `Translator` as a parameter (`layoutTabName(t, tab)`,
-  `relativeTime(t, ms, now)`), and catalog-labelled data carries keys (`ResourceRenderer.labelKey`,
-  `MCP_STATE_KEY`) that consumers translate. `check:i18n` enforces this with a typed reachability check.
-  Rejected: remounting the app on a language change — it discarded unsent attachments and plan input and
+  `relativeTime(t, ms, now)`), and catalog-labelled data carries keys (`ResourceRenderer.labelKey`)
+  that consumers translate. `check:i18n` enforces this with a typed reachability check.
+  Rejected: remounting the app on a language change — it discarded unsaved input and
   re-ran lifecycle effects such as terminal attachment, which can take a terminal from another client.
 - Persisted or wire identifiers never carry translated text. Defaults are stored language-neutral and
-  worded at render: built-in layout preset names; an untitled chat stores an empty name; a default
+  worded at render: built-in layout preset names; a default
   terminal stores the pattern `Terminal N` (its title is shared through the host with other clients, so
-  numbering reads the pattern back); Changes / diff tab names derive from their scope; a plan document
-  stores the raw chat name; the host-named default workspace keeps `DEFAULT_WORKSPACE_NAME`; chat turns
-  carry kinds (the round closer, a failure's `error` / `truncated` kind) rather than English text, while a
-  provider's or agent's own message is shown verbatim. Markers matched on save (MCP's hidden-value
-  placeholder) stay literal.
+  numbering reads the pattern back); Changes / diff tab names derive from their scope; the host-named
+  default workspace keeps `DEFAULT_WORKSPACE_NAME`.
 - Placeholders never use an i18next option name (`count` aside): `t()` consumes `ordinal`, `context`,
   `lng`, … as options — `{{ordinal}}` switched a terminal-group label to ordinal plural rules and rendered
   its raw key. A catalog test rejects such names.
@@ -130,8 +127,6 @@ so the files diff cleanly.
 ## Deferred
 
 Loading bundled translations on demand (each is imported into every consumer's bundle), locale-aware
-number formats (token
-counts, cost and context percentages still use English separators), composite phrases that embed a
-translated count fragment (`chat.trust.untrustedNotice` interpolates a "1 skill" list), RTL layout (`dir`), a first-paint locale
+number formats, RTL layout (`dir`), a first-paint locale
 hint (until the host answers `locales.list`, a local language renders English for a moment), and
 translating server error text (errors would move to codes the client renders).

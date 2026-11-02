@@ -2,7 +2,7 @@
 id: web-spacing
 type: submodule-design
 status: active
-title: ThinkRail spacing — one JSON source, one canonical numeric scale
+title: RealThing spacing — one JSON source, one canonical numeric scale
 parent: module-web
 references: [web-color, web-typography]
 ---
@@ -89,7 +89,7 @@ mapped into Tailwind by `index.css`'s `@theme inline` — the same shape as `--p
   (`--panel-row-height`) is geometry and stays free-form px, like all sizing.
 - Mint a role only for a value with several consumers that must stay equal; a one-off length stays a
   numeric utility. Roles are not t-shirt aliases and never replace the scale.
-- A role name is kebab-case with **two or more words** (`panel-inset`). `cn` (`@thinkrail/ui/utils`)
+- A role name is kebab-case with **two or more words** (`panel-inset`). `cn` (`@realthing/ui/utils`)
   teaches tailwind-merge that shape as a spacing/sizing value, so a role overrides a step of the same
   utility (`size-28` + `size-panel-row` → `size-panel-row`) instead of both classes surviving and the
   stylesheet order silently picking one; the gate fails on a single-word role name.
@@ -98,7 +98,7 @@ mapped into Tailwind by `index.css`'s `@theme inline` — the same shape as `--p
 
 `styles/spacingUsage.test.ts` enforces the vocabulary at `p`/`m`/`gap` call sites (and on the rhythm
 properties of handwritten CSS), reading the allowed steps from `spacing.json` so the two cannot drift.
-The shared source scanner covers app source, `packages/ui`, and every `thinkrail-extensions/*/web` tree:
+The shared source scanner covers app source, `packages/ui`, and every `realthing-extensions/*/web` tree:
 
 - a spacing utility names a **canonical step** — `p-8`, `gap-4` — or a **declared rhythm role** —
   `p-panel-inset`: an `index.css` `--spacing-<role>: var(--<role>)` whose `tokens.css` value is

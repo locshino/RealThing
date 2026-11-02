@@ -1,6 +1,6 @@
 import type { AnnotationSide, FileDiffMetadata, Hunk, SelectedLineRange } from "@pierre/diffs";
-import type { MessageKey } from "@thinkrail/locales";
-import { t } from "@thinkrail/locales/react";
+import type { MessageKey } from "@realthing/locales";
+import { t } from "@realthing/locales/react";
 import { type RefObject, useEffect } from "react";
 import type { AnchorDraft, ResourceDiffProps, ReviewThread, SurfaceReview } from "../../registry";
 import type { PierreVirtualizer } from "./pierreVirtualizer";

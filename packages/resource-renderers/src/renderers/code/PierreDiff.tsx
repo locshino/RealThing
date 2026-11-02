@@ -12,9 +12,9 @@ import {
 	RiChatNewLine as MessageSquarePlus,
 	RiArrowGoBackLine as Revert,
 } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { Button, IconButton } from "@thinkrail/ui/button";
-import { IconTooltip } from "@thinkrail/ui/tooltip";
+import { useT } from "@realthing/locales/react";
+import { Button, IconButton } from "@realthing/ui/button";
+import { IconTooltip } from "@realthing/ui/tooltip";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
 	ResourceContent,
@@ -181,15 +181,17 @@ function HunkToolbar({
 				disabled={reverting}
 				onClick={revert}
 			/>
-			<IconButton
-				icon={AskAgent}
-				label={t("viewer.hunk.askAgent")}
-				data-testid="hunk-ask-agent"
-				onClick={() => onAskAgent(block)}
-			/>
-			{actions.agentWorking ? (
+			{false && (
+				<IconButton
+					icon={AskAgent}
+					label={t("viewer.hunk.askAgent")}
+					data-testid="hunk-ask-agent"
+					onClick={() => onAskAgent(block)}
+				/>
+			)}
+			{false && Boolean(actions.agentWorking) && (
 				<span className="tr-text-metadata text-text-subtle">{t("viewer.hunk.agentWorking")}</span>
-			) : null}
+			)}
 		</div>
 	);
 }
@@ -387,7 +389,7 @@ function PierreDiffSurface({
 	}, [review]);
 	const options = useMemo(
 		() => ({
-			theme: "thinkrail",
+			theme: "realthing",
 			diffStyle: layout,
 			expandUnchanged: false,
 			collapsedContextThreshold: COLLAPSED_CONTEXT_THRESHOLD,

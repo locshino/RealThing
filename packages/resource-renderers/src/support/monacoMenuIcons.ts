@@ -10,7 +10,7 @@ import {
 	RiChatNewLine as MessageSquarePlus,
 	RiScissorsLine as Scissors,
 } from "@remixicon/react";
-import { t } from "@thinkrail/locales/react";
+import { t } from "@realthing/locales/react";
 import type * as monaco from "monaco-editor/editor/editor.api.js";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";

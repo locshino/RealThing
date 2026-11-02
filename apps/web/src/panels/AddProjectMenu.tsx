@@ -4,8 +4,8 @@ import {
 	RiGlobalLine as Globe,
 	RiSparkling2Line as Sparkles,
 } from "@remixicon/react";
-import type { Project } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
+import type { Project } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -14,7 +14,7 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "@thinkrail/ui/dropdown-menu";
+} from "@realthing/ui/dropdown-menu";
 import type { ReactNode } from "react";
 
 export function AddProjectMenu({
@@ -23,11 +23,13 @@ export function AddProjectMenu({
 	onEnterHostPath,
 	onOpenRecent,
 	onStartNew,
+	onClone,
 	align = "end",
 	children,
 }: {
 	recentProjects: Project[];
 	onStartNew?: () => void;
+	onClone?: (() => void) | undefined;
 	onOpen: () => void;
 	onEnterHostPath: () => void;
 	onOpenRecent: (path: string) => void;
@@ -56,10 +58,12 @@ export function AddProjectMenu({
 					<Edit />
 					<span>{t("panels.addProject.enterHostPath")}</span>
 				</DropdownMenuItem>
-				<DropdownMenuItem disabled>
-					<Globe />
-					<span>{t("panels.addProject.openGitHub")}</span>
-				</DropdownMenuItem>
+				{onClone ? (
+					<DropdownMenuItem data-testid="menu-clone-project" onSelect={onClone}>
+						<Globe />
+						<span>{t("panels.addProject.clone")}</span>
+					</DropdownMenuItem>
+				) : null}
 				{recentProjects.length > 0 && (
 					<>
 						<DropdownMenuSeparator />

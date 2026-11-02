@@ -18,8 +18,8 @@ function seedRemoteProject(name: string, withUpstream = false) {
 	rmSync(root, { recursive: true, force: true });
 	mkdirSync(repo, { recursive: true });
 	git(repo, "init", "-b", "main");
-	git(repo, "config", "user.email", "e2e@thinkrail.test");
-	git(repo, "config", "user.name", "ThinkRail E2E");
+	git(repo, "config", "user.email", "e2e@realthing.test");
+	git(repo, "config", "user.name", "RealThing E2E");
 	git(repo, "config", "commit.gpgsign", "false");
 	writeFileSync(join(repo, "README.md"), "base\n");
 	git(repo, "add", "README.md");
@@ -69,8 +69,6 @@ test("the dialog lists local branches (no stray origin) and creates a worktree",
 
 	await expect(dialog.getByRole("heading", { name: "Create workspace" })).toBeVisible();
 	await expect(dialog).toContainText("A separate checkout on its own new branch");
-	await expect(dialog.getByTestId("ws-prompt-note")).toHaveCount(0);
-	await expect(dialog).toContainText("Files, chats, changes, and terminals stay scoped to it");
 	await expect(dialog.getByTestId("ws-target-worktree")).toHaveAttribute("data-active", "true");
 
 	await dialog.getByTestId("ws-target-default").click();
@@ -102,33 +100,6 @@ test("the dialog lists local branches (no stray origin) and creates a worktree",
 	await expect(mainOption).toBeVisible();
 	await page.keyboard.press("Escape");
 
-	const pill = dialog.getByTestId("model-selector");
-	await expect(pill).toContainText("Default");
-	const effort = dialog.getByTestId("thinking-selector");
-	if ((await effort.count()) > 0) {
-		await expect(effort).toContainText(/off|minimal|low|medium|high|xhigh|max/);
-	}
-
-	await pill.click();
-	await expect(page.getByTestId("model-option-default")).toBeVisible();
-	const refresh = page.getByTestId("model-refresh");
-	await expect(refresh).toBeVisible();
-	await refresh.evaluate((el) => {
-		const seen: string[] = [];
-		(window as unknown as { __refreshStates: string[] }).__refreshStates = seen;
-		new MutationObserver(() => seen.push(el.getAttribute("data-refreshing") ?? "")).observe(el, {
-			attributes: true,
-			attributeFilter: ["data-refreshing"],
-		});
-	});
-	await refresh.click();
-	await expect(refresh).toHaveAttribute("data-refreshing", "false");
-	await expect(refresh).toBeEnabled();
-	expect(
-		await page.evaluate(() => (window as unknown as { __refreshStates: string[] }).__refreshStates),
-	).toContain("true");
-	await page.keyboard.press("Escape");
-
 	await page.keyboard.press("Escape");
 	await expect(dialog).toBeHidden();
 	await expect(worktreeRows(page)).toHaveCount(0);
@@ -146,14 +117,10 @@ test("the dialog lists local branches (no stray origin) and creates a worktree",
 	await expect(scope).toContainText("workspace-1");
 	await expect(scope).toContainText("from main");
 
-	await expect(page.locator('[data-testid="editor-tab"][data-kind="chat"]')).toHaveCount(1);
-	await expect(page.getByTestId("chat-input")).toBeVisible();
-	await expect(page.locator('[data-testid="chat-message"][data-role="user"]')).toHaveCount(0);
+	await expect(page.getByTestId("workspace-ready")).toBeVisible();
 });
 
-test("folder-mode Start with an empty prompt lands in a fresh chat in the Default workspace", async ({
-	page,
-}) => {
+test("folder-mode Start lands in the Default workspace", async ({ page }) => {
 	await openFixtureProject(page);
 	await page.getByTestId("add-workspace").first().click();
 	const dialog = page.getByTestId("new-workspace-dialog");
@@ -164,146 +131,7 @@ test("folder-mode Start with an empty prompt lands in a fresh chat in the Defaul
 
 	await expect(page.getByTestId("scope-name")).toHaveText("Default");
 	await expect(worktreeRows(page)).toHaveCount(0);
-	await expect(page.locator('[data-testid="editor-tab"][data-kind="chat"]')).toHaveCount(1);
-	await expect(page.getByTestId("chat-input")).toBeVisible();
-	await expect(page.locator('[data-testid="chat-message"][data-role="user"]')).toHaveCount(0);
-});
-
-test("a project's committed skills are gated behind trust, then autocomplete", async ({ page }) => {
-	await openFixtureProject(page);
-
-	await page.getByTestId("add-workspace").first().click();
-	const dialog = page.getByTestId("new-workspace-dialog");
-	await expect(dialog).toBeVisible();
-	const prompt = dialog.getByTestId("ws-prompt");
-	const portable = dialog.getByTestId("slash-command").filter({ hasText: "/skill:e2e-portable" });
-
-	await expect(dialog.getByTestId("ws-trust-notice")).toBeVisible();
-	await prompt.fill("/e2e");
-	await expect(portable).toHaveCount(0);
-
-	await dialog.getByTestId("ws-trust-project").click();
-	await expect(dialog.getByTestId("ws-trust-notice")).toBeHidden();
-	await prompt.fill("/e2e");
-	await expect(portable).toBeVisible();
-	await expect(portable).toContainText("skill/project");
-
-	await prompt.press("Escape");
-	await expect(dialog.getByTestId("slash-menu")).toBeHidden();
-	await expect(dialog).toBeVisible();
-	await prompt.fill("/e2");
-	await expect(portable).toBeVisible();
-
-	await prompt.press("Enter");
-	await expect(prompt).toHaveValue("/skill:e2e-portable ");
-	await expect(dialog).toBeVisible();
-	await expect(worktreeRows(page)).toHaveCount(0);
-});
-
-test("a project whose only gated resources are subagent definitions still asks for trust and names what it loads", async ({
-	page,
-}) => {
-	const definitions = join(E2E_FIXTURE_REPO, ".pi", "agents");
-	mkdirSync(definitions, { recursive: true });
-	writeFileSync(
-		join(definitions, "e2e-definer.md"),
-		"---\nname: e2e-definer\ndescription: Repo-defined agent\n---\n\nDefine things.\n",
-	);
-	try {
-		await openFixtureProject(page);
-		await page.getByTestId("add-workspace").first().click();
-		const dialog = page.getByTestId("new-workspace-dialog");
-		const notice = dialog.getByTestId("ws-trust-notice");
-		await expect(notice).toContainText("1 skill and its own Pi resources");
-		await expect(notice).toContainText("subagent definitions");
-
-		await dialog.getByTestId("ws-trust-project").click();
-		await expect(notice).toBeHidden();
-	} finally {
-		rmSync(join(E2E_FIXTURE_REPO, ".pi"), { recursive: true, force: true });
-	}
-});
-
-test("the start prompt shares template completion and slot behavior without live-only commands", async ({
-	page,
-}) => {
-	const templateFile = join(E2E_FIXTURE_REPO, ".pi", "prompts", "workspace-kickoff.md");
-	mkdirSync(join(E2E_FIXTURE_REPO, ".pi", "prompts"), { recursive: true });
-	writeFileSync(
-		templateFile,
-		`---
-description: Prepare a workspace task
-argument-hint: "[topic] [check]"
----
-Prepare $1 and verify \${2:-tests}.
-`,
-	);
-
-	try {
-		await openFixtureProject(page);
-		await page.getByTestId("add-workspace").first().click();
-		const dialog = page.getByTestId("new-workspace-dialog");
-		const prompt = dialog.getByTestId("ws-prompt");
-
-		await prompt.fill("/compact");
-		await expect(dialog.getByTestId("slash-command").filter({ hasText: "/compact" })).toHaveCount(
-			0,
-		);
-
-		await prompt.fill("/review");
-		const globalTemplate = dialog.getByTestId("slash-command").filter({ hasText: "/review" });
-		await expect(globalTemplate).toBeVisible();
-		await expect(globalTemplate).toContainText("prompt/user");
-
-		await prompt.fill("/workspace-k");
-		const projectTemplate = dialog
-			.getByTestId("slash-command")
-			.filter({ hasText: "/workspace-kickoff" });
-		await expect(projectTemplate).toBeVisible();
-		await expect(projectTemplate).toContainText("prompt/project");
-		await projectTemplate.click();
-
-		await expect(prompt).toHaveValue("Prepare ⟨topic⟩ and verify tests.");
-		await expect(dialog.getByTestId("slot-hint")).toContainText("slot 1/2");
-		await prompt.pressSequentially("parser");
-		await prompt.press("Tab");
-		await expect(dialog.getByTestId("slot-hint")).toContainText("slot 2/2");
-
-		await prompt.press("Enter");
-		await expect(dialog).toBeHidden();
-		await expect(page.locator('[data-testid="chat-message"][data-role="user"]')).toContainText(
-			"Prepare parser and verify tests.",
-		);
-	} finally {
-		rmSync(templateFile, { force: true });
-	}
-});
-
-test("Enter in the prompt creates; Shift+Enter inserts a newline", async ({ page }) => {
-	await openFixtureProject(page);
-
-	await page.getByTestId("add-workspace").first().click();
-	const dialog = page.getByTestId("new-workspace-dialog");
-	await expect(dialog).toBeVisible();
-	const prompt = dialog.getByTestId("ws-prompt");
-
-	await prompt.fill("first line");
-	await expect(dialog.getByTestId("workspace-naming-hint")).toContainText(
-		"name the workspace and branch from your request",
-	);
-	await prompt.press("Shift+Enter");
-	await prompt.pressSequentially("second line");
-	await expect(prompt).toHaveValue("first line\nsecond line");
-	await expect(dialog).toBeVisible();
-	await expect(worktreeRows(page)).toHaveCount(0);
-
-	await prompt.fill("");
-	await expect(dialog.getByTestId("workspace-naming-hint")).toHaveCount(0);
-	await prompt.press("Enter");
-	await expect(dialog).toBeHidden();
-	await expect(worktreeRows(page)).toHaveCount(1);
-	await expect(page.locator('[data-testid="editor-tab"][data-kind="chat"]')).toHaveCount(1);
-	await expect(page.locator('[data-testid="chat-message"][data-role="user"]')).toHaveCount(0);
+	await expect(page.getByTestId("workspace-ready")).toBeVisible();
 });
 
 test("a base whose fetch fails reports git's error, not a request timeout", async ({ page }) => {
@@ -408,48 +236,4 @@ test("opening New Workspace prefetches a missing default tracking ref", async ({
 	await expect
 		.poll(() => refOid(repo, "refs/remotes/origin/main"), { timeout: 5_000 })
 		.toBe(expectedSha);
-});
-
-async function pastePngInto(page: Page, testId: string, width: number, height: number) {
-	await page.getByTestId(testId).evaluate(
-		async (el, size) => {
-			const canvas = document.createElement("canvas");
-			canvas.width = size.width;
-			canvas.height = size.height;
-			const ctx = canvas.getContext("2d");
-			if (!ctx) throw new Error("no 2d context");
-			ctx.fillStyle = "#3366aa";
-			ctx.fillRect(0, 0, size.width, size.height);
-			const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/png"));
-			if (!blob) throw new Error("toBlob failed");
-			const file = new File([blob], "pasted.png", { type: "image/png" });
-			const dt = new DataTransfer();
-			dt.items.add(file);
-			el.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true }));
-		},
-		{ width, height },
-	);
-}
-
-test("a pasted image in the workspace dialog rides along into the first chat turn", async ({
-	page,
-}) => {
-	await openFixtureProject(page);
-	await page.getByTestId("add-workspace").first().click();
-	const dialog = page.getByTestId("new-workspace-dialog");
-	await expect(dialog).toBeVisible();
-
-	await dialog.getByTestId("ws-prompt").fill("Look at this");
-	await pastePngInto(page, "ws-prompt", 640, 480);
-	const chip = dialog.getByTestId("composer-image");
-	await expect(chip).toHaveCount(1);
-	await expect(chip).toHaveAttribute("data-width", "640");
-
-	await page.getByTestId("create-workspace").click();
-	await expect(dialog).toBeHidden();
-
-	const userMessage = page.locator('[data-testid="chat-message"][data-role="user"]').first();
-	await expect(userMessage).toBeVisible();
-	await expect(userMessage.getByTestId("chat-message-images")).toBeVisible();
-	await expect(userMessage.getByTestId("chat-attachment-chip")).toHaveCount(1);
 });

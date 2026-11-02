@@ -25,7 +25,7 @@ test("a byte-only markdown path resolves to the binary fallback", () => {
 				"view",
 				{ mobile: false },
 			).map((renderer) => renderer.id),
-		).toEqual(["thinkrail/binary"]);
+		).toEqual(["realthing/binary"]);
 	} finally {
 		for (const dispose of disposers.reverse()) dispose();
 	}

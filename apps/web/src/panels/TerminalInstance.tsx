@@ -2,8 +2,8 @@ import type {
 	TerminalDataPush,
 	TerminalDetachedPush,
 	TerminalExitPush,
-} from "@thinkrail/contracts";
-import { WS_CHANNELS } from "@thinkrail/contracts";
+} from "@realthing/contracts";
+import { WS_CHANNELS } from "@realthing/contracts";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
 import { Unicode11Addon } from "@xterm/addon-unicode11";
@@ -12,9 +12,9 @@ import { type ITheme, Terminal as XTerm } from "@xterm/xterm";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import "@xterm/xterm/css/xterm.css";
-import { i18n, useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
-import { onThemeSwap } from "@thinkrail/ui/theme";
+import { i18n, useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
+import { onThemeSwap } from "@realthing/ui/theme";
 import { type QuietScrollEdges, QuietScrollFrame } from "@/components/QuietScrollArea";
 import { cssColorToHex } from "@/lib";
 import { SettingsSection, useAppStore } from "../store";
@@ -102,6 +102,13 @@ function tryLoad(fn: () => void): void {
 	} catch {}
 }
 
+function defaultTerminalChrome(): { fontSize: number; fontFamily: string } {
+	return {
+		fontSize: Number.parseFloat(cssVar("--tr-font-size-s13") ?? "") || 13,
+		fontFamily: cssVar("--tr-font-family-code") ?? "monospace",
+	};
+}
+
 interface Props {
 	tabKey: string;
 	workspaceId: string;
@@ -110,6 +117,11 @@ interface Props {
 
 export default function TerminalInstance({ tabKey, workspaceId, initialCommand }: Props) {
 	const t = useT();
+	const terminalFontSize = useAppStore((s) => s.terminalFontSize);
+	const codeFontFamily = useAppStore((s) => s.codeFontFamily);
+	const terminalCursorStyle = useAppStore((s) => s.terminalCursorStyle);
+	const terminalCursorBlink = useAppStore((s) => s.terminalCursorBlink);
+	const terminalScrollbackLines = useAppStore((s) => s.terminalScrollbackLines);
 	const rootRef = useRef<HTMLDivElement>(null);
 	const hostRef = useRef<HTMLDivElement>(null);
 	const termRef = useRef<XTerm | null>(null);
@@ -137,14 +149,25 @@ export default function TerminalInstance({ tabKey, workspaceId, initialCommand }
 		const focusedTab =
 			initialFocusTarget instanceof Element ? initialFocusTarget.closest('[role="tab"]') : null;
 		const initialFocusRequestsTerminal = focusedTab?.parentElement?.dataset.kind === "terminal";
+		const chrome = defaultTerminalChrome();
+		const {
+			terminalFontSize: initialFontSize,
+			codeFontFamily: initialFontFamily,
+			terminalCursorStyle: initialCursorStyle,
+			terminalCursorBlink: initialCursorBlink,
+			terminalScrollbackLines: initialScrollbackLines,
+		} = useAppStore.getState();
 		const term = new XTerm({
 			allowProposedApi: true,
-			cursorBlink: true,
-			fontSize: Number.parseFloat(cssVar("--tr-font-size-s13") ?? "") || 13,
-			fontFamily: cssVar("--tr-font-family-code") ?? "monospace",
+			cursorBlink: initialCursorBlink,
+			cursorStyle: initialCursorStyle,
+			fontSize: initialFontSize > 0 ? initialFontSize : chrome.fontSize,
+			fontFamily: initialFontFamily.trim()
+				? `${initialFontFamily}, ${chrome.fontFamily}`
+				: chrome.fontFamily,
 			theme: readTheme(),
 			minimumContrastRatio: contrastFloor(),
-			scrollback: 5000,
+			scrollback: initialScrollbackLines,
 		});
 		const fit = new FitAddon();
 		term.loadAddon(fit);
@@ -366,9 +389,31 @@ export default function TerminalInstance({ tabKey, workspaceId, initialCommand }
 			unsubscribeExit();
 			unsubscribeDetached();
 			serverIdRef.current = null;
+			fitFnRef.current = null;
+			termRef.current = null;
 			term.dispose();
 		};
 	}, [tabKey, workspaceId]);
+
+	useEffect(() => {
+		const term = termRef.current;
+		if (!term) return;
+		const chrome = defaultTerminalChrome();
+		term.options.fontSize = terminalFontSize > 0 ? terminalFontSize : chrome.fontSize;
+		term.options.fontFamily = codeFontFamily.trim()
+			? `${codeFontFamily}, ${chrome.fontFamily}`
+			: chrome.fontFamily;
+		term.options.cursorBlink = terminalCursorBlink;
+		term.options.cursorStyle = terminalCursorStyle;
+		term.options.scrollback = terminalScrollbackLines;
+		fitFnRef.current?.();
+	}, [
+		terminalFontSize,
+		codeFontFamily,
+		terminalCursorStyle,
+		terminalCursorBlink,
+		terminalScrollbackLines,
+	]);
 
 	useEffect(() => {
 		const frame = requestAnimationFrame(() => {

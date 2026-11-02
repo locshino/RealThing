@@ -51,17 +51,17 @@ const WINDOWS_PICKER = [
 	"$owner.Opacity = 0",
 	"$owner.Show()",
 	"try {",
-	"  Add-Type -Namespace ThinkRail -Name Fg -MemberDefinition '",
+	"  Add-Type -Namespace RealThing -Name Fg -MemberDefinition '",
 	'    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();',
 	'    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr w, IntPtr p);',
 	'    [DllImport("user32.dll")] public static extern bool AttachThreadInput(uint a, uint b, bool join);',
 	'    [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr w);',
 	'    [DllImport("kernel32.dll")] public static extern uint GetCurrentThreadId();\'',
-	"  $fg = [ThinkRail.Fg]::GetWindowThreadProcessId([ThinkRail.Fg]::GetForegroundWindow(), [IntPtr]::Zero)",
-	"  $me = [ThinkRail.Fg]::GetCurrentThreadId()",
-	"  [void][ThinkRail.Fg]::AttachThreadInput($me, $fg, $true)",
-	"  [void][ThinkRail.Fg]::SetForegroundWindow($owner.Handle)",
-	"  [void][ThinkRail.Fg]::AttachThreadInput($me, $fg, $false)",
+	"  $fg = [RealThing.Fg]::GetWindowThreadProcessId([RealThing.Fg]::GetForegroundWindow(), [IntPtr]::Zero)",
+	"  $me = [RealThing.Fg]::GetCurrentThreadId()",
+	"  [void][RealThing.Fg]::AttachThreadInput($me, $fg, $true)",
+	"  [void][RealThing.Fg]::SetForegroundWindow($owner.Handle)",
+	"  [void][RealThing.Fg]::AttachThreadInput($me, $fg, $false)",
 	"} catch { }",
 	"$d = New-Object System.Windows.Forms.FolderBrowserDialog",
 	"$d.Description = 'Open project'",
@@ -118,7 +118,7 @@ function pickerOverrideFromFile(value: string): PickerOverride | null {
 }
 
 function resolveOverride(env: NodeJS.ProcessEnv): PickerOverride | null {
-	const value = env.THINKRAIL_PICK_DIR;
+	const value = env.REALTHING_PICK_DIR;
 	if (!value) return null;
 	try {
 		if (statSync(value).isFile()) return pickerOverrideFromFile(value);

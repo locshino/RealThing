@@ -2,7 +2,7 @@
 id: web-color
 type: submodule-design
 status: active
-title: ThinkRail colour — one JSON source, generated CSS, semantic roles
+title: RealThing colour — one JSON source, generated CSS, semantic roles
 parent: module-web
 depends-on: [submodule-web-themes]
 references: [web-typography]
@@ -97,7 +97,7 @@ inherits one `.pierre-code-surface` custom-property bridge: its CSS-variable Shi
 `--diffs-token-*` to the existing `--code-*` syntax roles, while `--diffs-bg*`, number foregrounds, and
 addition/deletion bases map to the workspace/content canvas, muted text, and feedback success/error roles.
 Those values remain live variable references, so Pierre needs neither a per-theme registration nor a
-re-highlight after a swap. Monaco and chat share the single `THINKRAIL_SHIKI_THEME` TextMate definition;
+re-highlight after a swap. Monaco and chat share the single `REALTHING_SHIKI_THEME` TextMate definition;
 chat keeps its live CSS-variable form, while Monaco resolves the same variables to hex for its strict theme
 API. All consumers therefore name the same semantic tokens everything else does, with one name per value.
 The roles these consumers *share* with components (`--container-*-bg`, `--text-muted`) stay published and
@@ -115,7 +115,7 @@ the remainder comes from its own built-in palette:
 | Monaco | desktop file canvas/foreground/gutter; active + inactive line numbers; cursor + both selection colours; current-line fill/border; indent guides; bracket match + six bracket-pair colours; word/selection/find highlights; sticky-scroll canvas/shadow; fold/whitespace paint; editor + hover widgets; menu, quick-input and input surfaces/states; focus border; widget/scrollbar shadows + slider states; every TextMate syntax rule | `vs` / `vs-dark` / `hc-black` / `hc-light` via `inherit: true` — suggest/peek/debug, minimap and other unlisted specialist surfaces |
 | Pierre | file/diff canvas and gutter, foreground/line numbers/selection, syntax variables, success additions, error deletions, separator/annotation surfaces, code family/size | Pierre core layout/effects for properties not bridged; no `@pierre/theme` preset is applied |
 | xterm | background, foreground, cursor, both selection colours, all 16 ANSI | xterm defaults for `cursorAccent` and `selectionInactiveBackground` |
-| mermaid | the `themeVariables` map in `thinkrail-extensions/visualize/web/mermaid.ts` | mermaid's `base` theme for anything absent from that map |
+| mermaid | the `themeVariables` map in `realthing-extensions/visualize/web/mermaid.ts` | mermaid's `base` theme for anything absent from that map |
 
 This is a bounded, accepted gap, not an oversight. Monaco alone exposes ~200 colour keys; enumerating
 them would be a large and brittle surface, and the base is chosen from the manifest's appearance and
@@ -143,7 +143,7 @@ escape hatch, or a second name for a value that already has one.
 ## What is pinned by tests
 
 `styles/colorUsage.test.ts` scans app source, `packages/ui`, and every
-`thinkrail-extensions/*/web` tree through the shared build-time source scanner. It fails when:
+`realthing-extensions/*/web` tree through the shared build-time source scanner. It fails when:
 
 - a colour utility names a token that `@theme inline` does not publish (the silent-drop bug);
 - a component contains a raw hex, `rgb()` or `hsl()`;

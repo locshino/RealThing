@@ -55,8 +55,8 @@ describe("resolveUninstallTargets", () => {
 		home: "/home/u",
 		env: {} as Record<string, string | undefined>,
 		execPath: "/usr/bin/bun",
-		dataDir: "/home/u/.thinkrail",
-		stagingRoot: "/home/u/.cache/thinkrail",
+		dataDir: "/home/u/.realthing",
+		stagingRoot: "/home/u/.cache/realthing",
 	};
 
 	test("uses the recorded prefix, and the installers' default without one", () => {
@@ -66,10 +66,10 @@ describe("resolveUninstallTargets", () => {
 				platform: "linux",
 				installMeta: { prefix: "/opt/tools" },
 			}).binaries,
-		).toEqual([posix.join("/opt/tools", "bin", "thinkrail")]);
+		).toEqual([posix.join("/opt/tools", "bin", "realthing")]);
 		expect(
 			resolveUninstallTargets({ ...base, platform: "linux", installMeta: {} }).binaries,
-		).toEqual([posix.join("/home/u/.local", "bin", "thinkrail")]);
+		).toEqual([posix.join("/home/u/.local", "bin", "realthing")]);
 	});
 
 	test("ignores a relative or non-string prefix instead of trusting it", () => {
@@ -87,18 +87,18 @@ describe("resolveUninstallTargets", () => {
 		const targets = resolveUninstallTargets({
 			...base,
 			platform: "linux",
-			execPath: "/opt/elsewhere/bin/thinkrail",
+			execPath: "/opt/elsewhere/bin/realthing",
 			installMeta: {},
 		});
 		expect(targets.binaries).toEqual([
-			posix.join("/home/u/.local", "bin", "thinkrail"),
-			"/opt/elsewhere/bin/thinkrail",
+			posix.join("/home/u/.local", "bin", "realthing"),
+			"/opt/elsewhere/bin/realthing",
 		]);
 		expect(
 			resolveUninstallTargets({
 				...base,
 				platform: "linux",
-				execPath: posix.join("/home/u/.local", "bin", "thinkrail"),
+				execPath: posix.join("/home/u/.local", "bin", "realthing"),
 				installMeta: {},
 			}).binaries,
 		).toHaveLength(1);
@@ -109,18 +109,18 @@ describe("resolveUninstallTargets", () => {
 			...base,
 			platform: "win32",
 			home: "C:\\Users\\u",
-			execPath: "D:\\tools\\bin\\thinkrail.exe",
+			execPath: "D:\\tools\\bin\\realthing.exe",
 			installMeta: { prefix: "D:\\tools" },
 		});
-		expect(targets.binaries).toEqual([win32.join("D:/tools", "bin", "thinkrail.exe")]);
+		expect(targets.binaries).toEqual([win32.join("D:/tools", "bin", "realthing.exe")]);
 		expect(targets.rcFiles).toEqual([]);
 		expect(targets.fishFile).toBe("");
 	});
 
 	test.each([
-		["/c/tools/thinkrail", "C:\\tools\\thinkrail\\bin\\thinkrail.exe"],
-		["/cygdrive/d/tools/thinkrail", "D:\\tools\\thinkrail\\bin\\thinkrail.exe"],
-		["//nas/share/thinkrail", "\\\\nas\\share\\thinkrail\\bin\\thinkrail.exe"],
+		["/c/tools/realthing", "C:\\tools\\realthing\\bin\\realthing.exe"],
+		["/cygdrive/d/tools/realthing", "D:\\tools\\realthing\\bin\\realthing.exe"],
+		["//nas/share/realthing", "\\\\nas\\share\\realthing\\bin\\realthing.exe"],
 	])("normalizes a legacy Windows metadata prefix %s", (prefix, expectedBinary) => {
 		const targets = resolveUninstallTargets({
 			...base,
@@ -174,7 +174,7 @@ describe("resolveUninstallTargets", () => {
 			"/home/u/.zshrc",
 			"/home/u/.config/zsh/.zshrc",
 		]);
-		expect(targets.fishFile).toBe("/home/u/.config/fish/conf.d/thinkrail.fish");
+		expect(targets.fishFile).toBe("/home/u/.config/fish/conf.d/realthing.fish");
 	});
 
 	test("a $ZDOTDIR of $HOME doesn't double-list .zshrc", () => {

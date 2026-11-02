@@ -19,7 +19,7 @@ afterAll(() => {
 
 describe("website analytics configuration", () => {
 	test("enables the shared analytics stack on the exact production hostname", () => {
-		const configuration = analyticsConfig("thinkrail.ai");
+		const configuration = analyticsConfig("realthing.ai");
 		expect(configuration?.postHog).toBeDefined();
 		expect(configuration?.gtm).toBeDefined();
 		expect(captureAnalytics).toBeFunction();
@@ -29,10 +29,10 @@ describe("website analytics configuration", () => {
 		"localhost",
 		"127.0.0.1",
 		"jetbrains.github.io",
-		"thinkrail-website.pages.dev",
-		"pr-42.thinkrail-website.pages.dev",
-		"www.thinkrail.ai",
-		"vibecoding.thinkrail.ai",
+		"realthing-website.pages.dev",
+		"pr-42.realthing-website.pages.dev",
+		"www.realthing.ai",
+		"vibecoding.realthing.ai",
 	])("stays disabled on %s", (hostname) => {
 		expect(analyticsConfig(hostname)).toBeUndefined();
 	});
@@ -57,7 +57,7 @@ describe("website analytics configuration", () => {
 			},
 		};
 		const analyticsWindow = {
-			location: { hostname: "thinkrail.ai" },
+			location: { hostname: "realthing.ai" },
 			Cookiebot: {
 				get hasResponse() {
 					activity.push("read:hasResponse");
@@ -132,12 +132,12 @@ describe("website analytics configuration", () => {
 		marketing = true;
 		listeners.get("CookiebotOnAccept")?.();
 		expect(storageCalls).toEqual([
-			"get:thinkrail_journey_id",
-			"set:thinkrail_journey_id:4c1829b0-f3a7-4db7-b09c-c638fb394b4e",
+			"get:realthing_journey_id",
+			"set:realthing_journey_id:4c1829b0-f3a7-4db7-b09c-c638fb394b4e",
 		]);
 
 		marketing = false;
 		listeners.get("CookiebotOnDecline")?.();
-		expect(storageCalls.at(-1)).toBe("remove:thinkrail_journey_id");
+		expect(storageCalls.at(-1)).toBe("remove:realthing_journey_id");
 	});
 });

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { NativeShortcutsBridge } from "@thinkrail/contracts";
+import type { NativeShortcutsBridge } from "@realthing/contracts";
 import { getNativeShortcutsBridge } from "./useAppShortcuts";
 
 test("getNativeShortcutsBridge accepts only the full bridge shape", () => {

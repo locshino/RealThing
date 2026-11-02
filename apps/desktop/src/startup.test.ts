@@ -40,7 +40,7 @@ for (const { failure, userData, home, pendingInstall } of cases) {
 				? "behind an update splash"
 				: "behind a startup splash";
 	test(`${outcomes[failure]} even if the error dialog fails; ${location} ${splash} (user data from ${userData})`, () => {
-		const root = mkdtempSync(join(tmpdir(), "thinkrail-desktop-startup-"));
+		const root = mkdtempSync(join(tmpdir(), "realthing-desktop-startup-"));
 		try {
 			const runtimePath = join(root, "app", "runtime", "server-runtime.ts");
 			const userDataPath = join(root, "user-data");
@@ -68,7 +68,7 @@ const calls = [];
 const cwd = {};
 let splashText = null;
 const listeners = [];
-mock.module("@thinkrail/shared/shellEnv", () => ({
+mock.module("@realthing/shared/shellEnv", () => ({
   resolveShellEnv: async () => {
     calls.push("shell-env");
     cwd.shellEnv = process.cwd();
@@ -125,7 +125,7 @@ mock.module("electrobun/main", () => ({
       calls.push("updates");
       cwd.updates = process.cwd();
       if (failure === "updates") throw new Error("update metadata failed");
-      return { identifier: "ai.thinkrail.app", channel: "canary", version: "0.0.1", hash: "abc", baseUrl: "https://example.invalid/u", name: "ThinkRail-canary" };
+      return { identifier: "ai.realthing.app", channel: "canary", version: "0.0.1", hash: "abc", baseUrl: "https://example.invalid/u", name: "RealThing-canary" };
     },
     updateInfo: () => updateInfo,
     onStatusChange: () => {},
@@ -160,7 +160,7 @@ console.log(JSON.stringify({ calls, cwd, splashText }));
 					...process.env,
 					HOME: homePath,
 					USERPROFILE: homePath,
-					THINKRAIL_DESKTOP_USER_DATA: userData === "override" ? userDataPath : undefined,
+					REALTHING_DESKTOP_USER_DATA: userData === "override" ? userDataPath : undefined,
 					BUN_RUNTIME_TRANSPILER_CACHE_PATH: "0",
 					NODE_ENV: "test",
 				},
@@ -176,7 +176,7 @@ console.log(JSON.stringify({ calls, cwd, splashText }));
 			};
 			if (failure !== "updates") {
 				expect(run.splashText).toContain(
-					pendingInstall ? "Finishing update to 0.0.2…" : "Starting ThinkRail…",
+					pendingInstall ? "Finishing update to 0.0.2…" : "Starting RealThing…",
 				);
 			}
 			expect(run.calls).toEqual([

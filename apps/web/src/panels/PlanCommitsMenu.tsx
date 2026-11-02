@@ -2,16 +2,16 @@ import {
 	RiArrowDownSLine as ChevronDown,
 	RiGitCommitLine as GitCommitHorizontal,
 } from "@remixicon/react";
-import type { GitCommit } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+import type { GitCommit } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuTrigger,
-} from "@thinkrail/ui/dropdown-menu";
+} from "@realthing/ui/dropdown-menu";
 import { useEffect, useRef, useState } from "react";
 import { useNow } from "@/components/useNow";
 import { relativeTime } from "@/lib";

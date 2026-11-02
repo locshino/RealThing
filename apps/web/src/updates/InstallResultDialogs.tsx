@@ -5,9 +5,9 @@ import {
 	RiRefreshLine as Refresh,
 	RiRestartLine as Restart,
 } from "@remixicon/react";
-import type { NativeUpdateInstallResult } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+import type { NativeUpdateInstallResult } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -15,7 +15,7 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "@thinkrail/ui/dialog";
+} from "@realthing/ui/dialog";
 import { useState } from "react";
 import { InstallLog, InstallLogToggle } from "./InstallLog";
 import { type InstallRecovery, installFailureCopy, releaseNotesUrl } from "./installCopy";

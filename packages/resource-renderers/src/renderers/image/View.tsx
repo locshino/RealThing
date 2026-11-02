@@ -3,8 +3,8 @@ import {
 	RiZoomInLine as ZoomIn,
 	RiZoomOutLine as ZoomOut,
 } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { Button, IconButton } from "@thinkrail/ui/button";
+import { useT } from "@realthing/locales/react";
+import { Button, IconButton } from "@realthing/ui/button";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ResourceViewProps } from "../../registry";
 import { RegionReviewSurface } from "../RegionReviewSurface";

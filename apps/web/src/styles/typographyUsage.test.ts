@@ -33,7 +33,6 @@ const PRIMITIVE_ALLOWLIST = new Set([
 	"packages/resource-renderers/src/support/monacoSetup.ts",
 	"panels/TerminalInstance.tsx",
 	"packages/resource-renderers/src/renderers/code/pierreVirtualizer.ts",
-	"thinkrail-extensions/visualize/web/mermaid.ts",
 ]);
 
 const componentFiles = () => FILES.filter((p) => !PRIMITIVE_ALLOWLIST.has(rel(p)));
@@ -145,13 +144,13 @@ describe("component usage", () => {
 });
 
 describe("markdown prose systems", () => {
-	const chat = code(join(SRC, "chat/Markdown.tsx"));
+	const plan = code(join(SRC, "panels/PlanPane.tsx"));
 	const preview = code(join(RENDERERS, "support/MarkdownPreview.tsx"));
 
 	it("gives each markdown surface exactly one generated prose system", () => {
-		expect(chat).toContain(proseRootClassName(typography, "chat"));
+		expect(plan).toContain(proseRootClassName(typography, "chat"));
 		expect(preview).toContain(proseRootClassName(typography, "doc"));
-		expect(chat).not.toContain(proseRootClassName(typography, "doc"));
+		expect(plan).not.toContain(proseRootClassName(typography, "doc"));
 		expect(preview).not.toContain(proseRootClassName(typography, "chat"));
 	});
 
@@ -159,7 +158,7 @@ describe("markdown prose systems", () => {
 		const perElementType =
 			/\[&[^\]]*\]:(?:text-(?!primary|muted|hint|text|balance|pretty|left|center|right)|font-|leading-|tracking-)/g;
 		for (const [label, src] of [
-			["chat/Markdown.tsx", chat],
+			["panels/PlanPane.tsx", plan],
 			["resource-renderers/support/MarkdownPreview.tsx", preview],
 		] as const)
 			expect(

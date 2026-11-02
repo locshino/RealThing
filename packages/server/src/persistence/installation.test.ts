@@ -16,7 +16,7 @@ import { claimAppInstalledIn, ensureInstallationIn } from "./installation";
 const claimMarker = ".installation-app-installed.claim";
 
 test("overlapping installation creation publishes only complete records and rereads the winner", () => {
-	const directory = mkdtempSync(join(tmpdir(), "thinkrail-installation-test-"));
+	const directory = mkdtempSync(join(tmpdir(), "realthing-installation-test-"));
 	try {
 		let contender: ReturnType<typeof ensureInstallationIn> | undefined;
 		const winner = ensureInstallationIn(directory, (temp, target) => {
@@ -36,7 +36,7 @@ test("overlapping installation creation publishes only complete records and rere
 });
 
 test("overlapping app-installed claims allow one event decision and preserve one stable id", () => {
-	const directory = mkdtempSync(join(tmpdir(), "thinkrail-installation-test-"));
+	const directory = mkdtempSync(join(tmpdir(), "realthing-installation-test-"));
 	writeFileSync(join(directory, "installation.json"), JSON.stringify({ id: "shared-install" }));
 	try {
 		let contender: boolean | undefined;
@@ -59,7 +59,7 @@ test("overlapping app-installed claims allow one event decision and preserve one
 });
 
 test("legacy records already marked installed are preserved without another claim", () => {
-	const directory = mkdtempSync(join(tmpdir(), "thinkrail-installation-test-"));
+	const directory = mkdtempSync(join(tmpdir(), "realthing-installation-test-"));
 	const target = join(directory, "installation.json");
 	const contents = `${JSON.stringify({ id: "existing-install", appInstalled: true }, null, "\t")}\n`;
 	writeFileSync(target, contents);
@@ -73,7 +73,7 @@ test("legacy records already marked installed are preserved without another clai
 });
 
 test("a durable claim marker survives a simulated crash before record replacement", () => {
-	const directory = mkdtempSync(join(tmpdir(), "thinkrail-installation-test-"));
+	const directory = mkdtempSync(join(tmpdir(), "realthing-installation-test-"));
 	const target = join(directory, "installation.json");
 	const contents = `${JSON.stringify({ id: "existing-install" }, null, "\t")}\n`;
 	writeFileSync(target, contents);
@@ -87,7 +87,7 @@ test("a durable claim marker survives a simulated crash before record replacemen
 });
 
 test("malformed installation records are preserved rather than replacing a possible winner", () => {
-	const directory = mkdtempSync(join(tmpdir(), "thinkrail-installation-test-"));
+	const directory = mkdtempSync(join(tmpdir(), "realthing-installation-test-"));
 	const target = join(directory, "installation.json");
 	const contents = "{not-json";
 	writeFileSync(target, contents);
@@ -100,7 +100,7 @@ test("malformed installation records are preserved rather than replacing a possi
 });
 
 test("a failed atomic marker replacement preserves the install record and a retry claims once", () => {
-	const directory = mkdtempSync(join(tmpdir(), "thinkrail-installation-test-"));
+	const directory = mkdtempSync(join(tmpdir(), "realthing-installation-test-"));
 	const target = join(directory, "installation.json");
 	const oldContents = `${JSON.stringify({ id: "existing-install" }, null, "\t")}\n`;
 	writeFileSync(target, oldContents);

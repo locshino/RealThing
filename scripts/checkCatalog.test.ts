@@ -14,7 +14,7 @@ function runCheckWithLock(
 	packages: Record<string, unknown>,
 	overrides: Record<string, string> = { react: "catalog:", "react-dom": "catalog:" },
 ) {
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-check-catalog-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-check-catalog-"));
 	roots.push(root);
 	mkdirSync(join(root, "scripts"));
 	cpSync(join(import.meta.dir, "check-catalog.ts"), join(root, "scripts/check-catalog.ts"));

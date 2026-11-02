@@ -1,38 +1,11 @@
-import { getBuiltinModels, getBuiltinProviders } from "@earendil-works/pi-ai/providers/all";
 import type { AcquisitionRecord, AttributionTouch } from "../persistence";
 
 export type BuildKind = "source" | "binary" | "desktop";
 
-export type LoginMethod = "oauth" | "api-key" | "central";
-export type AnalyticsAuthMethod =
-	| "api_key"
-	| "subscription"
-	| "oauth"
-	| "central"
-	| "other"
-	| "unknown";
-
-export interface ProviderAnalyticsProperties {
-	provider: string;
-	auth_method: AnalyticsAuthMethod;
-}
-
-export type SendMode = "prompt" | "steer" | "follow_up";
-
 export type PlanOpenSurface = "page" | "rail";
-export type PlanAddSurface = "chat" | "page" | "rail";
-export type PlanActionSource = "plan_page" | "other";
+export type PlanAddSurface = "page" | "rail";
 
-export type ReviewCommentActor = "user" | "agent";
-export type ReviewCommentKindProp = "inline" | "diff" | "file" | "review";
-export type ReviewResolveOutcome = "resolved" | "dismissed";
-
-export type BasicAnalyticsEvent =
-	| { name: "app_installed" }
-	| { name: "app_started" }
-	| { name: "chat_started"; params: ProviderAnalyticsProperties & { model: string } }
-	| { name: "message_sent"; params: ProviderAnalyticsProperties & { mode: SendMode } }
-	| { name: "provider_login"; params: ProviderAnalyticsProperties & { method: LoginMethod } };
+export type BasicAnalyticsEvent = { name: "app_installed" } | { name: "app_started" };
 
 export type AnalyticsAvailability = "yes" | "no" | "unknown";
 export type AnalyticsFailureReason =
@@ -45,7 +18,6 @@ export type AnalyticsFailureReason =
 	| "unknown"
 	| "none";
 export type SetupAction =
-	| "provider_connect"
 	| "directory_pick"
 	| "project_open"
 	| "project_init"
@@ -54,20 +26,6 @@ export type SetupAction =
 	| "worktree_attach";
 export type AnalyticsDurationBucket = "<10s" | "10–59s" | "1–4m" | "5–14m" | "15m+" | "unknown";
 export type AnalyticsCountBucket = "0" | "1" | "2–4" | "5+" | "unknown";
-export type AnalyticsRunOutcome =
-	| "normal_stop"
-	| "error"
-	| "truncated"
-	| "aborted"
-	| "no_terminal"
-	| "other";
-
-export interface AnalyticsRunProperties {
-	origin: "user" | "internal" | "mixed" | "unknown";
-	workspace_kind: "default" | "managed" | "external";
-	provider: string;
-	model: string;
-}
 
 export type AcquisitionCampaignProperties = {
 	first_touch_source?: string;
@@ -94,8 +52,6 @@ export type AdditionalAnalyticsEvent =
 	| {
 			name: "setup_state_observed";
 			params: {
-				provider_available: AnalyticsAvailability;
-				model_available: AnalyticsAvailability;
 				project_present: AnalyticsAvailability;
 			};
 	  }
@@ -107,16 +63,6 @@ export type AdditionalAnalyticsEvent =
 				reason: AnalyticsFailureReason;
 			};
 	  }
-	| { name: "agent_run_started"; params: AnalyticsRunProperties }
-	| {
-			name: "agent_run_settled";
-			params: AnalyticsRunProperties & {
-				outcome: AnalyticsRunOutcome;
-				duration_bucket: AnalyticsDurationBucket;
-				retry_bucket: AnalyticsCountBucket;
-				compaction_bucket: AnalyticsCountBucket;
-			};
-	  }
 	| {
 			name: "task_completed";
 			params: {
@@ -125,32 +71,7 @@ export type AdditionalAnalyticsEvent =
 			};
 	  }
 	| { name: "plan_opened"; params: { surface: PlanOpenSurface } }
-	| { name: "plan_item_added"; params: { surface: PlanAddSurface } }
-	| {
-			name: "review_comment_added";
-			params: { author: ReviewCommentActor; kind: ReviewCommentKindProp };
-	  }
-	| { name: "review_comment_sent"; params: { outdated: "yes" | "no" } }
-	| {
-			name: "review_comment_resolved";
-			params: { actor: ReviewCommentActor; outcome: ReviewResolveOutcome };
-	  }
-	| {
-			name: "review_decided";
-			params: {
-				actor: "user" | "agent";
-				verdict: "approved" | "changes_requested";
-			};
-	  }
-	| {
-			name: "pr_action_finished";
-			params: {
-				action: "created" | "updated" | "pushed" | "compare" | "unknown";
-				outcome: "succeeded" | "failed";
-				reason: AnalyticsFailureReason;
-				source: PlanActionSource;
-			};
-	  };
+	| { name: "plan_item_added"; params: { surface: PlanAddSurface } };
 
 export type AnalyticsEvent = BasicAnalyticsEvent | AdditionalAnalyticsEvent;
 export type AdditionalAnalyticsCapture = (event: AdditionalAnalyticsEvent) => void;
@@ -195,28 +116,3 @@ export function bucketCount(count: number): AnalyticsCountBucket {
 
 export const CUSTOM_BUCKET = "custom";
 export const NONE_BUCKET = "none";
-
-let catalog: Map<string, ReadonlySet<string>> | null = null;
-
-function builtinCatalog(): Map<string, ReadonlySet<string>> {
-	if (!catalog) {
-		catalog = new Map();
-		for (const provider of getBuiltinProviders()) {
-			catalog.set(provider, new Set(getBuiltinModels(provider).map((model) => String(model.id))));
-		}
-	}
-	return catalog;
-}
-
-export function bucketProvider(provider: string): string {
-	return builtinCatalog().has(provider) ? provider : CUSTOM_BUCKET;
-}
-
-export function bucketProviderModel(
-	provider: string,
-	modelId: string,
-): { provider: string; model: string } {
-	const models = builtinCatalog().get(provider);
-	if (!models) return { provider: CUSTOM_BUCKET, model: CUSTOM_BUCKET };
-	return { provider, model: models.has(modelId) ? modelId : CUSTOM_BUCKET };
-}

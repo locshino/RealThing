@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import type { ReviewAnchor } from "@thinkrail/contracts";
-import { currentTranslator } from "@thinkrail/locales/react";
+import { currentTranslator } from "@realthing/locales/react";
 import { outdatedReason } from "./review";
+import type { ReviewAnchor } from "./types";
 
 test("an outdated anchor explains itself by what it could have re-found", () => {
 	const anchor = (selectors: ReviewAnchor["selectors"]) => ({

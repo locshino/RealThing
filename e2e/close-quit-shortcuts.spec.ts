@@ -1,5 +1,5 @@
 import { expect, type Page, test } from "@playwright/test";
-import type { NativeCommand, NativeQuitHint, NativeShortcutsBridge } from "@thinkrail/contracts";
+import type { NativeCommand, NativeQuitHint, NativeShortcutsBridge } from "@realthing/contracts";
 import {
 	createWorkspaceViaDialog,
 	openAppFresh,
@@ -57,7 +57,7 @@ function installNativeShortcuts(page: Page, platform: string) {
 				if (stub.rejectQuit) throw new Error("quit refused");
 			},
 		});
-		Reflect.set(window, "__THINKRAIL_NATIVE_SHORTCUTS__", bridge);
+		Reflect.set(window, "__REALTHING_NATIVE_SHORTCUTS__", bridge);
 	}, platform);
 }
 
@@ -70,14 +70,10 @@ function quitCount(page: Page) {
 }
 
 function editorTabs(page: Page) {
-	return page.locator('[data-testid="editor-tab"]:not([data-kind="chat"])');
+	return page.locator('[data-testid="editor-tab"]');
 }
 
 async function openTwoFileTabs(page: Page): Promise<void> {
-	const chatTab = page.locator('[data-testid="editor-tab"][data-kind="chat"]');
-	await chatTab.hover();
-	await chatTab.getByTestId("editor-tab-close").click();
-	await expect(chatTab).toHaveCount(0);
 	await revealWorkbenchTool(page, "files");
 	await page.getByTestId("file-node").filter({ hasText: "README.md" }).dblclick();
 	await page.getByTestId("file-node").filter({ hasText: "notes.txt" }).dblclick();
@@ -94,20 +90,11 @@ test("native close-item closes the top layer first, then the focused tab", async
 	await openFixtureProject(page);
 	await createWorkspaceViaDialog(page);
 
-	const chatTab = page.locator('[data-testid="editor-tab"][data-kind="chat"]');
-	await page.getByTestId("chat-input").press("Control+r");
-	await expect(page.getByTestId("history-overlay")).toBeVisible();
-	await closeItem(page);
-	await expect(page.getByTestId("history-overlay")).toHaveCount(0);
-	await expect(chatTab).toHaveCount(1);
-
-	await chatTab.getByRole("tab").click();
 	const dialog = page.getByTestId("new-workspace-dialog");
 	await pressPlatformShortcut(page, "n");
 	await expect(dialog).toBeVisible();
 	await closeItem(page);
 	await expect(dialog).toBeHidden();
-	await expect(chatTab).toHaveCount(1);
 
 	await openTwoFileTabs(page);
 	await focusEditorTab(page, "README.md");
@@ -297,7 +284,7 @@ test("Windows Ctrl+, opens Settings, from a terminal too; Shift+Comma does not",
 	await page.keyboard.press("Escape");
 	await expect(settings).toHaveCount(0);
 
-	await page.getByTestId("chat-input").click();
+	await page.locator("body").click();
 	await page.keyboard.press("Control+Shift+Comma");
 	await expect(settings).toHaveCount(0);
 	await page.keyboard.press("Control+Comma");

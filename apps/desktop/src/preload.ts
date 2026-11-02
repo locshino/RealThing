@@ -6,7 +6,7 @@ import type {
 	NativeUpdateState,
 	NativeWindowControlsBridge,
 	NativeWindowState,
-} from "@thinkrail/contracts";
+} from "@realthing/contracts";
 import Electrobun, { Electroview } from "electrobun/view";
 import { handlePageZoomShortcut, installPageZoomGestures } from "./pageZoom";
 import {
@@ -88,13 +88,13 @@ const updateBridge: NativeUpdateBridge = Object.freeze({
 		return () => updateListeners.delete(listener);
 	},
 });
-Object.defineProperty(globals, "__THINKRAIL_NATIVE_UPDATES__", {
+Object.defineProperty(globals, "__REALTHING_NATIVE_UPDATES__", {
 	value: updateBridge,
 	writable: false,
 	configurable: false,
 	enumerable: false,
 });
-Object.defineProperty(globals, "__THINKRAIL_NATIVE_SHORTCUTS__", {
+Object.defineProperty(globals, "__REALTHING_NATIVE_SHORTCUTS__", {
 	value: shortcuts.bridge,
 	writable: false,
 	configurable: false,
@@ -106,7 +106,7 @@ const notificationBridge: NativeNotificationBridge = Object.freeze({
 	},
 	isWindowFocused: () => nativeWindowFocused,
 });
-Object.defineProperty(globals, "__THINKRAIL_NATIVE_NOTIFICATIONS__", {
+Object.defineProperty(globals, "__REALTHING_NATIVE_NOTIFICATIONS__", {
 	value: notificationBridge,
 	writable: false,
 	configurable: false,
@@ -135,7 +135,7 @@ const menuBridge: NativeMenuBridge = Object.freeze({
 		electroview.rpc?.send.menuLabelsChanged({ labels: { ...labels } });
 	},
 });
-Object.defineProperty(globals, "__THINKRAIL_NATIVE_MENU__", {
+Object.defineProperty(globals, "__REALTHING_NATIVE_MENU__", {
 	value: menuBridge,
 	writable: false,
 	configurable: false,

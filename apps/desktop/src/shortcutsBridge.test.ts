@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { NativeCommand, NativeQuitHint } from "@thinkrail/contracts";
+import type { NativeCommand, NativeQuitHint } from "@realthing/contracts";
 import { createShortcutsBridge } from "./shortcutsBridge";
 
 test("every subscriber gets hints and commands until it unsubscribes", () => {

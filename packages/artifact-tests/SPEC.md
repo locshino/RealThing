@@ -5,14 +5,14 @@ status: active
 title: Native artifact test harnesses
 parent: architecture
 depends-on: [module-cli, module-server, module-shared]
-references: [module-desktop, module-browser-e2e, module-ci-release, module-ext-visualize, module-ext-ask-user-question]
+references: [module-desktop, module-browser-e2e, module-ci-release]
 tags: [testing, artifacts, public-surface-checked]
 ---
 
 ## Responsibility
 
 Source-only test infrastructure for the compiled CLI and native desktop artifacts: real process
-adapters, shared HTTP/WS/resource/extension probes, expanded desktop smoke, and first-install smoke.
+adapters, shared HTTP/WS/resource probes, expanded desktop smoke, and first-install smoke.
 It consumes finished artifacts; it does not build the application or supply application runtime code.
 
 ## Boundary
@@ -21,40 +21,25 @@ It consumes finished artifacts; it does not build the application or supply appl
   probes, their fixtures and helper unit tests, and the public build action's desktop packaging-invocation
   and artifact-collector contract tests.
 - **Public surface:** `locateDesktopLauncher`
-- **Allowed deps:** CLI's public artifact-name helper; server's sanctioned history-fixture export; shared
+- **Allowed deps:** CLI's public artifact-name helper; shared
   release identity, its Windows file identity and icon, and retrying teardown; `resedit` to read Windows
   executable resources;
   read-only access to
   `.github/actions/build-binary/action.yml` for executing its packaging invocation and collector in
   isolated fixture directories; Bun/Node and native installer tools.
-- **Forbidden:** application or SDK source internals, Electrobun imports/dependency, a fake host or agent,
+- **Forbidden:** application source internals, Electrobun imports/dependency, a fake host,
   production packages importing this package, or real-user state mutation during tests.
 
 The root smoke commands execute the CLI, desktop and installer entrypoints directly. Browser E2E
 orchestration stays in [[module-browser-e2e]] and imports the pure locator through this package's barrel.
 Unit tests and strict typechecking use ordinary workspace Turbo tasks; there is no package build step,
-SDK preparation, declaration generation, or Playwright test discovery here. Product unit tests remain
+declaration generation, or Playwright test discovery here. Product unit tests remain
 with their owning modules.
 
 ## Artifact verification
 
-Shared probes boot the real artifact, load a synthetic external PI extension with no pi executable (the
-fixture value-imports a bare `@earendil-works/pi-coding-agent` specifier and surfaces the imported value in
-its model name, so the load exercises pi's virtual-module mapping through the transform path the host
-forces — a bundle missing the `PI_BUNDLED_NODE` define fails this probe; [[submodule-server-agent]] owns
-the seam),
-exercise the bundled factories/skills, run **two scripted provider turns** — the fixture also registers a
-pi-ai faux `streamSimple` under its own `api` name that calls `visualize` with a dangling flowchart edge,
-so the probe asserts the strict mermaid parse error reaches the transcript as an `isError` tool result
-(the packaged host composes the ThinkRail extension registry, never the portable package's best-effort
-probe; [[module-ext-visualize]]), and on a second prompt calls `ask_user_question`, so the probe sees the
-session block with `needsInput.kind === "tool-response"`, answers through `session.respondToTool`, and reads
-the answer back as the call's non-error tool result (the registry's per-session composition and the host
-mailbox inside the artifact; [[module-ext-ask-user-question]]) — start pi's bundled MCP engine in a real chat (a written-out
-stdio fixture must report *connected · 1 tool* and an in-probe HTTP server that answers 401 with
-protected-resource metadata *needs sign-in*, read back through `mcp.list`, which proves the lazily imported
-MCP runtime executes inside the artifact), reach an OAuth URL without a provider turn, verify health/UI
-and transcript trash, and shut down. CLI-specific probes also check its exit-only and embedded-cache behavior.
+Shared probes boot the real artifact, verify health/UI and OS-trash helper wiring, and shut down. CLI-specific
+probes also check its exit-only and embedded-cache behavior.
 On Windows both smokes first read executables' resources, without running them:
 - the CLI smoke reads the built exe;
 - the desktop smoke reads the bundle's `bin/bun.exe`, `bin/launcher.exe` and `Resources/uninstall`.
@@ -82,7 +67,7 @@ subsequent external-navigation probe needs the window. Desktop-backed Playwright
 only hydrated client. The live-window ready/control seam remains in the launcher, never a runtime import
 of this package.
 
-Normal artifact children set `CI=1` to mute every analytics tier without changing the production runtime mode; `THINKRAIL_NO_ANALYTICS`
+Normal artifact children set `CI=1` to mute every analytics tier without changing the production runtime mode; `REALTHING_NO_ANALYTICS`
 alone suppresses only additional events. `bun run smoke:desktop --analytics [launcher]` instead runs a
 controlled hidden-host probe against a loopback PostHog collector, never the vendor endpoint. It removes
 inherited CI/test/optional mutes and proxies for human-mode launches, checks first packaged initialization
@@ -94,7 +79,7 @@ CI and test mutes independently. No UI action or confirmation is simulated; deli
 host shutdown. The expected release identity is the shared identity used to build the artifact, so the
 probe needs a release-stamped (keyed) artifact; an unstamped build correctly emits nothing.
 
-Every host owns isolated home, data, agent and cache directories; environment overrides respect Windows'
+Every host owns isolated home, data, and cache directories; environment overrides respect Windows'
 case-insensitive keys. The native UI launch pre-creates its home directory: on macOS the window never
 reaches DOM-ready when `XDG_CACHE_HOME` is set while `HOME` names a missing directory. Readiness polling owns a finite deadline and observes early root exit; because the launcher writes its ready, route and navigation-probe documents non-atomically, the smoke treats a missing or half-written JSON file as "not yet" and keeps polling rather than failing on a torn read. When a live
 launched root or validated ready-document app/launcher PIDs need failure cleanup, teardown is bounded and

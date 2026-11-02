@@ -23,17 +23,17 @@ describe("isMobileDevice", () => {
 
 describe("installShareUrl", () => {
 	test("replaces the query and fragment with the share campaign and install anchor", () => {
-		expect(installShareUrl("https://thinkrail.ai/?utm_source=reddit&gclid=abc#why", "readme")).toBe(
-			"https://thinkrail.ai/?utm_source=send_to_computer&utm_medium=share#readme",
+		expect(installShareUrl("https://realthing.ai/?utm_source=reddit&gclid=abc#why", "readme")).toBe(
+			"https://realthing.ai/?utm_source=send_to_computer&utm_medium=share#readme",
 		);
-		expect(installShareUrl("https://thinkrail.ai/vibecoding/", "quick-start")).toBe(
-			"https://thinkrail.ai/vibecoding/?utm_source=send_to_computer&utm_medium=share#quick-start",
+		expect(installShareUrl("https://realthing.ai/vibecoding/", "quick-start")).toBe(
+			"https://realthing.ai/vibecoding/?utm_source=send_to_computer&utm_medium=share#quick-start",
 		);
 	});
 });
 
 describe("shareInstallLink", () => {
-	const url = "https://thinkrail.ai/?utm_source=send_to_computer&utm_medium=share#readme";
+	const url = "https://realthing.ai/?utm_source=send_to_computer&utm_medium=share#readme";
 
 	test("prefers the native share sheet", async () => {
 		const shared: unknown[] = [];
@@ -46,7 +46,7 @@ describe("shareInstallLink", () => {
 			url,
 		);
 		expect(result).toBe("shared");
-		expect(shared).toEqual([{ title: "ThinkRail", text: "Install ThinkRail on my computer", url }]);
+		expect(shared).toEqual([{ title: "RealThing", text: "Install RealThing on my computer", url }]);
 	});
 
 	test("treats a dismissed share sheet as cancelled without copying", async () => {

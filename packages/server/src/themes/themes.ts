@@ -4,7 +4,7 @@ import type {
 	UserThemeFile,
 	UserThemeFileErrorCode,
 	UserThemesSnapshot,
-} from "@thinkrail/contracts";
+} from "@realthing/contracts";
 import { logger } from "../log";
 import { dataDir } from "../persistence";
 

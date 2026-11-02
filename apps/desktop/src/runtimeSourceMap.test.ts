@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { chunkIdFor, injectChunkId, type SourceMapJson } from "./runtimeSourceMap";
 
-const dir = mkdtempSync(join(tmpdir(), "thinkrail-runtime-map-"));
+const dir = mkdtempSync(join(tmpdir(), "realthing-runtime-map-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
 
 test("chunk ids are deterministic UUIDs of the code, its map and the release", () => {

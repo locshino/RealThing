@@ -1,4 +1,4 @@
-/* ThinkRail website — "the site IS the IDE". Hand-written CSS; palettes copied from the app themes (SPEC.md). */
+/* RealThing website — "the site IS the IDE". Hand-written CSS; palettes copied from the app themes (SPEC.md). */
 
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist/wght-italic.css";
@@ -2045,7 +2045,7 @@ html:not(.anim) .term-caret {
 }
 
 .mock-tooltip-text {
-	/* s14 — next smaller level on the ThinkRail type scale (no 15 exists). */
+	/* s14 — next smaller level on the RealThing type scale (no 15 exists). */
 	font-size: 14px;
 	line-height: 1.5;
 	color: var(--text);

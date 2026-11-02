@@ -1,5 +1,5 @@
-import type { MessageKey } from "@thinkrail/locales";
-import { useT } from "@thinkrail/locales/react";
+import type { MessageKey } from "@realthing/locales";
+import { useT } from "@realthing/locales/react";
 import { useEffect, useMemo, useRef } from "react";
 import type { ResourceViewProps, ReviewThread } from "../../registry";
 import { ReviewComposer } from "../../support/ReviewComposer";

@@ -3,6 +3,6 @@ export function targetsWindows(target?: string): boolean {
 }
 
 export function binaryArtifactName(target?: string): string {
-	const base = target ? `thinkrail-${target.replace(/^bun-/, "")}` : "thinkrail";
+	const base = target ? `realthing-${target.replace(/^bun-/, "")}` : "realthing";
 	return targetsWindows(target) ? `${base}.exe` : base;
 }

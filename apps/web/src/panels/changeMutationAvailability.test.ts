@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { CHANGE_MUTATIONS_PROTOCOL_VERSION } from "@thinkrail/contracts";
+import { CHANGE_MUTATIONS_PROTOCOL_VERSION } from "@realthing/contracts";
 import { canOfferChangeMutations } from "./changeMutationAvailability";
 
 test("change mutations require a mutable scope, host capability, and loaded metadata", () => {

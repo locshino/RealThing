@@ -1,12 +1,12 @@
 import { RiChatNewLine as MessageSquarePlus } from "@remixicon/react";
-import { buttonDataAttributes, buttonVariants } from "@thinkrail/ui/button";
+import { buttonDataAttributes, buttonVariants } from "@realthing/ui/button";
 import * as monaco from "monaco-editor/editor/editor.api.js";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { ReviewThread } from "../registry";
 import { emitChangedZones } from "./reviewZoneEmit";
 
-const ICON_WIDGET_ID = "thinkrail.review.addIcon";
+const ICON_WIDGET_ID = "realthing.review.addIcon";
 const CARD_MAX_WIDTH = 832;
 const ICON_SVG = renderToStaticMarkup(createElement(MessageSquarePlus, { "aria-hidden": true }));
 
@@ -139,7 +139,7 @@ export function attachReviewCommenting(
 		iconButton.ariaLabel = next;
 		menuAction?.dispose();
 		menuAction = codeEditor.addAction({
-			id: `thinkrail.review.commentSelection.${codeEditor.getId()}`,
+			id: `realthing.review.commentSelection.${codeEditor.getId()}`,
 			label: next,
 			precondition: "editorHasSelection",
 			contextMenuGroupId: "9_cutcopypaste",

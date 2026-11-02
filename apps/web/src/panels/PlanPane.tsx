@@ -1,4 +1,5 @@
 import {
+	RiCheckLine as Check,
 	RiArrowDownSLine as ChevronDown,
 	RiArrowRightSLine as ChevronRight,
 	RiCircleLine as Circle,
@@ -9,83 +10,596 @@ import {
 	RiDownloadLine as Download,
 	RiGitBranchLine as GitBranch,
 	RiGitCommitLine as GitCommitHorizontal,
-	RiGitPullRequestLine as GitPullRequestArrow,
-	RiListCheck3 as ListChecks,
 	RiLoader4Line as Loader2,
-	RiQuestionnaireLine as MessageCircleQuestion,
-	RiChat1Line as MessageSquare,
 	RiMore2Line as MoreVertical,
 	RiAddLine as Plus,
+	RiShieldCheckLine as ShieldCheck,
 } from "@remixicon/react";
-import type { ReviewComment, TodoGroupItem, TodoItem } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
-import { Button, buttonVariants, IconButton } from "@thinkrail/ui/button";
+import type {
+	GitFileChange,
+	TodoGroupItem,
+	TodoItem,
+	TodoPlan,
+	TodoStatus,
+} from "@realthing/contracts";
+import { type Translator, t as translate, useT } from "@realthing/locales/react";
+import { Button, IconButton } from "@realthing/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "@thinkrail/ui/dropdown-menu";
-import { LoadingRegion } from "@thinkrail/ui/skeleton";
-import { IconTooltip } from "@thinkrail/ui/tooltip";
-import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import { type ChatActions, ChatActionsContext } from "../chat/ChatActions";
+} from "@realthing/ui/dropdown-menu";
+import { LoadingRegion } from "@realthing/ui/skeleton";
+import { IconTooltip } from "@realthing/ui/tooltip";
 import {
-	awaitingToolCallIdOf,
-	deriveInteractionStates,
-	InteractionStatesContext,
-} from "../chat/interactionState";
-import { Markdown } from "../chat/Markdown";
-import { SectionLabel, VerificationBadge, VerificationGlyph } from "../chat/planKit";
-import { planToMarkdown } from "../chat/planMarkdown";
-import {
-	adoptedCommits,
-	changeSetCounts,
-	changeSetStat,
-	flatItems,
-	groupProgress,
-	isPlanReady,
-	itemChangeSet,
-	itemOpenFindings,
-	itemRevisions,
-	lastAgentText,
-	type PendingInteraction,
-	type PlanGlance,
-	pendingInteraction,
-	planCompletionSummary,
-	planSections,
-	planStaleSummary,
-	planSummary,
-	reviewableItems,
-	reviewChangesRequested,
-	reviewSettled,
-	sessionGlance,
-} from "../chat/planView";
-import { StatusIcon } from "../chat/TodoList";
-import { useToolInteraction } from "../chat/toolInteraction";
-import { getToolRenderer } from "../chat/toolRegistry";
-import { hydrateSessionRuntime, useChatTodos } from "../chat/useChatTodos";
-import {
-	selectAgentReviewCommentCount,
-	selectChatName,
-	selectChatTitle,
-	selectWorkspaceById,
-	useAppStore,
-} from "../store";
-import { errorText, getTransport, respondToTool, supportsPlanReview } from "../transport";
+	type ReactNode,
+	useCallback,
+	useEffect,
+	useInsertionEffect,
+	useRef,
+	useState,
+} from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { tupleKey } from "../lib";
+import { isConnectedGeneration, selectWorkspaceById, toast, useAppStore } from "../store";
+import { errorText, getTransport } from "../transport";
+import { statusLetter } from "./changesModel";
 import { DiffStatBadge } from "./DiffStatBadge";
-import { openChatInTab } from "./openChat";
 import { openDiffInTab } from "./openTabs";
 import { PlanCommitsMenu } from "./PlanCommitsMenu";
 import { FileRow } from "./planFileRow";
-import {
-	isOpenBranchReview,
-	openReviewLabel,
-	resolveBranchReview,
-	useBranchStatus,
-} from "./useBranchStatus";
-import { useShipRunner } from "./useShipRunner";
+
+export type ItemChangeSet =
+	| { kind: "commit"; sha: string; files: GitFileChange[] }
+	| { kind: "paths"; paths: string[] };
+
+export interface ItemRevision {
+	sha: string;
+	files?: GitFileChange[];
+}
+
+export function itemRevisions(item: TodoItem): ItemRevision[] {
+	return (item.artifacts ?? []).flatMap((a) =>
+		a.kind === "commit" && a.sha ? [{ sha: a.sha, ...(a.files ? { files: a.files } : {}) }] : [],
+	);
+}
+
+export function itemChangeSet(item: TodoItem): ItemChangeSet | null {
+	const artifacts = item.artifacts ?? [];
+	const paths = artifacts.flatMap((a) => (a.kind === "change" && a.path ? [a.path] : []));
+	if (paths.length > 0) return { kind: "paths", paths };
+	const commits = itemRevisions(item);
+	for (let i = commits.length - 1; i >= 0; i--) {
+		const rev = commits[i];
+		if (rev?.files && rev.files.length > 0)
+			return { kind: "commit", sha: rev.sha, files: rev.files };
+	}
+	return null;
+}
+
+export function changeSetStat(files: GitFileChange[]): {
+	count: number;
+	added: number;
+	removed: number;
+} {
+	return {
+		count: files.length,
+		added: files.reduce((sum, f) => sum + (f.added ?? 0), 0),
+		removed: files.reduce((sum, f) => sum + (f.removed ?? 0), 0),
+	};
+}
+
+export function changeSetCounts(set: ItemChangeSet): {
+	count: number;
+	added: number;
+	removed: number;
+} {
+	return set.kind === "paths"
+		? { count: set.paths.length, added: 0, removed: 0 }
+		: changeSetStat(set.files);
+}
+
+export function groupProgress(group: TodoGroupItem): { done: number; total: number } {
+	return {
+		done: group.todos.filter((t) => t.status === "done").length,
+		total: group.todos.length,
+	};
+}
+
+export function flatItems(plan: TodoPlan): TodoItem[] {
+	return [...plan.groups.flatMap((g) => g.todos), ...plan.todos];
+}
+
+export function planSummary(plan: TodoPlan): {
+	done: number;
+	total: number;
+	current: TodoItem | undefined;
+} {
+	const all = flatItems(plan);
+	return {
+		done: all.filter((t) => t.status === "done").length,
+		total: all.length,
+		current: all.find((t) => t.status === "in_progress"),
+	};
+}
+
+export function verificationStatus(verification: string): "claimed" | "unverified" {
+	return /\b(not\s+verified|unverified|no\s+verification)\b/i.test(verification)
+		? "unverified"
+		: "claimed";
+}
+
+export function adoptedCommits(plan: TodoPlan): TodoItem[] {
+	return plan.adoptedCommits ?? [];
+}
+
+export function planCompletionSummary(plan: TodoPlan): string | undefined {
+	if (!plan.summary) return undefined;
+	const all = flatItems(plan);
+	if (all.length === 0 || all.some((t) => t.status !== "done")) return undefined;
+	return plan.summary;
+}
+
+export function planStaleSummary(plan: TodoPlan): string | undefined {
+	if (!plan.summary) return undefined;
+	const all = flatItems(plan);
+	if (all.length === 0) return undefined;
+	return all.some((t) => t.status !== "done") ? plan.summary : undefined;
+}
+
+export interface PlanSections {
+	activeGroups: TodoGroupItem[];
+	activeLoose: TodoItem[];
+	pendingGroups: TodoGroupItem[];
+	pendingLoose: TodoItem[];
+	doneGroups: TodoGroupItem[];
+	doneLoose: TodoItem[];
+}
+
+export function planSections(plan: TodoPlan): PlanSections {
+	const s: PlanSections = {
+		activeGroups: [],
+		activeLoose: [],
+		pendingGroups: [],
+		pendingLoose: [],
+		doneGroups: [],
+		doneLoose: [],
+	};
+	for (const group of plan.groups) {
+		if (group.status === "active") s.activeGroups.push(group);
+		else if (group.status === "done") s.doneGroups.push(group);
+		else s.pendingGroups.push(group);
+	}
+	for (const todo of plan.todos) {
+		if (todo.status === "in_progress") s.activeLoose.push(todo);
+		else if (todo.status === "done") s.doneLoose.push(todo);
+		else s.pendingLoose.push(todo);
+	}
+	return s;
+}
+
+function planChangeTotals(plan: TodoPlan): { files: number } {
+	const paths = new Set<string>();
+	for (const item of flatItems(plan)) {
+		const set = itemChangeSet(item);
+		if (!set) continue;
+		if (set.kind === "paths") for (const path of set.paths) paths.add(path);
+		else for (const file of set.files) paths.add(file.path);
+	}
+	return { files: paths.size };
+}
+
+function checkbox(item: TodoItem): string {
+	if (item.status === "done") return "[x]";
+	if (item.status === "in_progress") return "[~]";
+	return "[ ]";
+}
+
+function plusMinus(added: number, removed: number): string {
+	const parts = [...(added > 0 ? [`+${added}`] : []), ...(removed > 0 ? [`−${removed}`] : [])];
+	return parts.join(" ");
+}
+
+function flattenInline(text: string): string {
+	return text
+		.split("\n")
+		.map((line) => line.replace(/^\s*[-*]\s+/, "").trim())
+		.filter(Boolean)
+		.join(" · ");
+}
+
+function itemLines(t: Translator, item: TodoItem): string[] {
+	const head = `- ${checkbox(item)} ${item.title}`;
+	const summary = [
+		...(item.status === "done" && item.summary ? [`    - _${flattenInline(item.summary)}_`] : []),
+		...(item.status === "done" && item.verification
+			? [
+					`    - ${t("chat.planExport.verified", { verification: flattenInline(item.verification) })}`,
+				]
+			: []),
+	];
+	const set = itemChangeSet(item);
+	if (!set) return [head, ...summary];
+	if (set.kind === "paths") {
+		return [head, ...summary, ...set.paths.map((path) => `    - ${path}`)];
+	}
+	const { count, added, removed } = changeSetStat(set.files);
+	const stat = plusMinus(added, removed);
+	const countText = t("chat.planExport.files", { count });
+	const statLine = [`\`${set.sha.slice(0, 7)}\``, countText, ...(stat ? [stat] : [])].join(" · ");
+	return [
+		`${head} — ${statLine}`,
+		...summary,
+		...set.files.map((f) => {
+			const fileStat = plusMinus(f.added ?? 0, f.removed ?? 0);
+			return `    - \`${statusLetter(f.status)}\` ${f.path}${fileStat ? ` · ${fileStat}` : ""}`;
+		}),
+	];
+}
+
+export function planToMarkdown(t: Translator, plan: TodoPlan, title: string): string {
+	const all = flatItems(plan);
+	const done = all.filter((item) => item.status === "done").length;
+	const lines: string[] = [
+		`# ${t("chat.planExport.title", { title })}`,
+		"",
+		t("chat.planExport.progress", { done, total: all.length }),
+	];
+	if (all.length > 0 && done === all.length) {
+		const files = planChangeTotals(plan).files;
+		const overall = planCompletionSummary(plan);
+		if (overall || files > 0) {
+			const facts = [t("chat.planExport.stepsDone", { count: done })];
+			if (files > 0) facts.push(t("chat.planExport.files", { count: files }));
+			lines.push(
+				"",
+				`## ${t("chat.planExport.summary")}`,
+				"",
+				facts.join(" · "),
+				...(overall ? ["", overall] : []),
+			);
+		}
+	}
+
+	for (const group of plan.groups) {
+		const progress = groupProgress(group);
+		lines.push(
+			"",
+			`## ${group.title} — ${progress.done}/${progress.total}`,
+			...group.todos.flatMap((item) => itemLines(t, item)),
+		);
+	}
+	if (plan.todos.length > 0) {
+		lines.push(
+			"",
+			...(plan.groups.length > 0 ? [`### ${t("chat.planExport.other")}`] : []),
+			...plan.todos.flatMap((item) => itemLines(t, item)),
+		);
+	}
+	const adopted = plan.adoptedCommits ?? [];
+	const unattributed = plan.unattributed ?? [];
+	if (all.length === 0 && adopted.length === 0 && unattributed.length === 0) {
+		lines.push("", `_${t("chat.planExport.empty")}_`);
+	}
+
+	if (adopted.length > 0) {
+		lines.push(
+			"",
+			`## ${t("chat.planExport.committedOutside")}`,
+			...adopted.flatMap((item) => itemLines(t, item)),
+		);
+	}
+
+	if (unattributed.length > 0) {
+		lines.push(
+			"",
+			`## ${t("chat.planExport.outside")}`,
+			...unattributed.map((f) => {
+				const fileStat = plusMinus(f.added ?? 0, f.removed ?? 0);
+				return `- \`${statusLetter(f.status)}\` ${f.path}${fileStat ? ` · ${fileStat}` : ""}`;
+			}),
+		);
+	}
+
+	return `${lines.join("\n")}\n`;
+}
+
+const todoRefetchBus = new Map<string, Set<() => void>>();
+
+function subscribeTodoRefetch(key: string, listener: () => void): () => void {
+	let set = todoRefetchBus.get(key);
+	if (!set) {
+		set = new Set();
+		todoRefetchBus.set(key, set);
+	}
+	set.add(listener);
+	return () => {
+		const current = todoRefetchBus.get(key);
+		current?.delete(listener);
+		if (current && current.size === 0) todoRefetchBus.delete(key);
+	};
+}
+
+function signalTodoRefetch(key: string, except?: () => void): void {
+	const listeners = todoRefetchBus.get(key);
+	if (!listeners) return;
+	for (const listener of [...listeners]) {
+		if (listener === except) continue;
+		listener();
+	}
+}
+
+export interface WorkspaceTodos {
+	data: TodoPlan | null;
+	failed: boolean;
+	add: (title: string, surface?: "page" | "rail") => Promise<void>;
+	remove: (id: string) => Promise<void>;
+	openPlan: () => void;
+	openChanges: (target: { sha: string } | { path: string }) => void;
+}
+
+export function useWorkspaceTodos(workspaceId: string): WorkspaceTodos {
+	const [data, setData] = useState<TodoPlan | null>(null);
+	const [failed, setFailed] = useState(false);
+	const status = useAppStore((state) => state.status);
+	const connectionGeneration = useAppStore((state) => state.connectionGeneration);
+	const fsTick = useAppStore((state) => state.fsChangesByWorkspace[workspaceId]?.tick ?? 0);
+	const identity = tupleKey("workspace-todos", workspaceId);
+	const currentIdentity = useRef(identity);
+	const readGeneration = useRef(0);
+	const selfListenerRef = useRef<(() => void) | null>(null);
+	const initializedIdentity = useRef<string | null>(null);
+
+	useInsertionEffect(() => {
+		currentIdentity.current = identity;
+	}, [identity]);
+
+	const live = useCallback(
+		(expectedIdentity: string) => {
+			const state = useAppStore.getState();
+			return (
+				currentIdentity.current === expectedIdentity && !state.removedWorkspaceIds[workspaceId]
+			);
+		},
+		[workspaceId],
+	);
+
+	useEffect(() => {
+		if (status !== "connected" || connectionGeneration === 0) return;
+		let cancelled = false;
+		const effectIdentity = identity;
+		const effectConnectionGeneration = connectionGeneration;
+		const load = (reset: boolean) => {
+			const mine = ++readGeneration.current;
+			if (reset) {
+				setData(null);
+				setFailed(false);
+			}
+			getTransport()
+				.request("todo.list", { workspaceId })
+				.then((plan) => {
+					if (
+						!cancelled &&
+						readGeneration.current === mine &&
+						isConnectedGeneration(useAppStore.getState(), effectConnectionGeneration) &&
+						live(effectIdentity)
+					) {
+						setData(plan);
+						setFailed(false);
+					}
+				})
+				.catch(() => {
+					if (
+						!cancelled &&
+						reset &&
+						readGeneration.current === mine &&
+						isConnectedGeneration(useAppStore.getState(), effectConnectionGeneration) &&
+						live(effectIdentity)
+					) {
+						setFailed(true);
+					}
+				});
+		};
+		const reset = initializedIdentity.current !== identity;
+		initializedIdentity.current = identity;
+		load(reset);
+		let refetch: ReturnType<typeof setTimeout> | undefined;
+		const scheduleRefetch = () => {
+			if (refetch) clearTimeout(refetch);
+			refetch = setTimeout(() => load(false), 250);
+		};
+		selfListenerRef.current = scheduleRefetch;
+		const unsubscribeBus = subscribeTodoRefetch(identity, scheduleRefetch);
+		return () => {
+			cancelled = true;
+			readGeneration.current += 1;
+			if (refetch) clearTimeout(refetch);
+			unsubscribeBus();
+		};
+	}, [connectionGeneration, identity, live, status, workspaceId]);
+
+	const prevFsTick = useRef(fsTick);
+	useEffect(() => {
+		if (prevFsTick.current === fsTick) return;
+		prevFsTick.current = fsTick;
+		selfListenerRef.current?.();
+	}, [fsTick]);
+
+	const broadcastWrite = (key: string): void =>
+		signalTodoRefetch(key, selfListenerRef.current ?? undefined);
+
+	const reloadPlan = async (): Promise<boolean> => {
+		const requestIdentity = identity;
+		const requestState = useAppStore.getState();
+		const requestConnectionGeneration =
+			requestState.status === "connected" ? requestState.connectionGeneration : null;
+		const mine = ++readGeneration.current;
+		const plan = await getTransport()
+			.request("todo.list", { workspaceId })
+			.catch(() => null);
+		if (!plan) return false;
+		const current = useAppStore.getState();
+		if (
+			requestConnectionGeneration !== null &&
+			current.connectionGeneration !== requestConnectionGeneration &&
+			readGeneration.current === mine &&
+			live(requestIdentity)
+		) {
+			return reloadPlan();
+		}
+		if (readGeneration.current !== mine || !live(requestIdentity)) return false;
+		setData(plan);
+		return true;
+	};
+
+	const add = async (rawTitle: string, surface: "page" | "rail" = "page") => {
+		const title = rawTitle.trim();
+		if (!title) return;
+		const requestIdentity = identity;
+		const todo = await getTransport().request("todo.add", {
+			workspaceId,
+			title,
+			surface,
+		});
+		if (!live(requestIdentity)) return;
+		readGeneration.current += 1;
+		setData((prev) =>
+			prev &&
+			![...prev.todos, ...prev.groups.flatMap((group) => group.todos)].some(
+				(candidate) => candidate.id === todo.id,
+			)
+				? { ...prev, todos: [...prev.todos, todo] }
+				: prev,
+		);
+		broadcastWrite(requestIdentity);
+	};
+
+	const openPlan = () => {
+		const state = useAppStore.getState();
+		const workspace = selectWorkspaceById(state, workspaceId);
+		const title = workspace?.name ?? translate("shell.workbench.panel.plan");
+		void getTransport()
+			.request("todo.list", { workspaceId, opened: "page" })
+			.catch(() => {});
+		state.openDoc({
+			kind: "plan",
+			id: `${workspaceId}:plan`,
+			workspaceId,
+			name: title,
+		});
+	};
+
+	const openChanges = (target: { sha: string } | { path: string }) => {
+		const store = useAppStore.getState();
+		if ("sha" in target) {
+			store.setDiffScope(workspaceId, { kind: "commit", sha: target.sha });
+			store.revealChanges(workspaceId);
+			return;
+		}
+		store.setDiffScope(workspaceId, { kind: "branch" });
+		store.requestChangesView(workspaceId, target.path);
+	};
+
+	const remove = async (id: string): Promise<void> => {
+		const requestIdentity = identity;
+		setData((prev) => {
+			if (!prev) return prev;
+			return {
+				...prev,
+				todos: prev.todos.filter((t) => t.id !== id),
+				groups: prev.groups.map((g) => ({ ...g, todos: g.todos.filter((t) => t.id !== id) })),
+			};
+		});
+		try {
+			await getTransport().request("todo.remove", { workspaceId, id });
+		} catch (error) {
+			if (live(requestIdentity)) await reloadPlan();
+			toast.error(errorText(error), translate("chat.todo.removeFailed"));
+			return;
+		}
+		if (!live(requestIdentity)) return;
+		await reloadPlan();
+		broadcastWrite(identity);
+	};
+
+	return {
+		data,
+		failed,
+		add,
+		remove,
+		openPlan,
+		openChanges,
+	};
+}
+
+const VERIFICATION_PROSE = [
+	"min-w-0 max-w-none break-words text-text-muted",
+	"[&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
+	"[&_p]:my-2 [&_strong]:text-text-default",
+	"[&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-16 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-16 [&_li]:my-2",
+].join(" ");
+
+export function SectionLabel({ label }: { label: string }) {
+	return <div className="px-4 py-4 tr-text-eyebrow text-text-muted">{label}</div>;
+}
+
+export function PlanStatusIcon({ status }: { status: TodoStatus }) {
+	if (status === "done") return <Check className="size-12 shrink-0 text-primary" />;
+	if (status === "in_progress") return <CircleDot className="size-12 shrink-0 text-primary" />;
+	return <Circle className="size-12 shrink-0 text-text-muted" />;
+}
+
+function PlanMarkdown({ text, className }: { text: string; className?: string }) {
+	return (
+		<div className={`tr-prose-chat ${className ?? ""}`}>
+			<ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+		</div>
+	);
+}
+
+function VerificationGlyph({ verification }: { verification: string }) {
+	const status = verificationStatus(verification);
+	const Icon = status === "claimed" ? ShieldCheck : CircleAlert;
+	return (
+		<span title={verification} className="inline-flex">
+			<Icon
+				data-testid="todo-verification-glyph"
+				data-status={status}
+				aria-label={verification}
+				className={`size-14 shrink-0 ${
+					status === "claimed" ? "text-feedback-success" : "text-feedback-warning"
+				}`}
+			/>
+		</span>
+	);
+}
+
+function VerificationBadge({ verification }: { verification: string }) {
+	const t = useT();
+	const status = verificationStatus(verification);
+	const Icon = status === "claimed" ? ShieldCheck : CircleAlert;
+	return (
+		<div
+			data-testid="todo-verification"
+			data-status={status}
+			title={
+				status === "claimed"
+					? t("chat.plan.verificationClaimed")
+					: t("chat.plan.verificationMissing")
+			}
+			className="flex min-w-0 items-start gap-4 tr-text-metadata"
+		>
+			<Icon
+				className={`mt-2 size-14 shrink-0 ${
+					status === "claimed" ? "text-feedback-success" : "text-feedback-warning"
+				}`}
+			/>
+			<PlanMarkdown text={verification} className={`min-w-0 flex-1 ${VERIFICATION_PROSE}`} />
+		</div>
+	);
+}
 
 function ChangeSetBlock({
 	item,
@@ -177,10 +691,8 @@ function ChangeSetBlock({
 	);
 }
 
-// One card shape for every top-of-plan block (next-action banner, Summary, Now executing).
 const PLAN_CARD_CLASS =
 	"mb-16 rounded-md border border-border-default bg-container-elevated-bg p-12";
-const NEXT_ACTION_CLASS = `${PLAN_CARD_CLASS} flex items-center gap-8`;
 
 type StageState = "done" | "active" | "pending";
 
@@ -209,7 +721,6 @@ function RevisionsBlock({
 	const t = useT();
 	const revisions = itemRevisions(item);
 	if (revisions.length < 2) return null;
-	const unreviewed = new Set(item.review?.unreviewedShas ?? []);
 	return (
 		<div data-testid="plan-revisions">
 			<span className="px-4 tr-text-eyebrow text-text-subtle">{t("plan.revisions.title")}</span>
@@ -221,7 +732,6 @@ function RevisionsBlock({
 							key={rev.sha}
 							data-testid="plan-revision"
 							data-sha={rev.sha}
-							data-unreviewed={unreviewed.has(rev.sha)}
 							className="flex items-center gap-8 px-4"
 						>
 							<span className="w-20 shrink-0 text-right tr-text-metadata text-text-muted">
@@ -237,11 +747,6 @@ function RevisionsBlock({
 								{rev.sha.slice(0, 7)}
 							</button>
 							{stat ? <DiffStatBadge added={stat.added} removed={stat.removed} /> : null}
-							{unreviewed.has(rev.sha) ? (
-								<span className="tr-text-metadata text-feedback-warning">
-									{t("plan.revisions.unreviewed")}
-								</span>
-							) : null}
 							{index === revisions.length - 1 ? (
 								<span className="tr-text-metadata text-text-subtle">
 									{t("plan.revisions.current")}
@@ -258,82 +763,35 @@ function RevisionsBlock({
 function ItemBlock({
 	item,
 	workspaceId,
-	sessionId,
 	onOpenCommit,
-	onStartReview,
-	onOpenReview,
-	reviewComments,
-	startDisabled,
-	focusRequest,
 }: {
 	item: TodoItem;
 	workspaceId: string;
-	sessionId: string;
 	onOpenCommit: (sha: string) => void;
-	onStartReview: (id: string) => Promise<void>;
-	onOpenReview: () => void;
-	reviewComments: ReviewComment[] | undefined;
-	startDisabled: boolean;
-	focusRequest: { id: string; tick: number } | null;
 }) {
 	const t = useT();
-	const reviewed = reviewSettled(item);
-	const reviewing = item.review?.reviewing === true;
-	const changesRequested = reviewChangesRequested(item) && !reviewing;
-	const needsReview = item.review !== undefined && !reviewed;
-	// A done step needs no status glyph — its section (or strikethrough) already says "done"; only a
-	// warning (changes requested) or an active review keeps a leading glyph.
-	const hideStatusGlyph = item.status === "done" && !reviewing && !changesRequested;
-	const findings = changesRequested ? itemOpenFindings(item, reviewComments, sessionId) : 0;
+	const hideStatusGlyph = item.status === "done";
 	const set = itemChangeSet(item);
 	const counts = set ? changeSetCounts(set) : null;
 	const fileCount = counts?.count ?? 0;
-	const feedback = changesRequested ? item.review?.feedback : undefined;
-	const hasDetails = Boolean(
-		item.note || item.summary || item.verification || feedback || set !== null,
-	);
+	const hasDetails = Boolean(item.note || item.summary || item.verification || set !== null);
 	const collapsible = hasDetails;
 	const [expanded, setExpanded] = useState(false);
-	const consumedFocusTick = useRef(0);
-	useEffect(() => {
-		if (!focusRequest || focusRequest.id !== item.id || !collapsible) return;
-		if (consumedFocusTick.current === focusRequest.tick) return;
-		consumedFocusTick.current = focusRequest.tick;
-		setExpanded(true);
-	}, [focusRequest, item.id, collapsible]);
 	const detailsClass = collapsible ? "hidden group-data-[expanded=true]:flex" : "flex";
 	return (
 		<li
 			id={`plan-item-${item.id}`}
 			data-testid="plan-item"
 			data-status={item.status}
-			data-reviewed={reviewed}
-			data-reviewing={reviewing}
-			data-changes-requested={changesRequested}
 			data-expanded={collapsible ? expanded : undefined}
 			className="group py-2"
 		>
 			<div className="flex items-start gap-8 rounded-sm p-4 transition-colors group-hover:bg-control-bg-hovered">
-				<span
-					className="flex min-h-24 shrink-0 items-center"
-					title={
-						reviewing
-							? t("plan.item.checkingTitle")
-							: changesRequested
-								? t("plan.item.needsFix")
-								: undefined
-					}
-				>
+				<span className="flex min-h-24 shrink-0 items-center">
 					{hideStatusGlyph ? (
 						<span className="size-12 shrink-0" aria-hidden="true" />
 					) : (
-						<StatusIcon
-							status={item.status}
-							glance="working"
-							reviewed={reviewed}
-							reviewing={reviewing}
-							changesRequested={changesRequested}
-						/>
+						<PlanStatusIcon status={item.status} />
 					)}
 				</span>
 				<div className="flex min-w-0 flex-1 flex-col gap-2">
@@ -360,49 +818,6 @@ function ItemBlock({
 								</span>
 							</span>
 						)}
-						{reviewing ? (
-							<span
-								data-testid="plan-item-reviewing"
-								title={t("plan.item.reviewingTitle")}
-								className="min-h-8 shrink-0 animate-pulse tr-text-metadata text-primary"
-							>
-								{t("plan.item.checking")}
-							</span>
-						) : changesRequested ? (
-							<button
-								type="button"
-								data-testid="plan-item-changes-requested"
-								title={t("plan.item.changesRequestedTitle")}
-								onClick={onOpenReview}
-								className="flex min-h-8 shrink-0 items-center gap-2 tr-text-metadata text-feedback-warning underline-offset-2 hover:underline"
-							>
-								<CircleAlert className="size-14" />
-								{findings > 0
-									? t("plan.item.needsFixCount", { count: findings })
-									: t("plan.item.needsFix")}
-							</button>
-						) : needsReview ? (
-							<Button
-								variant="primary"
-								size="m"
-								data-testid="plan-start-review"
-								disabled={startDisabled}
-								tooltip={startDisabled ? t("plan.item.reviewBusy") : undefined}
-								onClick={() => onStartReview(item.id)}
-								className="shrink-0 opacity-100 focus-visible:opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100"
-							>
-								{t("plan.item.checkIt")}
-							</Button>
-						) : reviewed ? (
-							<span
-								data-testid="plan-item-verified"
-								title={t("plan.item.checkedTitle")}
-								className="flex min-h-8 shrink-0 items-center gap-2 tr-text-metadata text-feedback-success"
-							>
-								<CircleCheck className="size-14" />
-								{t("plan.item.checked")}
-							</span>
-						) : null}
 					</div>
 					{collapsible && (item.summary || item.verification || set) ? (
 						<div
@@ -412,7 +827,7 @@ function ItemBlock({
 							{item.status === "done" && item.summary ? (
 								<span data-testid="plan-item-summary-preview" className="flex items-start gap-8">
 									<span className="size-14 shrink-0" />
-									<Markdown
+									<PlanMarkdown
 										text={item.summary}
 										className={`min-w-0 flex-1 line-clamp-1 ${SUMMARY_PROSE}`}
 									/>
@@ -441,18 +856,10 @@ function ItemBlock({
 				<div
 					className={`mt-2 ml-24 flex-col gap-2 border-border-default border-l pl-12 ${detailsClass}`}
 				>
-					{feedback ? (
-						<div
-							data-testid="plan-item-review-feedback"
-							className="tr-text-metadata text-feedback-warning"
-						>
-							{feedback}
-						</div>
-					) : null}
 					{item.note ? <div className="tr-text-metadata text-text-subtle">{item.note}</div> : null}
 					{item.status === "done" && item.summary ? (
 						<div data-testid="plan-item-summary">
-							<Markdown text={item.summary} className={`tr-text-metadata ${SUMMARY_PROSE}`} />
+							<PlanMarkdown text={item.summary} className={`tr-text-metadata ${SUMMARY_PROSE}`} />
 						</div>
 					) : null}
 					{item.status === "done" && item.verification ? (
@@ -502,7 +909,7 @@ function PlanSummary({ summary, stale = false }: { summary: string; stale?: bool
 				) : null}
 			</div>
 			<div data-testid="plan-overall-summary" className="max-h-[40vh] overflow-y-auto">
-				<Markdown text={summary} className={`tr-text-ui ${SUMMARY_PROSE}`} />
+				<PlanMarkdown text={summary} className={`tr-text-ui ${SUMMARY_PROSE}`} />
 			</div>
 		</div>
 	);
@@ -511,23 +918,11 @@ function PlanSummary({ summary, stale = false }: { summary: string; stale?: bool
 function GroupSection({
 	group,
 	workspaceId,
-	sessionId,
 	onOpenCommit,
-	onStartReview,
-	onOpenReview,
-	reviewComments,
-	startDisabled,
-	focusRequest,
 }: {
 	group: TodoGroupItem;
 	workspaceId: string;
-	sessionId: string;
 	onOpenCommit: (sha: string) => void;
-	onStartReview: (id: string) => Promise<void>;
-	onOpenReview: () => void;
-	reviewComments: ReviewComment[] | undefined;
-	startDisabled: boolean;
-	focusRequest: { id: string; tick: number } | null;
 }) {
 	const t = useT();
 	const { done, total } = groupProgress(group);
@@ -555,13 +950,7 @@ function GroupSection({
 						key={item.id}
 						item={item}
 						workspaceId={workspaceId}
-						sessionId={sessionId}
 						onOpenCommit={onOpenCommit}
-						onStartReview={onStartReview}
-						onOpenReview={onOpenReview}
-						reviewComments={reviewComments}
-						startDisabled={startDisabled}
-						focusRequest={focusRequest}
 					/>
 				))}
 			</ul>
@@ -574,7 +963,7 @@ function downloadMarkdown(markdown: string, title: string): void {
 	const url = URL.createObjectURL(blob);
 	const a = document.createElement("a");
 	a.href = url;
-	a.download = `plan-${title.replace(/[^\w-]+/g, "-").toLowerCase() || "chat"}.md`;
+	a.download = `plan-${title.replace(/[^\w-]+/g, "-").toLowerCase() || "plan"}.md`;
 	a.click();
 	URL.revokeObjectURL(url);
 }
@@ -662,89 +1051,13 @@ function PlanCardSection({
 	);
 }
 
-function PlanInteractionCard({ pending }: { pending: PendingInteraction }) {
-	const interaction = useToolInteraction(pending.toolCallId, pending.toolName);
-	const Renderer = getToolRenderer(pending.toolName);
-	return (
-		<Renderer
-			toolCallId={pending.toolCallId}
-			toolName={pending.toolName}
-			args={pending.args}
-			result={pending.result}
-			status={pending.status}
-			streaming={pending.streaming}
-			interaction={interaction}
-		/>
-	);
-}
-
-// Keep the session's live slot isolated from the heavy PlanPane.
-function PlanSessionLive({ sessionId }: { workspaceId: string; sessionId: string }) {
-	const t = useT();
-	const runtime = useAppStore((s) => s.sessions[sessionId]);
-	const [focusScope] = useState<object>(() => ({}));
-	const actions = useMemo<ChatActions>(
-		() => ({
-			cancelAutomaticReveal: () => {},
-			focusComposer: () => {},
-			openSubagentTranscript: () => {},
-			respondToTool: (toolCallId, response) => respondToTool(sessionId, toolCallId, response),
-			resultOpener: () => undefined,
-			revealChatElement: () => {},
-		}),
-		[sessionId],
-	);
-	const interactionStates = useMemo(
-		() =>
-			runtime
-				? deriveInteractionStates(runtime.turns, runtime.toolResponses, runtime.toolResults)
-				: {},
-		[runtime],
-	);
-	const pending = runtime ? pendingInteraction(runtime) : undefined;
-	if (pending) {
-		return (
-			<ChatActionsContext.Provider value={actions}>
-				<InteractionStatesContext.Provider
-					value={{
-						states: interactionStates,
-						focusScope,
-						awaitingToolCallId: awaitingToolCallIdOf(runtime?.hostState ?? null),
-					}}
-				>
-					<div data-testid="plan-ask" className="mb-8">
-						<PlanInteractionCard pending={pending} />
-					</div>
-				</InteractionStatesContext.Provider>
-			</ChatActionsContext.Provider>
-		);
-	}
-	const message = runtime ? lastAgentText(runtime) : undefined;
-	if (!message) return null;
-	return (
-		<div data-testid="plan-agent-message" className="mb-8 flex items-start gap-8 px-4">
-			<MessageSquare className="mt-2 size-14 shrink-0 text-text-muted" />
-			<div className="min-w-0 flex-1">
-				<div className="tr-text-eyebrow text-text-muted">{t("plan.session.agent")}</div>
-				<div className="max-h-[12rem] overflow-y-auto">
-					<Markdown text={message} className={`tr-text-metadata ${SUMMARY_PROSE}`} />
-				</div>
-			</div>
-		</div>
-	);
-}
-
 function SessionBlock({
 	activeGroups,
 	activeLoose,
 	pendingGroups,
 	pendingLoose,
 	allDone,
-	glance,
-	renderLive,
 	onAdd,
-	onOpenChat,
-	onSend,
 	renderGroup,
 	renderItem,
 }: {
@@ -753,11 +1066,7 @@ function SessionBlock({
 	pendingGroups: TodoGroupItem[];
 	pendingLoose: TodoItem[];
 	allDone: boolean;
-	glance: PlanGlance;
-	renderLive: () => ReactNode;
 	onAdd: (title: string) => Promise<void>;
-	onOpenChat: () => void;
-	onSend: (text: string) => Promise<void> | void;
 	renderGroup: (group: TodoGroupItem) => ReactNode;
 	renderItem: (item: TodoItem) => ReactNode;
 }) {
@@ -766,37 +1075,12 @@ function SessionBlock({
 	const hasActive = activeGroups.length > 0 || activeLoose.length > 0;
 	const hasPending = pendingGroups.length > 0 || pendingLoose.length > 0;
 	const hasAny = hasActive || hasPending;
-	const idleEmpty = glance === "waiting" && !hasAny && !allDone;
+	const idleEmpty = !hasAny && !allDone;
 	return (
 		<section data-testid="plan-now-executing" className={PLAN_CARD_CLASS}>
 			<div className="mb-8 flex items-center gap-8">
 				<CircleDot className="size-14 shrink-0 text-primary" />
 				<h2 className="shrink-0 tr-title-dialog text-text-default">{t("plan.session.now")}</h2>
-				{glance === "working" ? (
-					<button
-						type="button"
-						data-testid="plan-now-status"
-						data-glance="working"
-						onClick={onOpenChat}
-						title={t("plan.session.openChat")}
-						className="flex min-w-0 items-center gap-4 tr-text-metadata text-text-subtle underline-offset-2 hover:text-text-default hover:underline"
-					>
-						<Loader2 className="size-14 shrink-0 animate-spin text-primary" />
-						{t("plan.session.working")}
-					</button>
-				) : glance === "waiting_question" ? (
-					<button
-						type="button"
-						data-testid="plan-now-status"
-						data-glance="waiting_question"
-						onClick={onOpenChat}
-						title={t("plan.session.openChat")}
-						className="flex min-w-0 items-center gap-4 tr-text-metadata text-primary underline-offset-2 hover:underline"
-					>
-						<MessageCircleQuestion className="size-14 shrink-0" />
-						{t("plan.session.question")}
-					</button>
-				) : null}
 				<Button
 					variant="ghost"
 					size="m"
@@ -809,7 +1093,6 @@ function SessionBlock({
 					{t("plan.session.task")}
 				</Button>
 			</div>
-			{renderLive()}
 			{hasActive ? (
 				<>
 					{activeGroups.map(renderGroup)}
@@ -843,18 +1126,6 @@ function SessionBlock({
 					</span>
 				</button>
 			) : null}
-			<div hidden={glance === "waiting_question" || idleEmpty}>
-				<PlanComposer
-					icon={MessageSquare}
-					testId="plan-session-chat"
-					placeholder={
-						glance === "working"
-							? t("plan.session.steerPlaceholder")
-							: t("plan.session.messagePlaceholder")
-					}
-					onSubmit={onSend}
-				/>
-			</div>
 			{adding ? (
 				<PlanComposer
 					icon={Plus}
@@ -869,67 +1140,12 @@ function SessionBlock({
 	);
 }
 
-export default function PlanPane({
-	workspaceId,
-	sessionId,
-}: {
-	workspaceId: string;
-	sessionId: string;
-}) {
+export default function PlanPane({ workspaceId }: { workspaceId: string; sessionId?: string }) {
 	const t = useT();
-	const plan = useChatTodos(workspaceId, sessionId);
-	const title = useAppStore((s) => selectChatTitle(t, s, workspaceId, sessionId));
-	const chatName = useAppStore((s) => selectChatName(s, workspaceId, sessionId));
+	const plan = useWorkspaceTodos(workspaceId);
 	const pushToast = useAppStore((s) => s.pushToast);
-	const requestToolView = useAppStore((s) => s.requestToolView);
 	const workspace = useAppStore((s) => selectWorkspaceById(s, workspaceId));
-	const glance = useAppStore((s): PlanGlance => {
-		const rt = s.sessions[sessionId];
-		return rt ? sessionGlance(rt) : "waiting";
-	});
-	const connection = useAppStore((s) => s.status);
-	const hasRuntime = useAppStore((s) => s.sessions[sessionId] !== undefined);
-	useEffect(() => {
-		if (connection !== "connected" || hasRuntime) return;
-		hydrateSessionRuntime(workspaceId, sessionId).catch(() => {});
-	}, [connection, hasRuntime, workspaceId, sessionId]);
-	const protocolVersion = useAppStore((s) => s.protocolVersion);
-	const workspaceSettlingSupported = useAppStore((s) => s.workspaceSettlingSupported);
-	const canReview = supportsPlanReview(protocolVersion);
-	const {
-		review: branchReview,
-		url: branchReviewUrl,
-		status: branchStatus,
-		noteOpenReview,
-		refreshBranchStatus,
-	} = useBranchStatus(workspace, connection);
-	const branchReviewWithUrl =
-		branchReview && branchReviewUrl ? { ...branchReview, url: branchReviewUrl } : branchReview;
-	const resolvedBranchReview = resolveBranchReview(
-		branchReviewWithUrl,
-		workspace?.review,
-		workspaceSettlingSupported,
-	);
-	const openReview =
-		resolvedBranchReview.review && isOpenBranchReview(resolvedBranchReview.review)
-			? resolvedBranchReview.review
-			: null;
-	const openReviewUrl = openReview?.url;
-	const ship = useShipRunner({
-		workspace,
-		sessionId,
-		title: chatName,
-		bodySource: "plan",
-		openReview,
-		status: branchStatus,
-		analyticsSource: "plan_page",
-		noteOpenReview,
-		refresh: refreshBranchStatus,
-	});
-	const prBusy = ship.busy;
-	const [focusRequest, setFocusRequest] = useState<{ id: string; tick: number } | null>(null);
-	const agentComments = useAppStore((s) => selectAgentReviewCommentCount(s, workspaceId));
-	const reviewComments = useAppStore((s) => s.reviewsByWorkspace[workspaceId]?.comments);
+	const title = workspace?.name ?? t("shell.workbench.panel.plan");
 
 	if (plan.data === null) {
 		if (plan.failed) {
@@ -945,92 +1161,15 @@ export default function PlanPane({
 	const { done, total } = planSummary(data);
 	const sections = planSections(data);
 	const adopted = adoptedCommits(data);
-	const reviewables = reviewableItems(data);
-	const unsettledReviewables = reviewables.filter((t) => !reviewSettled(t));
-	const reviewedCount = reviewables.length - unsettledReviewables.length;
 	const onOpenCommit = (sha: string) => plan.openChanges({ sha });
-	const onOpenReview = () => requestToolView(workspaceId, "review");
-	const reviewingAny = reviewables.some((t) => t.review?.reviewing === true);
-	const planReady = isPlanReady(data);
-	const sameBranch = Boolean(
-		workspace && workspace.branch === workspace.baseBranch.replace(/^origin\//, ""),
-	);
 	const allItems = [...flatItems(data), ...adopted];
-	const commitCount = allItems.reduce((n, t) => n + itemRevisions(t).length, 0);
-	const flagged = allItems.filter((t) => reviewChangesRequested(t) && t.review?.reviewing !== true);
-	const jumpToItem = (id: string) => {
-		setFocusRequest((prev) => ({ id, tick: (prev?.tick ?? 0) + 1 }));
-		document
-			.getElementById(`plan-item-${id}`)
-			?.scrollIntoView({ behavior: "smooth", block: "center" });
-	};
+	const commitCount = allItems.reduce((n, item) => n + itemRevisions(item).length, 0);
 	const buildDone = total > 0 && done === total;
 	const staleSummary = planStaleSummary(data);
-	// The Summary card shows ONLY the agent's prose (fresh when all-done, else the stale note). No prose
-	// → no card (the header stepper already carries the step/file/review counts).
 	const summaryProse = buildDone ? planCompletionSummary(data) : staleSummary;
-	const stages: { build: StageState; review: StageState; pr: StageState } = {
-		build: buildDone ? "done" : "active",
-		review:
-			reviewables.length > 0 && unsettledReviewables.length === 0
-				? "done"
-				: buildDone || reviewedCount > 0
-					? "active"
-					: "pending",
-		pr: openReview ? "done" : planReady ? "active" : "pending",
-	};
-	const unpushed = openReview?.unpushedCommits ?? 0;
-	const diverged = (openReview?.behindCommits ?? 0) > 0;
-	const branch = workspace?.branch ?? "";
-	const { integrateCommand, copyIntegrateCommand, openPr: openPrFlow } = ship;
-	const startReview = async (id: string): Promise<void> =>
-		plan.startReview(id).then(
-			() => {
-				pushToast({
-					variant: "success",
-					title: t("plan.review.startedTitle"),
-					message: t("plan.review.startedMessage"),
-				});
-			},
-			(err) => {
-				pushToast({
-					variant: "error",
-					title: t("plan.review.startFailed"),
-					message: errorText(err),
-				});
-			},
-		);
-	const reviewAll = async (): Promise<void> =>
-		plan.reviewAll().then(
-			({ total, alreadyRunning }) => {
-				pushToast(
-					alreadyRunning
-						? {
-								variant: "info",
-								title: t("plan.checkAll.runningTitle"),
-								message: t("plan.checkAll.runningMessage"),
-							}
-						: total > 0
-							? {
-									variant: "success",
-									title: t("plan.checkAll.startedTitle"),
-									message: t("plan.checkAll.startedMessage", { count: total }),
-								}
-							: {
-									variant: "info",
-									title: t("plan.checkAll.nothingTitle"),
-									message: t("plan.checkAll.nothingMessage"),
-								},
-				);
-			},
-			(err) => {
-				pushToast({
-					variant: "error",
-					title: t("plan.checkAll.startFailed"),
-					message: errorText(err),
-				});
-			},
-		);
+	const buildState: StageState = buildDone ? "done" : "active";
+
+	const exportMarkdown = () => planToMarkdown(t, data, title);
 	const copyMarkdown = () => {
 		void navigator.clipboard
 			.writeText(exportMarkdown())
@@ -1049,34 +1188,17 @@ export default function PlanPane({
 				}),
 			);
 	};
-	const exportMarkdown = () => planToMarkdown(t, data, title);
+
 	const renderGroup = (group: TodoGroupItem): ReactNode => (
 		<GroupSection
 			key={group.id}
 			group={group}
 			workspaceId={workspaceId}
-			sessionId={sessionId}
 			onOpenCommit={onOpenCommit}
-			onStartReview={startReview}
-			onOpenReview={onOpenReview}
-			reviewComments={reviewComments}
-			startDisabled={reviewingAny || !canReview}
-			focusRequest={focusRequest}
 		/>
 	);
 	const renderItem = (item: TodoItem): ReactNode => (
-		<ItemBlock
-			key={item.id}
-			item={item}
-			workspaceId={workspaceId}
-			sessionId={sessionId}
-			onOpenCommit={onOpenCommit}
-			onStartReview={startReview}
-			onOpenReview={onOpenReview}
-			reviewComments={reviewComments}
-			startDisabled={reviewingAny || !canReview}
-			focusRequest={focusRequest}
-		/>
+		<ItemBlock key={item.id} item={item} workspaceId={workspaceId} onOpenCommit={onOpenCommit} />
 	);
 
 	return (
@@ -1084,7 +1206,6 @@ export default function PlanPane({
 			data-testid="plan-pane"
 			className="h-full overflow-auto bg-container-content-bg motion-safe:animate-reveal"
 		>
-			{ship.dialogs}
 			<div className="mx-auto max-w-[52rem] px-16 py-16">
 				<header className="mb-16 flex items-center gap-12">
 					<div className="min-w-0 flex-1">
@@ -1095,29 +1216,8 @@ export default function PlanPane({
 							data-testid="plan-progress"
 							className="flex flex-wrap items-center gap-4 tr-text-metadata text-text-subtle"
 						>
-							<StageGlyph state={stages.build} />
+							<StageGlyph state={buildState} />
 							<span>{t("plan.header.done", { done, total })}</span>
-							{reviewables.length > 0 ? (
-								<>
-									<ChevronRight className="size-12 shrink-0 text-text-muted" />
-									<span data-testid="plan-review-progress" className="flex items-center gap-4">
-										<StageGlyph state={stages.review} />
-										{t("plan.header.reviewed", {
-											reviewed: reviewedCount,
-											total: reviewables.length,
-										})}
-									</span>
-								</>
-							) : null}
-							<ChevronRight className="size-12 shrink-0 text-text-muted" />
-							<span
-								data-testid="plan-pr-stage"
-								data-state={stages.pr}
-								className="flex items-center gap-4"
-							>
-								<StageGlyph state={stages.pr} />
-								{openReview ? openReviewLabel(openReview) : t("plan.header.pr")}
-							</span>
 						</div>
 						{workspace ? (
 							<div
@@ -1144,75 +1244,6 @@ export default function PlanPane({
 							</div>
 						) : null}
 					</div>
-					{agentComments > 0 ? (
-						<Button
-							variant="ghost"
-							size="l"
-							iconLeft={MessageSquare}
-							data-testid="plan-review-comments"
-							onClick={onOpenReview}
-							tooltip={t("plan.header.commentsTitle")}
-							className="shrink-0"
-						>
-							{t("plan.header.comments", { count: agentComments })}
-						</Button>
-					) : null}
-					{openReview ? (
-						openReviewUrl ? (
-							<a
-								data-testid="plan-pr-chip"
-								href={openReviewUrl}
-								target="_blank"
-								rel="noopener noreferrer"
-								className={buttonVariants({ variant: "ghost", size: "l", className: "shrink-0" })}
-							>
-								{openReviewLabel(openReview)}
-							</a>
-						) : (
-							<span
-								data-testid="plan-pr-chip"
-								className="flex h-32 shrink-0 items-center px-8 tr-text-ui text-text-muted"
-							>
-								{openReviewLabel(openReview)}
-							</span>
-						)
-					) : null}
-					<Button
-						variant={
-							(planReady && !openReview) || unpushed > 0 || (openReview && diverged)
-								? "primary"
-								: "ghost"
-						}
-						size="l"
-						iconLeft={GitPullRequestArrow}
-						loading={prBusy}
-						data-testid="plan-open-pr"
-						data-diverged={openReview && diverged ? "" : undefined}
-						disabled={prBusy || sameBranch || (!!openReview && diverged && !integrateCommand)}
-						onClick={openReview && diverged ? copyIntegrateCommand : () => void openPrFlow(false)}
-						tooltip={
-							sameBranch
-								? t("plan.openPr.sameBranch")
-								: openReview && diverged
-									? integrateCommand
-										? t("plan.openPr.divergedCopy", { command: integrateCommand })
-										: t("plan.openPr.divergedManual", { branch })
-									: openReview
-										? t("plan.openPr.pushTitle")
-										: t("plan.openPr.openTitle")
-						}
-						className="shrink-0"
-					>
-						{ship.submitting
-							? t("plan.openPr.pushing")
-							: openReview
-								? diverged
-									? t("plan.openPr.diverged")
-									: unpushed > 0
-										? t("plan.openPr.pushUpdatesCount", { count: unpushed })
-										: t("plan.openPr.pushUpdates")
-								: t("plan.openPr.open")}
-					</Button>
 					<DropdownMenu>
 						<DropdownMenuTrigger asChild>
 							<IconButton
@@ -1236,132 +1267,9 @@ export default function PlanPane({
 								<Download />
 								{t("plan.menu.saveMarkdown")}
 							</DropdownMenuItem>
-							{!openReview ? (
-								<DropdownMenuItem
-									data-testid="plan-open-draft-pr"
-									disabled={prBusy || sameBranch}
-									onSelect={() => void openPrFlow(true)}
-								>
-									<GitPullRequestArrow />
-									{t("plan.menu.openDraftPr")}
-								</DropdownMenuItem>
-							) : null}
-							{reviewables.length > 0 ? (
-								<>
-									<DropdownMenuSeparator />
-									<DropdownMenuItem
-										data-testid="plan-review-all"
-										disabled={unsettledReviewables.length === 0 || reviewingAny || !canReview}
-										onSelect={() => void reviewAll()}
-									>
-										<ListChecks />
-										{unsettledReviewables.length > 0
-											? t("plan.menu.checkAllCount", { count: unsettledReviewables.length })
-											: t("plan.menu.checkAll")}
-									</DropdownMenuItem>
-								</>
-							) : null}
 						</DropdownMenuContent>
 					</DropdownMenu>
 				</header>
-				{flagged.length > 0 ? (
-					<div data-testid="plan-next-action" data-kind="fix" className={NEXT_ACTION_CLASS}>
-						<CircleAlert className="size-16 shrink-0 text-feedback-warning" />
-						<span className="min-w-0 flex-1 tr-text-ui text-text-default">
-							{t("plan.next.fix", { count: flagged.length })}
-						</span>
-						<Button
-							variant="primary"
-							size="m"
-							data-testid="plan-next-action-go"
-							onClick={() => flagged[0] && jumpToItem(flagged[0].id)}
-							className="shrink-0"
-						>
-							{t("plan.next.showStep")}
-						</Button>
-					</div>
-				) : unsettledReviewables.length > 0 ? (
-					<div data-testid="plan-next-action" data-kind="review" className={NEXT_ACTION_CLASS}>
-						<ListChecks className="size-16 shrink-0 text-primary" />
-						<span className="min-w-0 flex-1 tr-text-ui text-text-default">
-							{t("plan.next.review", { count: unsettledReviewables.length })}
-						</span>
-						<Button
-							variant="primary"
-							size="m"
-							data-testid="plan-next-action-go"
-							disabled={reviewingAny || !canReview}
-							onClick={() => void reviewAll()}
-							className="shrink-0"
-						>
-							{t("plan.menu.checkAll")}
-						</Button>
-					</div>
-				) : openReview && diverged ? (
-					<div data-testid="plan-next-action" data-kind="diverged" className={NEXT_ACTION_CLASS}>
-						<CircleAlert className="size-16 shrink-0 text-feedback-warning" />
-						<div className="flex min-w-0 flex-1 flex-col gap-2">
-							<span className="tr-text-ui text-text-default">
-								{integrateCommand
-									? t("plan.next.divergedRun", { review: openReviewLabel(openReview) })
-									: t("plan.next.divergedManual", { review: openReviewLabel(openReview), branch })}
-							</span>
-							{integrateCommand ? (
-								<code
-									data-testid="plan-integrate-command"
-									className="truncate rounded-sm bg-container-elevated-bg px-4 py-2 tr-code-text text-text-default"
-								>
-									{integrateCommand}
-								</code>
-							) : null}
-						</div>
-						{integrateCommand ? (
-							<Button
-								variant="primary"
-								size="m"
-								data-testid="plan-next-action-go"
-								onClick={copyIntegrateCommand}
-								className="shrink-0"
-							>
-								{t("plan.next.copyCommand")}
-							</Button>
-						) : null}
-					</div>
-				) : openReview && unpushed > 0 ? (
-					<div data-testid="plan-next-action" data-kind="push" className={NEXT_ACTION_CLASS}>
-						<GitPullRequestArrow className="size-16 shrink-0 text-primary" />
-						<span className="min-w-0 flex-1 tr-text-ui text-text-default">
-							{t("plan.next.unpushed", { count: unpushed, review: openReviewLabel(openReview) })}
-						</span>
-						<Button
-							variant="primary"
-							size="m"
-							data-testid="plan-next-action-go"
-							disabled={prBusy}
-							onClick={() => void openPrFlow(false)}
-							className="shrink-0"
-						>
-							{t("plan.openPr.pushUpdates")}
-						</Button>
-					</div>
-				) : planReady && !openReview && !sameBranch ? (
-					<div data-testid="plan-next-action" data-kind="ship" className={NEXT_ACTION_CLASS}>
-						<GitPullRequestArrow className="size-16 shrink-0 text-feedback-success" />
-						<span className="min-w-0 flex-1 tr-text-ui text-text-default">
-							{t("plan.next.ship")}
-						</span>
-						<Button
-							variant="primary"
-							size="m"
-							data-testid="plan-next-action-go"
-							disabled={prBusy}
-							onClick={() => void openPrFlow(false)}
-							className="shrink-0"
-						>
-							{t("plan.openPr.open")}
-						</Button>
-					</div>
-				) : null}
 				{summaryProse ? <PlanSummary summary={summaryProse} stale={!buildDone} /> : null}
 				<SessionBlock
 					activeGroups={sections.activeGroups}
@@ -1369,38 +1277,7 @@ export default function PlanPane({
 					pendingGroups={sections.pendingGroups}
 					pendingLoose={sections.pendingLoose}
 					allDone={buildDone}
-					glance={glance}
-					renderLive={() => <PlanSessionLive workspaceId={workspaceId} sessionId={sessionId} />}
-					onAdd={(title) => plan.add(title, "page")}
-					onOpenChat={() => {
-						void openChatInTab(workspaceId, sessionId);
-					}}
-					onSend={async (text) => {
-						const send = async () => {
-							await hydrateSessionRuntime(workspaceId, sessionId);
-							const store = useAppStore.getState();
-							const runtime = store.sessions[sessionId];
-							if (!runtime) throw new Error(t("plan.session.chatLoadFailed"));
-							if (runtime.isStreaming) {
-								await getTransport().request("session.steer", { sessionId, text });
-							} else {
-								store.appendUserMessage(sessionId, text);
-								void getTransport()
-									.request("session.prompt", { sessionId, text })
-									.catch((err) =>
-										useAppStore.getState().appendErrorTurn(sessionId, errorText(err)),
-									);
-							}
-						};
-						await send().catch((err: unknown) => {
-							pushToast({
-								variant: "error",
-								title: t("plan.session.sendFailed"),
-								message: errorText(err),
-							});
-							throw err;
-						});
-					}}
+					onAdd={(taskTitle) => plan.add(taskTitle, "page")}
 					renderGroup={renderGroup}
 					renderItem={renderItem}
 				/>
@@ -1434,13 +1311,7 @@ export default function PlanPane({
 									key={item.id}
 									item={item}
 									workspaceId={workspaceId}
-									sessionId={sessionId}
 									onOpenCommit={onOpenCommit}
-									onStartReview={startReview}
-									onOpenReview={onOpenReview}
-									reviewComments={reviewComments}
-									startDisabled={reviewingAny || !canReview}
-									focusRequest={focusRequest}
 								/>
 							))}
 						</ul>

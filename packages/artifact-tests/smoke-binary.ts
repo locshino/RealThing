@@ -3,9 +3,9 @@
 import { existsSync, globSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { removeTree } from "@thinkrail/shared/removeTree";
-import { channel, version } from "@thinkrail/shared/version";
-import { windowsFileIdentity, windowsIconPath } from "@thinkrail/shared/windowsIdentity";
+import { removeTree } from "@realthing/shared/removeTree";
+import { channel, version } from "@realthing/shared/version";
+import { windowsFileIdentity, windowsIconPath } from "@realthing/shared/windowsIdentity";
 import { binaryArtifactPath } from "./src/artifact";
 import {
 	type ArtifactHostAdapter,
@@ -27,7 +27,7 @@ async function readServingUrl(stdout: ReadableStream<Uint8Array>): Promise<strin
 	let buffered = "";
 	for await (const chunk of stdout) {
 		buffered += decoder.decode(chunk, { stream: true });
-		const match = buffered.match(/thinkrail → (http:\/\/\S+)/);
+		const match = buffered.match(/realthing → (http:\/\/\S+)/);
 		if (match?.[1]) return match[1];
 	}
 	throw new Error(`stdout closed without a serving URL: ${JSON.stringify(buffered)}`);
@@ -56,18 +56,14 @@ const adapter: ArtifactHostAdapter = {
 			);
 			const cache = env.XDG_CACHE_HOME;
 			if (!cache) throw new Error("XDG_CACHE_HOME is missing");
-			const skillsDir = globSync(join(cache, "thinkrail", "skills", "*")).find((path) =>
-				existsSync(join(path, "brainstorming", "SKILL.md")),
-			);
-			const runtimeDir = globSync(join(cache, "thinkrail", "runtime", "*")).find((path) =>
+			const runtimeDir = globSync(join(cache, "realthing", "runtime", "*")).find((path) =>
 				existsSync(join(path, "macos-trash")),
 			);
-			if (!skillsDir || !runtimeDir) throw new Error("CLI staged resources were not found");
+			if (!runtimeDir) throw new Error("CLI staged resources were not found");
 			let stopPromise: Promise<void> | undefined;
 			return {
 				origin,
 				resources: {
-					skillsDir,
 					trashHelpers: {
 						macos: join(runtimeDir, "macos-trash"),
 						windows: join(runtimeDir, "windows-trash.exe"),
@@ -95,7 +91,7 @@ const adapter: ArtifactHostAdapter = {
 	},
 };
 
-const temp = mkdtempSync(join(tmpdir(), "thinkrail-cli-artifact-"));
+const temp = mkdtempSync(join(tmpdir(), "realthing-cli-artifact-"));
 try {
 	if (process.platform === "win32") {
 		const mismatches = windowsIdentityMismatches(
@@ -121,7 +117,7 @@ try {
 			XDG_CACHE_HOME: cache,
 			HOME: home,
 			USERPROFILE: home,
-			THINKRAIL_NO_ANALYTICS: "1",
+			REALTHING_NO_ANALYTICS: "1",
 			CI: "1",
 		}),
 		stdout: "pipe",
@@ -129,11 +125,11 @@ try {
 		cwd: project,
 	});
 	if (!subcommand.success) throw new Error(`uninstall --help exited ${subcommand.exitCode}`);
-	if (!subcommand.stdout.toString().includes("thinkrail uninstall")) {
+	if (!subcommand.stdout.toString().includes("realthing uninstall")) {
 		throw new Error("uninstall --help printed no usage");
 	}
 	if (existsSync(marker)) throw new Error("compiled binary executed a project bunfig preload");
-	if (existsSync(join(cache, "thinkrail"))) {
+	if (existsSync(join(cache, "realthing"))) {
 		throw new Error("exit-only subcommand staged embedded assets");
 	}
 	await runArtifactHostProbes(adapter);

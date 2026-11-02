@@ -10,7 +10,8 @@ import type {
 	RemoteBranchGroup,
 	ResourceMeta,
 	Workspace,
-} from "@thinkrail/contracts";
+} from "@realthing/contracts";
+import { CodedError } from "@realthing/shared/codedError";
 import {
 	CONTENT_SNIFF_BYTES,
 	classifyBytes,
@@ -19,7 +20,7 @@ import {
 	resourceMeta,
 } from "../fs";
 import { logger } from "../log";
-import { loadProjects, loadWorkspaces } from "../persistence";
+import { loadProjects, loadWorkspaceConfig, loadWorkspaces } from "../persistence";
 import {
 	changedFileArgs,
 	type DiffRange,
@@ -28,6 +29,7 @@ import {
 	resolveDiffRange,
 } from "./diffScope";
 import {
+	type GitResult,
 	git,
 	gitAsync,
 	gitAsyncBytes,
@@ -73,7 +75,8 @@ export function gitCommitPaths(
 	if (!git(cwd, ["--literal-pathspecs", "add", "-A", "--", ...paths]).ok) return restore();
 	if (git(cwd, ["--literal-pathspecs", "diff", "--cached", "--quiet", "--", ...paths]).ok)
 		return restore();
-	if (!git(cwd, ["--literal-pathspecs", "commit", "--no-verify", "-m", message, "--", ...paths]).ok)
+	const verifyArgs = loadWorkspaceConfig(cwd).gitCommitVerify === false ? ["--no-verify"] : [];
+	if (!git(cwd, ["--literal-pathspecs", "commit", ...verifyArgs, "-m", message, "--", ...paths]).ok)
 		return restore();
 	const head = git(cwd, ["rev-parse", "HEAD"]);
 	if (!head.ok) return null;
@@ -96,16 +99,16 @@ export function readCommitSubject(workspaceId: string, sha: string): string | nu
 	return out.ok ? plainText(out.out) : null;
 }
 
-// MUST stay in lock-step with listCommits' capped base..HEAD set (same COMMIT_LIST_MAX + range). see submodule-server-todos
 export function resolveListedCommit(workspaceId: string, sha: string): string | null {
 	if (!/^[0-9a-f]{4,64}$/.test(sha)) return null;
 	const ws = workspace(workspaceId);
 	const cwd = ws.worktreePath;
 	const canonical = resolveCommitOid(cwd, sha);
 	if (!canonical) return null;
+	const maxCount = String(loadWorkspaceConfig(cwd).gitCommitListMax);
 	const listed = git(cwd, [
 		"rev-list",
-		`--max-count=${COMMIT_LIST_MAX}`,
+		`--max-count=${maxCount}`,
 		"--end-of-options",
 		`${diffBaseRef(ws)}..HEAD`,
 		"--",
@@ -142,10 +145,18 @@ function groupRemoteRefs(refs: string[], remotes: string[]): RemoteBranchGroup[]
 	return [...groups.values()];
 }
 
+function isNotAGitRepo(repoPath: string): boolean {
+	const res = git(repoPath, ["rev-parse", "--show-toplevel"]);
+	return !res.ok && !res.failure && /not a git repository/i.test(res.err);
+}
+
 export async function listBranches(projectId: string): Promise<BranchList> {
 	const project = loadProjects().find((p) => p.id === projectId);
 	if (!project) throw new Error(`Unknown project: ${projectId}`);
 	const repo = project.path;
+	if (isNotAGitRepo(repo)) {
+		return { local: [], remote: [], remoteGroups: [], defaultBranch: "HEAD" };
+	}
 
 	const [localRefs, remoteRefs, remoteNames] = await Promise.all([
 		gitAsync(repo, ["for-each-ref", "--format=%(refname)", "refs/heads"]),
@@ -339,6 +350,9 @@ export function gitUncommittedPaths(workspaceId: string): string[] {
 
 export async function gitStatus(workspaceId: string, scope?: GitDiffScope): Promise<GitStatus> {
 	const ws = workspace(workspaceId);
+	if (isNotAGitRepo(ws.worktreePath)) {
+		return { branch: "", changes: [] };
+	}
 	const range = await resolveDiffRange(ws, scope);
 	const changes: GitFileChange[] = [];
 	const [counts, tracked] = await Promise.all([
@@ -533,7 +547,7 @@ function strictBlobFrom<T>(shown: {
 	ok: boolean;
 	out: T;
 	err: string;
-	failure?: "timeout" | "launch";
+	failure?: GitResult["failure"];
 }): T | null {
 	if (shown.ok) return shown.out;
 	if (!shown.failure && blobIsMissing(shown.err)) return null;
@@ -588,7 +602,6 @@ export async function gitDiffFile(
 	};
 }
 
-const COMMIT_LIST_MAX = 200;
 const LOG_SEP = "\u0000";
 
 const LOG_LEADING_FIELDS = 4;
@@ -612,9 +625,10 @@ function plainText(raw: string): string {
 
 export async function listCommits(workspaceId: string): Promise<{ commits: GitCommit[] }> {
 	const ws = workspace(workspaceId);
+	const maxCount = String(loadWorkspaceConfig(ws.worktreePath).gitCommitListMax);
 	const log = await gitAsync(ws.worktreePath, [
 		"log",
-		`--max-count=${COMMIT_LIST_MAX}`,
+		`--max-count=${maxCount}`,
 		`--format=%H%x00%h%x00%cI%x00%an%x00%s`,
 		"--end-of-options",
 		`${diffBaseRef(ws)}..HEAD`,
@@ -639,20 +653,17 @@ export async function listCommits(workspaceId: string): Promise<{ commits: GitCo
 	return { commits };
 }
 
-// Commits made in `sinceSha..HEAD`, oldest-first, for the TODO work-window commit-adoption
-// (see submodule-server-todos): subagent/loose commits landed while an item was in_progress. `sinceSha`
-// comes from the item's own baseline sidecar (`gitHeadSha` at in_progress); it is shape-checked and
-// bracketed by `--end-of-options` regardless. A null/unborn baseline head has no range → no commits.
 export async function listCommitsSince(
 	workspaceId: string,
 	sinceSha: string | null,
 ): Promise<{ sha: string; subject: string }[]> {
 	if (!sinceSha || !/^[0-9a-f]{4,64}$/.test(sinceSha)) return [];
 	const ws = workspace(workspaceId);
+	const maxCount = String(loadWorkspaceConfig(ws.worktreePath).gitCommitListMax);
 	const log = await gitAsync(ws.worktreePath, [
 		"log",
 		"--reverse",
-		`--max-count=${COMMIT_LIST_MAX}`,
+		`--max-count=${maxCount}`,
 		"--format=%H%x00%s",
 		"--end-of-options",
 		`${sinceSha}..HEAD`,
@@ -785,4 +796,93 @@ export async function countPushDivergence(
 	if (!Number.isSafeInteger(ahead) || !Number.isSafeInteger(behind) || ahead < 0 || behind < 0)
 		return null;
 	return { ahead, behind };
+}
+
+export function onBaseBranch(ws: { branch: string; baseBranch: string }): boolean {
+	return ws.branch === ws.baseBranch.replace(/^origin\//, "");
+}
+
+const PUSH_AUTH_PATTERNS = [
+	/permission denied \(publickey/i,
+	/could not read (username|password)/i,
+	/authentication failed/i,
+	/terminal prompts disabled/i,
+	/host key verification failed/i,
+];
+
+function isPushAuthFailure(stderr: string): boolean {
+	return PUSH_AUTH_PATTERNS.some((p) => p.test(stderr));
+}
+
+function pushGitEnv(
+	base: Record<string, string | undefined>,
+	hasSshCommandConfig: boolean,
+): Record<string, string | undefined> {
+	const keepSsh = hasSshCommandConfig || base.GIT_SSH_COMMAND || base.GIT_SSH;
+	const env: Record<string, string | undefined> = {
+		...base,
+		GIT_TERMINAL_PROMPT: "0",
+		LC_MESSAGES: "C",
+		...(base.LC_ALL && !base.LC_CTYPE ? { LC_CTYPE: base.LC_ALL } : {}),
+		...(keepSsh ? {} : { GIT_SSH_COMMAND: "ssh -oBatchMode=yes" }),
+	};
+	delete env.LC_ALL;
+	return env;
+}
+
+export async function pushOrigin(
+	cwd: string,
+	args: string[],
+): Promise<{ ok: true } | { err: string }> {
+	const hasSshCommandConfig = git(cwd, ["config", "core.sshCommand"]).ok;
+	const pushed = await gitAsync(cwd, ["push", ...args], {
+		env: pushGitEnv(process.env, hasSshCommandConfig),
+		network: true,
+	});
+	if (pushed.ok) return { ok: true };
+	const detail = pushed.err || "git push failed";
+	if (isPushAuthFailure(detail)) throw new CodedError("PUSH_AUTH_FAILED", detail);
+	return { err: detail };
+}
+
+export async function pushBranchToOrigin(cwd: string, branch: string): Promise<void> {
+	const origin = (await originUrls(cwd)).push;
+	if (!origin) throw new Error("This workspace's repository has no 'origin' remote to push to.");
+	const pushed = await pushOrigin(cwd, ["--set-upstream", "origin", branch]);
+	if ("err" in pushed) throw new Error(pushed.err);
+}
+
+async function remoteHasRef(cwd: string, ref: string): Promise<boolean> {
+	const listed = await gitAsync(cwd, ["ls-remote", "--exit-code", "--heads", "origin", ref], {
+		network: true,
+	});
+	return listed.ok;
+}
+
+export async function deleteRemoteBranchOnOrigin(cwd: string, branch: string): Promise<void> {
+	const tip = remoteRefOid(cwd, `origin/${branch}`);
+	if (!tip) {
+		throw new Error(
+			`Couldn't tell which commit origin/${branch} points at — refresh and try again. Nothing was deleted.`,
+		);
+	}
+	if (!git(cwd, ["merge-base", "--is-ancestor", tip, "HEAD"]).ok) {
+		throw new Error(
+			`origin/${branch} has commits this checkout doesn't — integrate or review them first. Nothing was deleted.`,
+		);
+	}
+	const ref = `refs/heads/${branch}`;
+	const pushed = await pushOrigin(cwd, [
+		`--force-with-lease=${ref}:${tip}`,
+		"origin",
+		"--delete",
+		ref,
+	]);
+	if (!("err" in pushed)) return;
+	if (/remote ref does not exist/i.test(pushed.err)) return;
+	if (!/stale info/i.test(pushed.err)) throw new Error(pushed.err);
+	if (!(await remoteHasRef(cwd, ref))) return;
+	throw new Error(
+		`origin/${branch} moved since this checkout last saw it — fetch and review it first. Nothing was deleted.`,
+	);
 }

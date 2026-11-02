@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { type Workspace, WS_CHANNELS } from "@thinkrail/contracts";
-import { removeTree } from "@thinkrail/shared/removeTree";
+import { type Workspace, WS_CHANNELS } from "@realthing/contracts";
+import { removeTree } from "@realthing/shared/removeTree";
 import { saveTerminalSessions, saveWorkspaces } from "../persistence";
 import {
 	attachTerminal,
@@ -32,7 +32,7 @@ const BUSY_LOOP_COMMAND = process.platform === "win32" ? "ping -n 30 127.0.0.1" 
 const TERMINAL_CONDITION_TIMEOUT_MS = 15_000;
 const TERMINAL_TEST_TIMEOUT_MS = TERMINAL_CONDITION_TIMEOUT_MS * 3 + 5_000;
 let dataDir: string;
-const savedDataDir = process.env.THINKRAIL_DATA_DIR;
+const savedDataDir = process.env.REALTHING_DATA_DIR;
 const savedHistFile = process.env.HISTFILE;
 const savedHistSize = process.env.HISTSIZE;
 
@@ -130,7 +130,7 @@ async function exitTerminalWithMarker(
 
 beforeEach(() => {
 	dataDir = mkdtempSync(join(tmpdir(), "trpi-terminal-test-"));
-	process.env.THINKRAIL_DATA_DIR = dataDir;
+	process.env.REALTHING_DATA_DIR = dataDir;
 	// Prevent test PTYs from polluting the user's shell history.
 	process.env.HISTFILE = join(dataDir, ".test_history");
 	process.env.HISTSIZE = "0";
@@ -152,8 +152,8 @@ afterEach(() => {
 	setTerminalTabsPublisher(() => {});
 	// Windows releases a just-killed pty's cwd handle asynchronously; see shared/SPEC.md's removeTree.
 	removeTree(dataDir);
-	if (savedDataDir === undefined) delete process.env.THINKRAIL_DATA_DIR;
-	else process.env.THINKRAIL_DATA_DIR = savedDataDir;
+	if (savedDataDir === undefined) delete process.env.REALTHING_DATA_DIR;
+	else process.env.REALTHING_DATA_DIR = savedDataDir;
 	if (savedHistFile === undefined) delete process.env.HISTFILE;
 	else process.env.HISTFILE = savedHistFile;
 	if (savedHistSize === undefined) delete process.env.HISTSIZE;

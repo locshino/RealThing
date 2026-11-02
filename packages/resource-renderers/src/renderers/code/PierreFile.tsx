@@ -1,8 +1,8 @@
 import type { LineAnnotation, SelectedLineRange } from "@pierre/diffs";
 import { File, VirtualizerContext } from "@pierre/diffs/react";
 import { RiChatNewLine as MessageSquarePlus } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { IconButton } from "@thinkrail/ui/button";
+import { useT } from "@realthing/locales/react";
+import { IconButton } from "@realthing/ui/button";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AnchorDraft, ResourceViewProps } from "../../registry";
 import { ReviewComposer } from "../../support/ReviewComposer";
@@ -134,7 +134,7 @@ function PierreFileSurface({
 	);
 	const options = useMemo(
 		() => ({
-			theme: "thinkrail",
+			theme: "realthing",
 			overflow: "scroll" as const,
 			disableFileHeader: true,
 			enableLineSelection: review !== undefined,

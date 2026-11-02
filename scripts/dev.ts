@@ -1,13 +1,13 @@
 #!/usr/bin/env bun
 
-import { findFreePort } from "@thinkrail/shared/freePort";
-import { printStartupMark } from "@thinkrail/shared/startupMark";
+import { findFreePort } from "@realthing/shared/freePort";
+import { printStartupMark } from "@realthing/shared/startupMark";
 
-const host = process.env.THINKRAIL_HOST ?? "localhost";
-const preferred = Number(process.env.THINKRAIL_PORT ?? 24242);
+const host = process.env.REALTHING_HOST ?? "localhost";
+const preferred = Number(process.env.REALTHING_PORT ?? 24242);
 const port = await findFreePort(preferred, host);
 if (port !== preferred) {
-	console.log(`thinkrail dev: host port ${preferred} is in use → using ${port}`);
+	console.log(`realthing dev: host port ${preferred} is in use → using ${port}`);
 }
 const webPort = await findFreePort(24269, host);
 
@@ -16,12 +16,12 @@ const webUrl = `http://${openHost}:${webPort}/`;
 printStartupMark({ status: "starting", endpoint: webUrl });
 
 const turbo = Bun.spawn(
-	["bunx", "turbo", "run", "dev", "--filter=@thinkrail/web", "--filter=@thinkrail/server"],
+	["bunx", "turbo", "run", "dev", "--filter=@realthing/web", "--filter=@realthing/server"],
 	{
 		env: {
 			...process.env,
-			THINKRAIL_PORT: String(port),
-			THINKRAIL_WEB_PORT: String(webPort),
+			REALTHING_PORT: String(port),
+			REALTHING_WEB_PORT: String(webPort),
 		},
 		stdin: "inherit",
 		stdout: "inherit",

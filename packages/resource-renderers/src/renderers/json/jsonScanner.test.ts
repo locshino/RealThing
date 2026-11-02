@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
-import type { ReviewAnchor } from "@thinkrail/contracts";
-import { currentTranslator } from "@thinkrail/locales/react";
+import { currentTranslator } from "@realthing/locales/react";
+import type { ReviewAnchor } from "../../registry";
 import { jsonRenderer } from ".";
 import { jsonNodeDraft, jsonNodeOfAnchor, scanJson } from "./jsonScanner";
 
@@ -88,7 +88,7 @@ test("a JSON node selection round-trips and is unplaced after destructive editin
 test("JSON renderer registration is limited to JSON and JSONC", () => {
 	expect(currentTranslator()(jsonRenderer.labelKey)).toBe("Tree");
 	expect(jsonRenderer).toMatchObject({
-		id: "thinkrail/json",
+		id: "realthing/json",
 		labelKey: "viewer.renderer.tree",
 		match: { glob: ["*.json", "*.jsonc"], text: true },
 		rank: 120,

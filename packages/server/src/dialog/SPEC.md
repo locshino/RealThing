@@ -14,7 +14,7 @@ The host's native directory picker, so the browser "Open project" gets a real OS
 
 - **Owns:** `selectDirectory()` — the host's native folder picker, per OS via `pickersFor(platform)`:
   macOS `osascript` (`choose folder`), Linux `zenity` then `kdialog`, Windows a PowerShell
-  `FolderBrowserDialog`. `THINKRAIL_PICK_DIR` overrides it for dev/e2e and is resolved before native
+  `FolderBrowserDialog`. `REALTHING_PICK_DIR` overrides it for dev/e2e and is resolved before native
   availability checks. It returns `null` **only** when the user cancels. Picker completion is classified
   from exit code plus diagnostics: AppleScript's `-128` marker and Linux exit 1 without stderr are
   cancellation; Linux exit 1 with diagnostics (including GTK's `Failed to open display`) and every
@@ -25,7 +25,7 @@ The host's native directory picker, so the browser "Open project" gets a real OS
   platform's path rules: trailing separators are dropped (both `/` and `\` on Windows, only `/` elsewhere),
   but a filesystem root (`/`, `C:\`, `\\server\share\`) stays a root, since `C:` alone would be a
   drive-relative path and an emptied `/` would read as a cancel.
-  **File-indirection:** when `THINKRAIL_PICK_DIR` names an existing *file*, its trimmed contents are
+  **File-indirection:** when `REALTHING_PICK_DIR` names an existing *file*, its trimmed contents are
   **re-read per call**. Plain content is the returned path; `error:<message>` throws that deterministic
   failure before native availability checks. One shared source, binary, or desktop e2e host can therefore
   hand different folders or failures to different tests by rewriting the pointer (a directory value is

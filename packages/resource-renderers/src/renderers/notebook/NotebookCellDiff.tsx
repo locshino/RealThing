@@ -1,6 +1,6 @@
 import { parseDiffFromFile } from "@pierre/diffs";
 import { FileDiff } from "@pierre/diffs/react";
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 import { useEffect, useMemo, useState } from "react";
 import type { Size } from "../regionReview";
 import { svgIntrinsicSize } from "../svg/svgDocument";
@@ -33,7 +33,7 @@ export function NotebookSourceDiff({
 	);
 	const options = useMemo(
 		() => ({
-			theme: "thinkrail",
+			theme: "realthing",
 			diffStyle: "unified" as const,
 			expandUnchanged: true,
 			hunkSeparators: "line-info" as const,

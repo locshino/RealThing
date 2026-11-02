@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { canonicalWorkspacePath } from "@thinkrail/resource-renderers";
+import { canonicalWorkspacePath } from "@realthing/resource-renderers";
 import { projectRelativePath } from "../lib";
 
 const WORKSPACE_RELATIVE = [
@@ -14,7 +14,7 @@ const WORKSPACE_RELATIVE = [
 	"dir\\sub\\a.html",
 	".\\dir\\a.html",
 	"..draft.html",
-	".thinkrail/context/mockups/after.html",
+	".realthing/context/mockups/after.html",
 ];
 
 test("a file preview and an opened tab name a workspace-relative file the same way", () => {

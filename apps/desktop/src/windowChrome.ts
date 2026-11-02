@@ -1,4 +1,4 @@
-import type { NativeWindowState } from "@thinkrail/contracts";
+import type { NativeWindowState } from "@realthing/contracts";
 import { prependPreloadGlobal } from "./preloadGlobals";
 
 export type WindowChromeGeometry = Readonly<{
@@ -23,8 +23,8 @@ export type WindowChromePreloadSeed = Readonly<
 	}
 >;
 
-export const INITIAL_WINDOW_CHROME_GLOBAL = "__THINKRAIL_INITIAL_WINDOW_CHROME__";
-export const NATIVE_WINDOW_CONTROLS_GLOBAL = "__THINKRAIL_NATIVE_WINDOW_CONTROLS__";
+export const INITIAL_WINDOW_CHROME_GLOBAL = "__REALTHING_INITIAL_WINDOW_CHROME__";
+export const NATIVE_WINDOW_CONTROLS_GLOBAL = "__REALTHING_NATIVE_WINDOW_CONTROLS__";
 const WINDOW_CHROME_INSET_LEFT_PROPERTY = "--window-chrome-inset-left";
 const WINDOW_CHROME_INSET_RIGHT_PROPERTY = "--window-chrome-inset-right";
 const WINDOW_CHROME_DRAG_REGION_PROPERTY = "--window-chrome-drag-region";

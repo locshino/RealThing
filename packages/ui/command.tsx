@@ -1,5 +1,5 @@
 import { RiSearchLine as Search } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 import { Command as CommandPrimitive } from "cmdk";
 import type * as React from "react";
 import { cn } from "./utils";

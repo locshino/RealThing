@@ -21,7 +21,7 @@ afterEach(() => {
 });
 
 function tempDir(): string {
-	const dir = mkdtempSync(join(tmpdir(), "thinkrail-locales-"));
+	const dir = mkdtempSync(join(tmpdir(), "realthing-locales-"));
 	dirs.push(dir);
 	return dir;
 }

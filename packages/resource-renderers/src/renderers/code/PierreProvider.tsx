@@ -3,7 +3,7 @@ import { WorkerPoolContext } from "@pierre/diffs/react";
 import { getOrCreateWorkerPoolSingleton, type WorkerPoolManager } from "@pierre/diffs/worker";
 import { type ReactNode, useState } from "react";
 
-registerCustomCSSVariableTheme("thinkrail", {
+registerCustomCSSVariableTheme("realthing", {
 	background: "var(--container-content-bg)",
 	foreground: "var(--code-foreground)",
 });
@@ -19,7 +19,7 @@ function pierreWorkerPool(): WorkerPoolManager {
 					type: "module",
 				}),
 		},
-		highlighterOptions: { theme: "thinkrail", lineDiffType: "word" },
+		highlighterOptions: { theme: "realthing", lineDiffType: "word" },
 	});
 }
 

@@ -31,7 +31,7 @@ file container, not the theme: the manifest schema, id rules, and catalog belong
   `themesDir()` with `editors`' file-manager reveal).
 - **Allowed deps:** `persistence` (`dataDir`), `log`.
 - **Forbidden:** the theme schema or any colour knowledge, `settings` (which theme is active is an
-  `AppConfig` field the client resolves), `agent`, any workspace path.
+  `AppConfig` field the client resolves), any workspace path.
 
 ## Get right
 

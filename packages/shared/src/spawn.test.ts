@@ -20,7 +20,7 @@ test("spawnSyncCaptured reports a non-zero exit and stderr without throwing", ()
 });
 
 test("spawnSyncCaptured turns a missing binary into launched:false, not a throw", () => {
-	const result = spawnSyncCaptured(["thinkrail-no-such-binary-xyz"]);
+	const result = spawnSyncCaptured(["realthing-no-such-binary-xyz"]);
 	expect(result.launched).toBe(false);
 	expect(result.exitCode).toBe(null);
 });
@@ -56,7 +56,7 @@ test("spawnSyncCapturedBytes reports exit + decoded stderr and a missing binary 
 	expect(failed.exitCode).toBe(3);
 	expect(failed.stderr).toBe("boom");
 
-	const missing = spawnSyncCapturedBytes(["thinkrail-no-such-binary-xyz"]);
+	const missing = spawnSyncCapturedBytes(["realthing-no-such-binary-xyz"]);
 	expect(missing.launched).toBe(false);
 	expect(missing.exitCode).toBe(null);
 	expect(missing.stdout.length).toBe(0);
@@ -66,5 +66,5 @@ test("spawnSyncCapturedBytes reports exit + decoded stderr and a missing binary 
 test("spawnDetached confirms a real launch and rejects empty or missing commands", () => {
 	expect(spawnDetached([process.execPath, "-e", ""])).toBe(true);
 	expect(spawnDetached([])).toBe(false);
-	expect(spawnDetached(["thinkrail-no-such-binary-xyz"])).toBe(false);
+	expect(spawnDetached(["realthing-no-such-binary-xyz"])).toBe(false);
 });

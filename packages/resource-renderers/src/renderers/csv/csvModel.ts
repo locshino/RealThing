@@ -1,6 +1,5 @@
-import type { ReviewAnchor } from "@thinkrail/contracts";
 import { diffArrays } from "diff";
-import type { AnchorDraft, ReviewThread } from "../../registry";
+import type { AnchorDraft, ReviewAnchor, ReviewThread } from "../../registry";
 
 export interface CsvRow {
 	index: number;

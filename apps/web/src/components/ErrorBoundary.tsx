@@ -3,8 +3,8 @@ import {
 	RiRefreshLine as RefreshCw,
 	RiArrowGoBackLine as RotateCcw,
 } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+import { useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { shallowEqualArrays } from "../lib";
 

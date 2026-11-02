@@ -25,17 +25,12 @@ compiled artifact. The one way anything in the host destroys a user's file.
 - **Public surface (barrel):** `trashFile`, `setBundledTrashHelpers`, `setTrashImplementationForTests`,
   `TrashImplementation`, `BundledTrashHelpers`.
 - **Allowed deps:** `trash` + `@stroncium/procfs` (external — its deep imports name their `.js` files,
-  since Node ESM, which hosts the workflow harness, rejects directory and extensionless specifiers);
+  since Node ESM rejects directory and extensionless specifiers);
   Node `child_process`/`util`.
 - **Forbidden:** `host`; sibling features; any permanent-`unlink` fallback.
 
 ## Consumers
 
-Two features need "remove this file, recoverably", which is why this is a module of its own rather than
-a helper inside either of them:
-
-- `agent` — a chat's delete moves pi's transcript to the trash and rolls its tombstone back when that
-  fails (see [[submodule-server-agent]]).
 - `changes` — a whole-file revert of an added/untracked file trashes the worktree file and records
-  where, so the most likely destructive mistake in review stays recoverable even after the host's own
+  where, so a destructive mistake in diff review stays recoverable even after the host's own
   undo receipt is gone (see [[submodule-server-changes]]).

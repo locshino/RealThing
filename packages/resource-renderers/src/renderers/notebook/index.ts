@@ -1,7 +1,7 @@
 import type { ResourceRenderer } from "../../registry";
 
 export const notebookRenderer: ResourceRenderer = {
-	id: "thinkrail/notebook",
+	id: "realthing/notebook",
 	labelKey: "viewer.renderer.notebook",
 	match: { glob: ["*.ipynb"], text: true },
 	rank: 130,

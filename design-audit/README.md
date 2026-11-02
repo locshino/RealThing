@@ -1,7 +1,7 @@
 # design-audit — button-system catalog (preview tooling, not shipped)
 
 Preview tooling for the shared button system in `packages/ui/button.tsx`
-([[module-ui]] "Button system"). Nothing in `apps/`, `packages/` or `thinkrail-extensions/` imports it,
+([[module-ui]] "Button system"). Nothing in `apps/`, `packages/` or `realthing-extensions/` imports it,
 and production Tailwind never scans it.
 
 | Path | What it is |

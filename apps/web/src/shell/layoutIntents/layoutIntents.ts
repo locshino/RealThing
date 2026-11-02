@@ -1,4 +1,3 @@
-import { t } from "@thinkrail/locales/react";
 import { useEffect } from "react";
 import type { LayoutAttention } from "../../lib";
 import {
@@ -6,11 +5,8 @@ import {
 	isFileComparison,
 	layoutOpenOptionsForNavigation,
 	shouldAdvanceAcceptedNavigation,
-	toast,
 	useAppStore,
 } from "../../store";
-import { errorText } from "../../transport";
-import { currentChatDestination, hydrateChatResource } from "../chatReconciliation";
 import {
 	canJoinAuxiliaryGroup,
 	closeLayoutTab,
@@ -34,7 +30,6 @@ import {
 	openCenterTab,
 	primaryCenterGroupId,
 	reconcileAttention,
-	removeSessionLayoutTabs,
 	revealTool,
 	selectTab,
 	setAuxiliaryGroupFolded,
@@ -161,13 +156,6 @@ export function toLayoutTab(tab: EditorTab): LayoutCenterTab | null {
 				: { kind: "diff", id: tab.id, name: tab.name, path: tab.path, scope: tab.scope };
 		case "changes":
 			return { kind: "changes", id: tab.id, name: tab.name, scope: tab.scope };
-		case "chat":
-			return {
-				kind: "chat",
-				id: tab.id,
-				name: tab.name,
-				sessionId: tab.sessionId,
-			};
 		case "doc": {
 			if (!tab.sourceId) return null;
 			return {
@@ -185,7 +173,7 @@ export function toLayoutTab(tab: EditorTab): LayoutCenterTab | null {
 				id: tab.id,
 				name: tab.name,
 				documentKind: "todo-plan",
-				sourceId: tab.sessionId,
+				sourceId: tab.workspaceId,
 				docPath: "TODO.md",
 			};
 	}
@@ -223,14 +211,6 @@ export function useLayoutIntentProcessing(
 			return;
 		}
 		if (layoutIntent.kind === "place-terminal" && terminalReservationPending) return;
-		if (
-			layoutIntent.kind === "select" &&
-			layoutIntent.historyRequestId !== undefined &&
-			currentState.historyOpenRequest?.id !== layoutIntent.historyRequestId
-		) {
-			currentState.consumeLayoutIntent(layoutIntent.id);
-			return;
-		}
 		currentState.consumeLayoutIntent(layoutIntent.id);
 		const carriesRequestNavigation =
 			(layoutIntent.kind === "open" ||
@@ -286,36 +266,10 @@ export function useLayoutIntentProcessing(
 					? findPlacedResource(document, requestedResource)
 					: findLayoutTab(document, layoutIntent.tabId);
 				const selectedTabId = placed?.id;
-				if (!selectedTabId) {
-					const state = useAppStore.getState();
-					const historyRequest = state.historyOpenRequest;
-					if (
-						layoutIntent.resource?.kind === "chat" &&
-						historyRequest !== null &&
-						historyRequest.id === layoutIntent.historyRequestId &&
-						historyRequest.sessionId === layoutIntent.resource.sessionId
-					) {
-						state.clearHistoryOpen();
-					}
-					break;
-				}
+				if (!selectedTabId) break;
 				const location = findTabLocation(document, selectedTabId);
 				if (!location) break;
-				if (currentRouting?.activate === false) {
-					if (layoutIntent.focus === false) {
-						const state = useAppStore.getState();
-						const historyRequest = state.historyOpenRequest;
-						if (
-							placed.kind === "chat" &&
-							historyRequest !== null &&
-							historyRequest.id === layoutIntent.historyRequestId &&
-							historyRequest.sessionId === placed.sessionId
-						) {
-							state.clearHistoryOpen();
-						}
-					}
-					break;
-				}
+				if (currentRouting?.activate === false) break;
 				let nextDocument = document;
 				if (layoutIntent.keep && location.area === "center") {
 					const kept = keepPreview(document, location.groupId, selectedTabId);
@@ -332,62 +286,6 @@ export function useLayoutIntentProcessing(
 				if (layoutIntent.focus !== false) {
 					requestFocus({ workspaceId, key: layoutIntent.id, location, tabId: selectedTabId });
 				}
-				if (placed.kind === "chat" && layoutIntent.historyRequestId) {
-					const state = useAppStore.getState();
-					const historyRequest = state.historyOpenRequest;
-					if (
-						historyRequest?.id === layoutIntent.historyRequestId &&
-						historyRequest.sessionId === placed.sessionId &&
-						!state.sessions[placed.sessionId]
-					) {
-						void hydrateChatResource(workspaceId, placed.sessionId)
-							.then((installed) => {
-								const latest = useAppStore.getState();
-								const latestHistoryRequest = latest.historyOpenRequest;
-								if (
-									!latestHistoryRequest ||
-									latestHistoryRequest.id !== layoutIntent.historyRequestId ||
-									latestHistoryRequest.sessionId !== placed.sessionId
-								) {
-									return;
-								}
-								const { current } = currentChatDestination(workspaceId, placed, requestNavigation);
-								if (installed && current) return;
-								if (
-									!installed &&
-									current &&
-									!latest.removedWorkspaceIds[workspaceId] &&
-									!latest.deletedSessionsByWorkspace[workspaceId]?.[placed.sessionId]
-								) {
-									toast.error(
-										t("workbench.chat.restoreFailed"),
-										t("workbench.chat.openHistoryFailed"),
-									);
-								}
-								latest.clearHistoryOpen();
-							})
-							.catch((error) => {
-								const latest = useAppStore.getState();
-								const latestHistoryRequest = latest.historyOpenRequest;
-								if (
-									!latestHistoryRequest ||
-									latestHistoryRequest.id !== layoutIntent.historyRequestId ||
-									latestHistoryRequest.sessionId !== placed.sessionId
-								) {
-									return;
-								}
-								const { current } = currentChatDestination(workspaceId, placed, requestNavigation);
-								if (
-									current &&
-									!latest.removedWorkspaceIds[workspaceId] &&
-									!latest.deletedSessionsByWorkspace[workspaceId]?.[placed.sessionId]
-								) {
-									toast.error(errorText(error), t("workbench.chat.openHistoryFailed"));
-								}
-								latest.clearHistoryOpen();
-							});
-					}
-				}
 				if (nextDocument !== document) commit(nextDocument);
 				break;
 			}
@@ -396,9 +294,6 @@ export function useLayoutIntentProcessing(
 				if (!isLayoutUnavailable(revealed)) result = revealed;
 				break;
 			}
-			case "remove-session":
-				result = { document: removeSessionLayoutTabs(document, layoutIntent.sessionId) };
-				break;
 			case "place-terminal": {
 				const tab = withAvailablePlacementId(document, {
 					kind: "terminal" as const,

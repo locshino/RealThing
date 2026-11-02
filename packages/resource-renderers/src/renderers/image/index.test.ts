@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { currentTranslator } from "@thinkrail/locales/react";
+import { currentTranslator } from "@realthing/locales/react";
 import type { ResourceRenderer, ReviewThread } from "../../registry";
 import { registerResourceRenderer, resolveRenderers } from "../../registry";
 import { placedRegionThreadIds } from "../regionReview";
@@ -16,7 +16,7 @@ import {
 test("image renderer registration declares image matching and region anchors", () => {
 	expect(currentTranslator()(imageRenderer.labelKey)).toBe("Image");
 	expect(imageRenderer).toMatchObject({
-		id: "thinkrail/image",
+		id: "realthing/image",
 		labelKey: "viewer.renderer.image",
 		match: { mime: ["image/*"], text: false },
 		rank: 120,
@@ -32,7 +32,7 @@ test("image renderer registration declares image matching and region anchors", (
 
 test("image extensions match when MIME metadata is absent", () => {
 	const fallback: ResourceRenderer = {
-		id: "thinkrail/binary",
+		id: "realthing/binary",
 		labelKey: "viewer.renderer.file",
 		match: { text: false },
 		rank: 0,
@@ -52,7 +52,7 @@ test("image extensions match when MIME metadata is absent", () => {
 			resolveRenderers({ workspaceId: "ws", path: "photo.avif", text: false }, "view", {
 				mobile: false,
 			}).map((renderer) => renderer.id),
-		).toEqual(["thinkrail/image", "thinkrail/binary"]);
+		).toEqual(["realthing/image", "realthing/binary"]);
 	} finally {
 		for (const dispose of disposers.reverse()) dispose();
 	}

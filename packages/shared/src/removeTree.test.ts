@@ -19,7 +19,7 @@ function failing(
 }
 
 test("removes a nested tree and tolerates a missing path", () => {
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-remove-tree-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-remove-tree-"));
 	mkdirSync(join(root, "nested", "deeper"), { recursive: true });
 	writeFileSync(join(root, "nested", "deeper", "file.txt"), "content");
 

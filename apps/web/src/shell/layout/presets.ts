@@ -4,9 +4,9 @@ import type {
 	LayoutPresetCenterNode,
 	LayoutPresetSideRegion,
 	LayoutToolId,
-} from "@thinkrail/contracts";
-import type { MessageKey } from "@thinkrail/locales";
-import type { Translator } from "@thinkrail/locales/react";
+} from "@realthing/contracts";
+import type { MessageKey } from "@realthing/locales";
+import type { Translator } from "@realthing/locales/react";
 import { isPreviewCompatibleTabKind } from "../../lib";
 import {
 	collectAllGroups,
@@ -79,8 +79,8 @@ export const BUILTIN_LAYOUT_PRESETS: readonly LayoutPreset[] = [
 		center: group("balanced-primary"),
 		left: side(true, 0.18, [{ id: "balanced-left", tools: ["projects"] }]),
 		right: side(true, 0.28, [
-			{ id: "balanced-right-top", tools: ["specs", "files"], weight: 1.25 },
-			{ id: "balanced-right-bottom", tools: ["plan", "review"] },
+			{ id: "balanced-right-top", tools: ["files"], weight: 1.25 },
+			{ id: "balanced-right-bottom", tools: ["plan"] },
 		]),
 		bottom: bottom(true, [{ id: "balanced-bottom", tools: [] }]),
 	},
@@ -89,7 +89,7 @@ export const BUILTIN_LAYOUT_PRESETS: readonly LayoutPreset[] = [
 		name: "Focus",
 		center: group("focus-primary"),
 		left: side(false, 0.18, [{ id: "focus-left", tools: ["projects"] }]),
-		right: side(false, 0.26, [{ id: "focus-right", tools: ["specs", "files", "review"] }]),
+		right: side(false, 0.26, [{ id: "focus-right", tools: ["files", "plan"] }]),
 		bottom: bottom(false, [{ id: "focus-bottom", tools: [] }]),
 	},
 	{
@@ -98,8 +98,8 @@ export const BUILTIN_LAYOUT_PRESETS: readonly LayoutPreset[] = [
 		center: split("review-center", "vertical", group("review-primary"), group("review-secondary")),
 		left: side(true, 0.16, [{ id: "review-left", tools: ["projects"] }]),
 		right: side(true, 0.32, [
-			{ id: "review-right-main", tools: ["review"], weight: 1.4 },
-			{ id: "review-right-reference", tools: ["specs", "files"] },
+			{ id: "review-right-main", tools: ["files"], weight: 1.4 },
+			{ id: "review-right-reference", tools: ["plan"] },
 		]),
 		bottom: bottom(true, [{ id: "review-bottom", tools: [] }]),
 	},

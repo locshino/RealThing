@@ -1,9 +1,9 @@
 import { expect, test } from "bun:test";
-import type { ReviewAnchor } from "@thinkrail/contracts";
-import { currentTranslator } from "@thinkrail/locales/react";
+import { currentTranslator } from "@realthing/locales/react";
 import {
 	anchorLabel,
 	type ResourceRenderer,
+	type ReviewAnchor,
 	type ReviewThread,
 	registerResourceRenderer,
 	resolveRenderers,
@@ -30,7 +30,7 @@ import { releasePdfCanvas } from "./pdfRender";
 test("PDF renderer registration declares MIME matching and paged region anchors", () => {
 	expect(currentTranslator()(pdfRenderer.labelKey)).toBe("PDF");
 	expect(pdfRenderer).toMatchObject({
-		id: "thinkrail/pdf",
+		id: "realthing/pdf",
 		labelKey: "viewer.renderer.pdf",
 		match: { mime: ["application/pdf"], text: false },
 		rank: 120,
@@ -46,7 +46,7 @@ test("PDF renderer registration declares MIME matching and paged region anchors"
 
 test("a .pdf extension resolves through inferred MIME metadata", () => {
 	const binary: ResourceRenderer = {
-		id: "thinkrail/binary",
+		id: "realthing/binary",
 		labelKey: "viewer.renderer.file",
 		match: { text: false },
 		rank: 0,
@@ -66,7 +66,7 @@ test("a .pdf extension resolves through inferred MIME metadata", () => {
 			resolveRenderers({ workspaceId: "ws", path: "report.pdf", text: false }, "view", {
 				mobile: false,
 			}).map((renderer) => renderer.id),
-		).toEqual(["thinkrail/pdf", "thinkrail/binary"]);
+		).toEqual(["realthing/pdf", "realthing/binary"]);
 	} finally {
 		for (const dispose of disposers.reverse()) dispose();
 	}

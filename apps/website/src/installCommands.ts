@@ -1,9 +1,9 @@
 const installScriptUrls = {
-	sh: "https://raw.githubusercontent.com/JetBrains/thinkrail/main/install.sh",
-	powershell: "https://raw.githubusercontent.com/JetBrains/thinkrail/main/install.ps1",
+	sh: "https://raw.githubusercontent.com/JetBrains/realthing/main/install.sh",
+	powershell: "https://raw.githubusercontent.com/JetBrains/realthing/main/install.ps1",
 } as const;
 
-const releaseDownloadBase = "https://github.com/JetBrains/thinkrail/releases/latest/download";
+const releaseDownloadBase = "https://github.com/JetBrains/realthing/releases/latest/download";
 const desktopDownload = (asset: string) => `${releaseDownloadBase}/${asset}`;
 const unix = `curl -fsSL ${installScriptUrls.sh} | bash`;
 const powershell = `irm ${installScriptUrls.powershell} | iex`;
@@ -16,7 +16,7 @@ export const desktopInstallerPlatforms = [
 		downloads: [
 			{
 				label: "Download .dmg",
-				href: desktopDownload("thinkrail-desktop-darwin-arm64.dmg"),
+				href: desktopDownload("realthing-desktop-darwin-arm64.dmg"),
 			},
 		],
 	},
@@ -27,7 +27,7 @@ export const desktopInstallerPlatforms = [
 		downloads: [
 			{
 				label: "Download .zip",
-				href: desktopDownload("thinkrail-desktop-windows-x64.zip"),
+				href: desktopDownload("realthing-desktop-windows-x64.zip"),
 			},
 		],
 	},
@@ -38,11 +38,11 @@ export const desktopInstallerPlatforms = [
 		downloads: [
 			{
 				label: "x64 .tar.gz",
-				href: desktopDownload("thinkrail-desktop-linux-x64.tar.gz"),
+				href: desktopDownload("realthing-desktop-linux-x64.tar.gz"),
 			},
 			{
 				label: "ARM64 .tar.gz",
-				href: desktopDownload("thinkrail-desktop-linux-arm64.tar.gz"),
+				href: desktopDownload("realthing-desktop-linux-arm64.tar.gz"),
 			},
 		],
 	},

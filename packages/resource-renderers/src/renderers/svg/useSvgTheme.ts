@@ -1,4 +1,4 @@
-import { onThemeSwap } from "@thinkrail/ui/theme";
+import { onThemeSwap } from "@realthing/ui/theme";
 import { useEffect, useState } from "react";
 import type { SvgThemeTokens } from "./svgDocument";
 

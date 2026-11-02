@@ -1,14 +1,11 @@
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { type BuildKind, bootHost } from "@thinkrail/server";
-import { spawnDetached } from "@thinkrail/shared/spawn";
-import { printStartupMark } from "@thinkrail/shared/startupMark";
-import { channel, posthogProjectKey, version } from "@thinkrail/shared/version";
+import { type BuildKind, bootHost } from "@realthing/server";
+import { spawnDetached } from "@realthing/shared/spawn";
+import { printStartupMark } from "@realthing/shared/startupMark";
+import { version } from "@realthing/shared/version";
 import { type CliOptions, parseArgs, parseSubcommand, USAGE } from "./args";
-import { openUiThenStartAttribution } from "./attributionReadiness";
-import { BINARY_SOURCE_MAP_BASE } from "./binarySourceMap";
 import { runUninstall } from "./uninstall";
-import { createCliHostUpdate, runUpdate } from "./update";
 
 const DEFAULT_STATIC_DIR = resolve(import.meta.dir, "../../web/dist");
 
@@ -22,14 +19,11 @@ function openBrowser(url: string): void {
 	spawnDetached(command);
 }
 
-async function bootstrap(build: BuildKind): Promise<void> {
+async function bootstrap(_build: BuildKind): Promise<void> {
 	const argv = Bun.argv.slice(2);
 	const subcommand = parseSubcommand(argv);
-	if (subcommand) {
-		const exitCode =
-			subcommand === "update"
-				? await runUpdate(argv.slice(1), process.env, build)
-				: await runUninstall(argv.slice(1), process.env);
+	if (subcommand === "uninstall") {
+		const exitCode = await runUninstall(argv.slice(1), process.env);
 		process.exit(exitCode);
 	}
 
@@ -57,11 +51,7 @@ async function bootstrap(build: BuildKind): Promise<void> {
 		console.warn(`Web app not found at ${staticDir} — run \`bun run build:web\` to build the UI.`);
 	}
 
-	const hostUpdate = createCliHostUpdate(build, channel, version, {
-		platform: process.platform,
-		execPath: process.execPath,
-	});
-	const { server, port, requested } = await bootHost({
+	const { port, requested } = await bootHost({
 		port: options.port,
 		host: options.host,
 		portMode: "free",
@@ -69,15 +59,6 @@ async function bootstrap(build: BuildKind): Promise<void> {
 		staticDir,
 		appVersion: version,
 		...(options.verbose ? { verbose: true } : {}),
-		analytics: {
-			posthogApiKey: posthogProjectKey,
-			channel,
-			build,
-			...(build === "binary" ? { remapBase: BINARY_SOURCE_MAP_BASE } : {}),
-			mute: options.noAnalytics,
-			...(options.open ? { openExternal: openBrowser } : {}),
-		},
-		...(hostUpdate ? { hostUpdate } : {}),
 		...(options.projectDir ? { projectPath: resolve(process.cwd(), options.projectDir) } : {}),
 	});
 	if (port !== requested) {
@@ -87,8 +68,10 @@ async function bootstrap(build: BuildKind): Promise<void> {
 	const openHost = options.host === "0.0.0.0" || options.host === "::" ? "localhost" : options.host;
 	const url = `http://${openHost}:${port}`;
 	printStartupMark({ status: "host ready", endpoint: url });
-	console.log(`thinkrail → ${url}`);
-	openUiThenStartAttribution(options.open, url, openBrowser, server.startAttributionClaim);
+	console.log(`realthing → ${url}`);
+	if (options.open) {
+		openBrowser(url);
+	}
 }
 
 export async function launch(build: BuildKind): Promise<void> {

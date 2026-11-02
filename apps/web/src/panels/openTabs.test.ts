@@ -1,5 +1,5 @@
 import { afterAll, beforeEach, expect, mock, test } from "bun:test";
-import type { Workspace } from "@thinkrail/contracts";
+import type { Workspace } from "@realthing/contracts";
 import { changesTabId, diffTabId } from "./changesModel";
 
 let pending: { resolve: (value: unknown) => void } | null = null;
@@ -30,7 +30,9 @@ const { useAppStore } = await import("../store");
 type WorkspaceLayoutDocument = ReturnType<
 	typeof useAppStore.getState
 >["layoutDocumentsByWorkspace"][string];
-const { openChangesTab, openDiffInTab } = await import("./openTabs");
+const { openChangesTab, openDiffInTab, openFileInTab, prefetchFileContent } = await import(
+	"./openTabs"
+);
 
 const workspace = (overrides: Partial<Workspace> = {}): Workspace => ({
 	id: "w1",
@@ -82,7 +84,6 @@ test("a diff tab is stamped with the target and tick captured BEFORE its read, n
 		workspaceId: "w1",
 		paths: ["README.md"],
 		truncated: false,
-		skillChange: "none",
 	});
 
 	pending?.resolve(diffResult("old", "new"));
@@ -305,11 +306,10 @@ test("a cache-id collision mints an alias instead of focusing an unrelated resou
 		tabsByWorkspace: {
 			w1: [
 				{
-					kind: "chat",
+					kind: "plan",
 					id: collidingId,
 					workspaceId: "w1",
-					name: "Unrelated chat",
-					sessionId: "chat",
+					name: "Unrelated plan",
 				},
 			],
 		},
@@ -319,7 +319,7 @@ test("a cache-id collision mints an alias instead of focusing an unrelated resou
 	await open;
 
 	const tabs = useAppStore.getState().tabsByWorkspace.w1 ?? [];
-	expect(tabs.find((tab) => tab.kind === "chat")?.id).toBe(collidingId);
+	expect(tabs.find((tab) => tab.kind === "plan")?.id).toBe(collidingId);
 	const diff = tabs.find((tab) => tab.kind === "diff");
 	expect(diff?.id).not.toBe(collidingId);
 	expect(diff?.path).toBe("README.md");
@@ -370,7 +370,6 @@ test("an undisturbed open stamps the state it actually read against", async () =
 		workspaceId: "w1",
 		paths: ["other.ts"],
 		truncated: false,
-		skillChange: "none",
 	});
 	const open = openDiffInTab("w1", { kind: "branch" }, "README.md", "preview");
 	pending?.resolve(diffResult("old", "new"));
@@ -482,5 +481,47 @@ test("a lone review-tab preview lands after the settle window and claims the pre
 test("a removed workspace rejects a late review-tab request", async () => {
 	useAppStore.setState({ removedWorkspaceIds: { w1: true } });
 	await openChangesTab("w1", { kind: "branch" }, {}, "keep");
+	expect(useAppStore.getState().tabsByWorkspace.w1 ?? []).toHaveLength(0);
+});
+
+test("a prefetched file opens synchronously at the same tick and re-fetches after fsChanged", async () => {
+	prefetchFileContent("w1", "/wt/w1/./src/../README.md");
+	expect(requests).toEqual([
+		{ method: "fs.readFile", params: { workspaceId: "w1", path: "README.md" } },
+	]);
+	pending?.resolve({
+		content: "# Hello",
+		meta: { hash: "h1", byteLength: 7, text: true },
+	});
+	await Promise.resolve();
+	requests.length = 0;
+
+	void openFileInTab("w1", "README.md", "preview");
+	expect(requests).toHaveLength(0);
+	const opened = (useAppStore.getState().tabsByWorkspace.w1 ?? [])[0];
+	expect(opened).toMatchObject({
+		kind: "file",
+		path: "README.md",
+		content: "# Hello",
+		loadedTick: 0,
+	});
+});
+
+test("prefetchFileContent blocks removed workspaces and handles rejected reads gracefully", async () => {
+	useAppStore.setState({ removedWorkspaceIds: { w1: true } });
+	prefetchFileContent("w1", "secret.txt");
+	expect(requests).toHaveLength(0);
+
+	useAppStore.setState({ removedWorkspaceIds: {} });
+	let rejectRead: ((err: Error) => void) | undefined;
+	const failingOpen = openFileInTab("w1", "missing.txt", "preview");
+	expect(requests).toHaveLength(1);
+	pending?.resolve(
+		new Promise((_, reject) => {
+			rejectRead = reject;
+		}),
+	);
+	rejectRead?.(new Error("ENOENT"));
+	await failingOpen;
 	expect(useAppStore.getState().tabsByWorkspace.w1 ?? []).toHaveLength(0);
 });

@@ -1,4 +1,4 @@
-import type { BranchList, RemoteBranchGroup } from "@thinkrail/contracts";
+import type { BranchList, RemoteBranchGroup } from "@realthing/contracts";
 
 export type RemoteBranchPresentation =
 	| { kind: "grouped"; groups: RemoteBranchGroup[] }

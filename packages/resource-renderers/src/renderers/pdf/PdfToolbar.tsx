@@ -4,8 +4,8 @@ import {
 	RiZoomInLine as ZoomIn,
 	RiZoomOutLine as ZoomOut,
 } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { IconButton } from "@thinkrail/ui/button";
+import { useT } from "@realthing/locales/react";
+import { IconButton } from "@realthing/ui/button";
 
 export function PdfToolbar({
 	page,

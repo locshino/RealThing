@@ -6,8 +6,8 @@ import {
 	type RemixiconComponentType,
 	RiAlertLine as TriangleAlert,
 } from "@remixicon/react";
-import type { MessageKey } from "@thinkrail/locales";
-import { useT } from "@thinkrail/locales/react";
+import type { MessageKey } from "@realthing/locales";
+import { useT } from "@realthing/locales/react";
 import type { ReactNode } from "react";
 import type { Components } from "react-markdown";
 

@@ -1,14 +1,12 @@
 import type {
-	HostUpdateNotice,
 	NativeUpdateBridge,
 	NativeUpdateFailedPhase,
 	NativeUpdateState,
-} from "@thinkrail/contracts";
-import { t } from "@thinkrail/locales/react";
+} from "@realthing/contracts";
+import { t } from "@realthing/locales/react";
 import { useEffect, useState } from "react";
-import { useAppStore } from "../store";
 
-const NATIVE_UPDATES_GLOBAL = "__THINKRAIL_NATIVE_UPDATES__";
+const NATIVE_UPDATES_GLOBAL = "__REALTHING_NATIVE_UPDATES__";
 
 export type NativeUpdateAction = Exclude<NativeUpdateFailedPhase, null>;
 
@@ -17,23 +15,15 @@ export interface NativeUpdateRequestError {
 	message: string;
 }
 
-export type UpdatesController =
-	| {
-			source: "native";
-			state: NativeUpdateState;
-			requestError: NativeUpdateRequestError | null;
-			checkForUpdates(): void;
-			downloadUpdate(): void;
-			restartToUpdate(): void;
-			dismissInstallResult(): void;
-	  }
-	| {
-			source: "host";
-			state: HostUpdateNotice;
-			canRun: boolean;
-			requestFailed: boolean;
-			runUpdate(): void;
-	  };
+export interface UpdatesController {
+	source: "native";
+	state: NativeUpdateState;
+	requestError: NativeUpdateRequestError | null;
+	checkForUpdates(): void;
+	downloadUpdate(): void;
+	restartToUpdate(): void;
+	dismissInstallResult(): void;
+}
 
 export function getNativeUpdateBridge(value: unknown): NativeUpdateBridge | null {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return null;
@@ -72,16 +62,6 @@ export function runNativeUpdateRequest(
 	}
 }
 
-export type HostUpdateRunner = () => Promise<unknown>;
-
-export function runHostUpdateRequest(operation: HostUpdateRunner, onError: () => void): void {
-	try {
-		void operation().catch(() => onError());
-	} catch {
-		onError();
-	}
-}
-
 export function subscribeToNativeUpdates(
 	bridge: NativeUpdateBridge,
 	onState: (state: NativeUpdateState) => void,
@@ -114,12 +94,8 @@ export function subscribeToNativeUpdates(
 	};
 }
 
-export function selectUpdateSource(
-	bridge: NativeUpdateBridge | null,
-	hostUpdate: HostUpdateNotice | null,
-): "native" | "host" | null {
-	if (bridge) return "native";
-	return hostUpdate === null ? null : "host";
+export function selectUpdateSource(bridge: NativeUpdateBridge | null): "native" | null {
+	return bridge ? "native" : null;
 }
 
 export function hasNativeUpdateSurface(
@@ -128,7 +104,7 @@ export function hasNativeUpdateSurface(
 	return state !== null && state.status !== "disabled";
 }
 
-export function useUpdates(hostUpdateRunner: HostUpdateRunner | null): UpdatesController | null {
+export function useUpdates(): UpdatesController | null {
 	const [bridge] = useState(() =>
 		getNativeUpdateBridge(Reflect.get(globalThis, NATIVE_UPDATES_GLOBAL)),
 	);
@@ -136,8 +112,6 @@ export function useUpdates(hostUpdateRunner: HostUpdateRunner | null): UpdatesCo
 	const [nativeRequestError, setNativeRequestError] = useState<NativeUpdateRequestError | null>(
 		null,
 	);
-	const [failedHostRequestFor, setFailedHostRequestFor] = useState<HostUpdateNotice | null>(null);
-	const hostUpdate = useAppStore((state) => state.hostUpdate);
 
 	useEffect(() => {
 		if (!bridge) return;
@@ -151,15 +125,14 @@ export function useUpdates(hostUpdateRunner: HostUpdateRunner | null): UpdatesCo
 		);
 	}, [bridge]);
 
-	const source = selectUpdateSource(bridge, hostUpdate);
-	if (source === "native" && bridge) {
+	if (bridge) {
 		if (!hasNativeUpdateSurface(nativeState)) return null;
 		const request = (action: NativeUpdateAction, operation: () => Promise<void>): void => {
 			setNativeRequestError(null);
 			runNativeUpdateRequest(action, operation, setNativeRequestError);
 		};
 		return {
-			source,
+			source: "native",
 			state: nativeState,
 			requestError: nativeRequestError,
 			checkForUpdates: () => request("check", () => bridge.checkForUpdates()),
@@ -167,20 +140,6 @@ export function useUpdates(hostUpdateRunner: HostUpdateRunner | null): UpdatesCo
 			restartToUpdate: () => request("install", () => bridge.restartToUpdate()),
 			dismissInstallResult: () => {
 				void bridge.dismissInstallResult().catch(() => {});
-			},
-		};
-	}
-	if (source === "host" && hostUpdate) {
-		const canRun = hostUpdateRunner !== null && hostUpdate.status !== undefined;
-		return {
-			source,
-			state: hostUpdate,
-			canRun,
-			requestFailed: failedHostRequestFor === hostUpdate,
-			runUpdate: () => {
-				if (!canRun || !hostUpdateRunner) return;
-				setFailedHostRequestFor(null);
-				runHostUpdateRequest(hostUpdateRunner, () => setFailedHostRequestFor(hostUpdate));
 			},
 		};
 	}

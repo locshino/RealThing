@@ -16,7 +16,7 @@ import {
 } from "./shellEnv";
 
 const LOCALE_VARS = ["LANG", "LC_ALL", "LC_CTYPE"];
-const IMPORT_VARS = ["TR_TEST_IMPORTED", "TR_TEST_PRESET", "PI_TEST_SHELL", "THINKRAIL_TEST_SHELL"];
+const IMPORT_VARS = ["TR_TEST_IMPORTED", "TR_TEST_PRESET", "PI_TEST_SHELL", "REALTHING_TEST_SHELL"];
 const LAUNCHD_DEFAULT_PATH = "/Users/x/.pi/agent/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin";
 const LOGIN_PATH =
 	"/opt/homebrew/bin:/Users/x/.bun/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin";
@@ -44,8 +44,8 @@ beforeEach(() => {
 	process.env.PATH = LAUNCHD_DEFAULT_PATH;
 });
 afterEach(() => {
-	delete (globalThis as Record<symbol, unknown>)[Symbol.for("thinkrail.shellEnv.pending")];
-	delete (globalThis as Record<symbol, unknown>)[Symbol.for("thinkrail.shellEnv.launchKeys")];
+	delete (globalThis as Record<symbol, unknown>)[Symbol.for("realthing.shellEnv.pending")];
+	delete (globalThis as Record<symbol, unknown>)[Symbol.for("realthing.shellEnv.launchKeys")];
 	rmSync(shellDir, { recursive: true, force: true });
 	if (originalPath === undefined) delete process.env.PATH;
 	else process.env.PATH = originalPath;
@@ -162,7 +162,7 @@ test("loginShellImports adds only what the process lacks and never host-reserved
 			["SHLVL", "2"],
 			["_", "/usr/bin/env"],
 			["PI_CODING_AGENT_DIR", "/tmp/pi"],
-			["THINKRAIL_DEBUG", "1"],
+			["REALTHING_DEBUG", "1"],
 		]),
 	);
 	expect(imports).toEqual({ GITHUB_TOKEN: "ghp_x" });
@@ -175,7 +175,7 @@ test("repairShellEnv imports the login-shell environment only for a host launche
 			["TR_TEST_IMPORTED", "from-shell"],
 			["TR_TEST_PRESET", "shell"],
 			["PI_TEST_SHELL", "never"],
-			["THINKRAIL_TEST_SHELL", "never"],
+			["REALTHING_TEST_SHELL", "never"],
 		]);
 
 	process.env.TERM = "xterm-256color";
@@ -187,7 +187,7 @@ test("repairShellEnv imports the login-shell environment only for a host launche
 	expect(process.env.TR_TEST_IMPORTED).toBe("from-shell");
 	expect(process.env.TR_TEST_PRESET).toBe("process");
 	expect(process.env.PI_TEST_SHELL).toBeUndefined();
-	expect(process.env.THINKRAIL_TEST_SHELL).toBeUndefined();
+	expect(process.env.REALTHING_TEST_SHELL).toBeUndefined();
 });
 
 test("the PATH repair and the import share one login-shell probe", async () => {

@@ -1,5 +1,5 @@
-import type { GitStatus } from "@thinkrail/contracts";
-import { t } from "@thinkrail/locales/react";
+import type { GitStatus } from "@realthing/contracts";
+import { t } from "@realthing/locales/react";
 import { useRef, useState } from "react";
 import {
 	selectDiffBaseRef,
@@ -10,17 +10,19 @@ import {
 } from "../store";
 import { errorText, wsErrorCode } from "../transport";
 import { scopeKey } from "./changesModel";
-import { readGitStatus } from "./gitStatusCache";
+import { peekGitStatus, readGitStatus } from "./gitStatusCache";
 import { useWorkspaceRead } from "./useWorkspaceRead";
 
 export function useGitStatus(workspaceId: string) {
-	const [status, setStatus] = useState<GitStatus | null>(null);
-	const [error, setError] = useState<string | null>(null);
-	const warnedRef = useRef(false);
 	const setDiffScope = useAppStore((s) => s.setDiffScope);
 	const scope = useAppStore((s) => selectDiffScope(s, workspaceId));
 	const baseRef = useAppStore((s) => selectDiffBaseRef(s, workspaceId));
 	const targetRef = useAppStore((s) => selectDiffTabTargetRef(s, { workspaceId, scope }));
+	const [status, setStatus] = useState<GitStatus | null>(() =>
+		peekGitStatus(workspaceId, scope, targetRef),
+	);
+	const [error, setError] = useState<string | null>(null);
+	const warnedRef = useRef(false);
 
 	const { reload } = useWorkspaceRead(
 		workspaceId,
@@ -34,9 +36,7 @@ export function useGitStatus(workspaceId: string) {
 			onFailure: (_id, failure) => {
 				if (wsErrorCode(failure) === "UNKNOWN_COMMIT") {
 					setDiffScope(workspaceId, { kind: "branch" });
-					toast.info(
-						scope.kind === "turn" ? t("changes.panel.turnGone") : t("changes.panel.commitGone"),
-					);
+					toast.info(t("changes.panel.commitGone"));
 					return;
 				}
 				if (status && !warnedRef.current) {
@@ -46,10 +46,11 @@ export function useGitStatus(workspaceId: string) {
 				setError(errorText(failure));
 			},
 			onSwitch: () => {
-				setStatus(null);
+				setStatus(peekGitStatus(workspaceId, scope, targetRef));
 				setError(null);
 				warnedRef.current = false;
 			},
+			deferAfterTreeMs: 25,
 		},
 		`${scopeKey(scope)}:${baseRef}`,
 	);

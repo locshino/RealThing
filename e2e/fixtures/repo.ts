@@ -21,8 +21,8 @@ export function seedFixtureRepo(): void {
 	mkdirSync(E2E_FIXTURE_REPO, { recursive: true });
 	const git = (...args: string[]) => gitQuiet(E2E_FIXTURE_REPO, ...args);
 	git("init", "-b", "main");
-	git("config", "user.email", "e2e@thinkrail.test");
-	git("config", "user.name", "ThinkRail E2E");
+	git("config", "user.email", "e2e@realthing.test");
+	git("config", "user.name", "RealThing E2E");
 	git("config", "commit.gpgsign", "false");
 	writeFileSync(join(E2E_FIXTURE_REPO, "README.md"), "# sample-project\n");
 	writeFileSync(join(E2E_FIXTURE_REPO, "notes.txt"), "plain-text-fixture\n");
@@ -170,18 +170,12 @@ export function seedFixtureRepo(): void {
 	writeFileSync(join(E2E_FIXTURE_REPO, "LFS-ASSET.png"), lfsPointer("4d7a", 12345));
 	writeFileSync(
 		join(E2E_FIXTURE_REPO, "SPEC.md"),
-		"---\nid: sample-root\ntype: goal-and-requirements\ntitle: Sample Project\n---\n\n## Goal\n\nA throwaway fixture project for the thinkrail e2e suite. It carries the token SPECGRAPHPROBE so spec_grep has a deterministic match to find.\n",
+		"---\nid: sample-root\ntype: goal-and-requirements\ntitle: Sample Project\n---\n\n## Goal\n\nA throwaway fixture project for the realthing e2e suite. It carries the token SPECGRAPHPROBE so spec_grep has a deterministic match to find.\n",
 	);
 	mkdirSync(join(E2E_FIXTURE_REPO, "module-a"), { recursive: true });
 	writeFileSync(
 		join(E2E_FIXTURE_REPO, "module-a", "SPEC.md"),
 		"---\nid: sample-module\ntype: module-design\nstatus: active\ntitle: Sample Module\nparent: sample-root\n---\n\n## Responsibility\n\nA fixture module spec, child of sample-root.\n",
-	);
-	const skillDir = join(E2E_FIXTURE_REPO, ".claude", "skills", "e2e-portable");
-	mkdirSync(skillDir, { recursive: true });
-	writeFileSync(
-		join(skillDir, "SKILL.md"),
-		"---\nname: e2e-portable\ndescription: Portable e2e fixture skill\n---\n\n# Portable skill\n",
 	);
 	git("add", "-A");
 	git("commit", "-m", "init");

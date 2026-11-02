@@ -1,5 +1,4 @@
-import type { ReviewAnchor, ReviewSelector } from "@thinkrail/contracts";
-import type { AnchorDraft, ReviewThread } from "../registry";
+import type { AnchorDraft, ReviewAnchor, ReviewSelector, ReviewThread } from "../registry";
 
 export type Region = Extract<ReviewSelector, { kind: "region" }>;
 

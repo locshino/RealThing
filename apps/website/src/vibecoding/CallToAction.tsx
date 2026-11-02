@@ -10,14 +10,14 @@ import { Subtitle } from "./Subtitle";
 
 const COPY: Record<Positioning, { heading: string; subtitle: string }> = {
 	control: {
-		heading: "Give your AI agents a system.",
+		heading: "Give your workspaces a system.",
 		subtitle:
-			"Move from disconnected prompts to a clear, predictable, and fully visible environment for automated code generation.",
+			"Move from scattered branches to a fast, predictable environment for code editing, Git worktrees, multi-scope diff review, and workspace plans.",
 	},
 	compounding: {
 		heading: "Stop starting from zero.",
 		subtitle:
-			"Every session leaves your project smarter — decisions in specs, workflows in skills. Download ThinkRail and let it learn.",
+			"Every task leaves your project better organized — decisions in specs, tasks in workspace plans, and changes in clean Git worktrees.",
 	},
 };
 

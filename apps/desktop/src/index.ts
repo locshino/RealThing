@@ -2,9 +2,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
-import type { NativeCommand, NativeQuitHint, NativeWindowState } from "@thinkrail/contracts";
-import { resolveShellEnv } from "@thinkrail/shared/shellEnv";
-import { channel, posthogProjectKey, version } from "@thinkrail/shared/version";
+import type { NativeCommand, NativeQuitHint, NativeWindowState } from "@realthing/contracts";
+import { resolveShellEnv } from "@realthing/shared/shellEnv";
+import { channel, posthogProjectKey, version } from "@realthing/shared/version";
 import Electrobun, {
 	ApplicationMenu,
 	BrowserView,
@@ -181,7 +181,7 @@ function setWindowsWindowIcon(window: { readonly ptr: WindowsHandle | null }): v
 }
 
 function desktopUserData(): string {
-	return process.env.THINKRAIL_DESKTOP_USER_DATA ?? Utils.paths.userData;
+	return process.env.REALTHING_DESKTOP_USER_DATA ?? Utils.paths.userData;
 }
 
 function nativeLabelsPath(): string {
@@ -237,7 +237,7 @@ async function start(): Promise<void> {
 	);
 	const userData = desktopUserData();
 	const pendingInstallVersion = readPendingInstallVersion(userData);
-	const neutral = process.env.THINKRAIL_DESKTOP_E2E_HOST === "1";
+	const neutral = process.env.REALTHING_DESKTOP_E2E_HOST === "1";
 	const updateController = await createElectrobunUpdateController({
 		isPackaged: Electrobun.app.isPackaged,
 		version,
@@ -254,7 +254,7 @@ async function start(): Promise<void> {
 		desktopError("cwd", "could not leave the app bundle working directory", error);
 	}
 	const shellEnv = resolveShellEnv();
-	if (!neutral && process.env.THINKRAIL_DESKTOP_HIDDEN !== "1") {
+	if (!neutral && process.env.REALTHING_DESKTOP_HIDDEN !== "1") {
 		startupSplash = await openStartupSplash(
 			(options) => {
 				const splash = new BrowserWindow(options);
@@ -294,7 +294,7 @@ async function start(): Promise<void> {
 	const initialPreferences = preferences.read(BACKEND_PROFILE_ID, WINDOW_ID);
 	const titleBarProbePath = neutral
 		? undefined
-		: process.env.THINKRAIL_DESKTOP_TITLE_BAR_PROBE_FILE;
+		: process.env.REALTHING_DESKTOP_TITLE_BAR_PROBE_FILE;
 	const titleBarProbe: {
 		received: number;
 		handled: number;
@@ -302,7 +302,7 @@ async function start(): Promise<void> {
 	} = { received: 0, handled: 0, result: null };
 	const windowControlsProbePath = neutral
 		? undefined
-		: process.env.THINKRAIL_DESKTOP_WINDOW_CONTROLS_PROBE_FILE;
+		: process.env.REALTHING_DESKTOP_WINDOW_CONTROLS_PROBE_FILE;
 	const windowControlsProbe: { requests: string[]; state: NativeWindowState | null } = {
 		requests: [],
 		state: null,
@@ -421,13 +421,13 @@ async function start(): Promise<void> {
 					windowChromePreloadSeed(windowChrome),
 				);
 	mainWindow = new BrowserWindow({
-		title: "ThinkRail",
+		title: "RealThing",
 		url: neutral ? "about:blank" : `${origin}/${initialRoute}`,
 		preload,
 		...(neutral ? {} : { rpc }),
 		hidden:
-			process.env.THINKRAIL_DESKTOP_HIDDEN === "1" ||
-			process.env.THINKRAIL_DESKTOP_E2E_HOST === "1",
+			process.env.REALTHING_DESKTOP_HIDDEN === "1" ||
+			process.env.REALTHING_DESKTOP_E2E_HOST === "1",
 		navigationRules: neutral ? null : JSON.stringify(["^*", `${origin}/*`]),
 		frame: { x: 80, y: 60, width: 1440, height: 920 },
 		...(neutral
@@ -483,7 +483,7 @@ async function start(): Promise<void> {
 	}
 	const navigationProbePath = neutral
 		? undefined
-		: process.env.THINKRAIL_DESKTOP_NAVIGATION_PROBE_FILE;
+		: process.env.REALTHING_DESKTOP_NAVIGATION_PROBE_FILE;
 	const removeNavigationListeners = installExternalNavigation(
 		Electrobun.events,
 		mainWindow.webview.id,
@@ -517,7 +517,7 @@ async function start(): Promise<void> {
 		startupSplash = undefined;
 		startAttributionClaim();
 		updateController.start();
-		const readyPath = process.env.THINKRAIL_DESKTOP_READY_FILE;
+		const readyPath = process.env.REALTHING_DESKTOP_READY_FILE;
 		if (readyPath) {
 			writeReady(readyPath, {
 				origin,
@@ -532,7 +532,7 @@ async function start(): Promise<void> {
 		setTimeout(stampWindowsTaskbarShortcuts, 0);
 	});
 
-	const controlPath = process.env.THINKRAIL_DESKTOP_CONTROL_FILE;
+	const controlPath = process.env.REALTHING_DESKTOP_CONTROL_FILE;
 	if (controlPath) {
 		let navigationProbeStarted = false;
 		const titleBarProbeCommands = new Set<string>();
@@ -544,7 +544,7 @@ async function start(): Promise<void> {
 				if (command === "navigate" && navigationProbePath && !navigationProbeStarted) {
 					navigationProbeStarted = true;
 					mainWindow.webview.executeJavascript(
-						'window.location.assign("https://example.invalid/thinkrail-navigation-probe");',
+						'window.location.assign("https://example.invalid/realthing-navigation-probe");',
 					);
 				}
 				const titleBarTargets =

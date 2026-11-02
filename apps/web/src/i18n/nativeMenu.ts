@@ -1,9 +1,9 @@
-import type { NativeMenuBridge } from "@thinkrail/contracts";
-import { DESKTOP_DIALOG_KEYS, DESKTOP_MENU_KEYS } from "@thinkrail/locales";
-import { t } from "@thinkrail/locales/react";
+import type { NativeMenuBridge } from "@realthing/contracts";
+import { DESKTOP_DIALOG_KEYS, DESKTOP_MENU_KEYS } from "@realthing/locales";
+import { t } from "@realthing/locales/react";
 
 function menuBridge(): NativeMenuBridge | undefined {
-	const bridge: unknown = Reflect.get(globalThis, "__THINKRAIL_NATIVE_MENU__");
+	const bridge: unknown = Reflect.get(globalThis, "__REALTHING_NATIVE_MENU__");
 	return typeof bridge === "object" &&
 		bridge !== null &&
 		typeof Reflect.get(bridge, "setLabels") === "function"

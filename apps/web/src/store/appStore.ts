@@ -1,76 +1,51 @@
 import type {
 	AppConfig,
-	ComposerGrowthLimit,
-	ExtUiRequest,
+	EditorCursorStyle,
+	EditorLineNumbersMode,
+	EditorRenderWhitespace,
+	EditorTabSize,
+	ExplorerFileIconsMode,
+	ExplorerSortOrder,
 	GitDiffScope,
 	HostPlatform,
-	HostUpdateNotice,
 	LayoutPreset,
 	LocalLocalesSnapshot,
-	LoginFrame,
-	LoginPush,
-	McpListResult,
-	McpStatusSnapshot,
-	PiEvent,
 	Project,
-	ProviderStatusReport,
-	RefreshedModels,
 	ResourceMeta,
-	ReviewChangedPayload,
-	ReviewSnapshot,
-	SessionEventPayload,
-	SessionQueueState,
-	SessionResources,
-	SessionState,
-	SessionStateRecord,
-	SessionStats,
-	SessionSummary,
-	SlashCommandInfo,
-	SpecGraphNode,
 	SystemThemePair,
+	TerminalCursorStyle,
 	TerminalTabInfo,
 	TerminalWindowsShell,
 	ThemeId,
 	ThemeMode,
-	ThinkingLevel,
-	TurnChangeSet,
-	UserMessage,
 	UserThemesSnapshot,
-	WireModel,
 	Workspace,
 	WorkspaceFsChangedPayload,
-} from "@thinkrail/contracts";
+} from "@realthing/contracts";
 import {
-	canMarkCompletionUnread,
-	customMessageText,
 	DEFAULT_CONFIG,
-	isBackgroundCommandCompletionMessage,
-	isControlMessage,
+	isEditorAutoSaveDelayMs,
+	isEditorCursorStyle,
+	isEditorFontSize,
+	isEditorLineNumbers,
+	isEditorRenderWhitespace,
+	isEditorTabSize,
+	isExplorerFileIcons,
+	isExplorerSortOrder,
+	isFilesExcludeList,
+	isGitCommitListMax,
 	isLineWidth,
 	isLocalePreference,
-	isSettleIdleDays,
-	isSubagentCompletionMessage,
-	isSubagentMaxConcurrent,
+	isStringMap,
+	isTerminalCursorStyle,
+	isTerminalFontSize,
+	isTerminalScrollbackLines,
+	isTerminalShellArgs,
 	isTerminalWindowsShell,
-	isTodoReviewFixMessage,
 	normalizeThemePreference,
-	readToolResponseMessage,
-	sameModel,
-} from "@thinkrail/contracts";
-import { t } from "@thinkrail/locales/react";
+} from "@realthing/contracts";
+import { t } from "@realthing/locales/react";
 import { create } from "zustand";
-import type { LoginState } from "../auth";
-import { assistantFailure } from "../chat/assistantFailure";
-import type { ChatMessageOrder } from "../chat/chatPreferences";
-import type { HydratedRuntime } from "../chat/hydrate";
-import { insertRoundCloser } from "../chat/roundCloser";
-import type {
-	ChatAttachment,
-	ChatTurn,
-	CompactionState,
-	ExtUiDialogRequest,
-	ToolResultState,
-} from "../chat/types";
 import {
 	ancestorPaths,
 	defaultTerminalIndex,
@@ -78,13 +53,9 @@ import {
 	isPreviewCompatibleTabKind,
 	type LayoutAttention,
 	layoutResourceIdentity,
-	matchesSkillInvocationCommand,
-	parseSkillInvocation,
 	randomId,
 	readLayoutNavigationClock,
-	shallowEqualArrays,
 	tupleKey,
-	userText,
 } from "../lib";
 import type {
 	LayoutAuxiliaryRegion,
@@ -95,51 +66,12 @@ import type {
 } from "../shell/layout";
 import type { ConnectionStatus } from "../transport";
 import {
-	type ChatResourceRead,
-	type ChatResourceScope,
-	type ChatResourceSnapshots,
-	staleChatResources,
-} from "./chatResources";
-import {
-	EMPTY_MCP_PROJECTION,
-	foldMcpList,
-	foldMcpSnapshot,
-	type McpRead,
-	type McpWorkspaceProjection,
-	withoutMcpSession,
-} from "./mcp";
-import {
-	type HistoryTarget,
-	isChatResourceReadCurrent,
-	isChatResourceScopeAlive,
-	isConnectedGeneration,
-	type ModelRef,
-	SETTLED_SHELF_PAGE,
 	selectActiveWorkspaceProjectId,
-	selectChatAttended,
-	selectChatFirstPrompt,
 	selectFilesTreeView,
-	selectLayoutIdentityPlacement,
 	selectLayoutResourcePlacement,
-	selectSupportsMcp,
 	selectWorkspaceById,
 	selectWorkspaceNavTick,
-	selectWorkspaceSessionIds,
-	selectWorkspaceSettledReason,
-	selectWorkspaceTick,
-	supportsChatResources,
-	supportsWorkspaceSettling,
 } from "./selectors";
-
-export interface StreamingResponseMovement {
-	settle: number;
-	trigger: number;
-}
-
-export const DEFAULT_STREAMING_RESPONSE_MOVEMENT: StreamingResponseMovement = {
-	settle: 75,
-	trigger: 100,
-};
 
 export interface FileTab {
 	kind: "file";
@@ -153,13 +85,7 @@ export interface FileTab {
 	viewState?: unknown;
 	loadedTick?: number;
 }
-export interface ChatTab {
-	kind: "chat";
-	id: string;
-	workspaceId: string;
-	name: string;
-	sessionId: string;
-}
+
 export interface DocTab {
 	kind: "doc";
 	id: string;
@@ -169,7 +95,9 @@ export interface DocTab {
 	docPath: string;
 	sourceId: string;
 }
+
 export type DiffTabView = "split" | "inline";
+
 interface DiffTabBase {
 	kind: "diff";
 	id: string;
@@ -181,6 +109,7 @@ interface DiffTabBase {
 	view?: DiffTabView;
 	loadedTick?: number;
 }
+
 export interface GitDiffTab extends DiffTabBase {
 	before?: undefined;
 	scope: GitDiffScope;
@@ -191,9 +120,11 @@ export interface GitDiffTab extends DiffTabBase {
 	originalOid?: string | null;
 	ignoreWhitespace?: boolean;
 }
+
 export interface FileComparisonTab extends DiffTabBase {
 	before: string;
 }
+
 export type DiffTab = GitDiffTab | FileComparisonTab;
 
 export function isFileComparison<T extends { kind: string; before?: string | undefined }>(
@@ -201,26 +132,28 @@ export function isFileComparison<T extends { kind: string; before?: string | und
 ): tab is T & { kind: "diff"; before: string } {
 	return tab.kind === "diff" && tab.before !== undefined;
 }
+
 export type ChangesLayout = "stacked" | "single";
 type FilesMode = "all" | "changed";
 export type FilesScrollView = "all" | "changedList" | "changedTree";
+
 export interface FilesTreeView {
 	expanded: readonly string[];
 	changedCollapsed: readonly string[];
 	scroll: Partial<Record<FilesScrollView, { top: number; scope: string }>>;
 	seenActivePath: string | null;
 }
-const TURNS_PER_WORKSPACE = 30;
+
 export interface ChangesTabReveal {
 	path: string;
 	tick: number;
-	commentId?: string;
 }
+
 export interface ChangesTabSection {
 	rendererId?: string;
 	viewState?: unknown;
-	reviewDrafts?: Readonly<Record<string, unknown>>;
 }
+
 export interface ChangesTab {
 	kind: "changes";
 	id: string;
@@ -236,18 +169,15 @@ export interface ChangesTab {
 	sections: Record<string, ChangesTabSection>;
 	kept: Record<string, string[]>;
 }
+
 export interface PlanTab {
 	kind: "plan";
 	id: string;
 	workspaceId: string;
 	name: string;
-	sessionId: string;
 }
-export type EditorTab = FileTab | ChatTab | DocTab | DiffTab | ChangesTab | PlanTab;
 
-export function chatTabId(workspaceId: string, sessionId: string): string {
-	return tupleKey("chat", workspaceId, sessionId);
-}
+export type EditorTab = FileTab | DocTab | DiffTab | ChangesTab | PlanTab;
 
 export function createChangesTab(
 	workspaceId: string,
@@ -275,14 +205,9 @@ function editorResourceIdentity(tab: EditorTab): string {
 		return tupleKey("layout-resource", "document", "todo-plan", tab.sourceId);
 	}
 	if (tab.kind === "plan") {
-		return tupleKey("layout-resource", "document", "todo-plan", tab.sessionId);
+		return tupleKey("layout-resource", "document", "todo-plan", tab.workspaceId);
 	}
 	return layoutResourceIdentity(tab);
-}
-
-export function editorSessionId(tab: EditorTab): string | null {
-	if (tab.kind === "chat" || tab.kind === "plan") return tab.sessionId;
-	return tab.kind === "doc" ? tab.sourceId : null;
 }
 
 function availableEditorTabId(tabs: readonly EditorTab[], tab: EditorTab): string {
@@ -322,14 +247,6 @@ export interface CenterNavigationStamp {
 	clock: number;
 }
 
-export interface RouteChatTarget {
-	workspaceId: string;
-	sessionId: string;
-	navTick: number;
-	navigation: CenterNavigationStamp | null;
-	validated: boolean;
-}
-
 export interface LayoutOpenOptions {
 	targetGroupId?: string;
 	activate?: boolean;
@@ -360,12 +277,10 @@ export type LayoutIntent =
 			resource?: EditorTab;
 			keep?: boolean;
 			focus?: boolean;
-			historyRequestId?: string;
 			navigation?: CenterNavigationStamp | null;
 			countNavigation?: boolean;
 	  }
 	| { id: string; kind: "reveal-tool"; workspaceId: string; tool: LayoutToolId }
-	| { id: string; kind: "remove-session"; workspaceId: string; sessionId: string }
 	| {
 			id: string;
 			kind: "place-terminal";
@@ -383,6 +298,7 @@ export type LayoutIntent =
 	| { id: string; kind: "select-terminal"; workspaceId: string; tabKey: string }
 	| { id: string; kind: "toggle-side"; workspaceId: string; side: "left" | "right" }
 	| { id: string; kind: "toggle-bottom"; workspaceId: string };
+
 export type LayoutIntentInput = LayoutIntent extends infer Intent
 	? Intent extends { id: string }
 		? Omit<Intent, "id">
@@ -390,25 +306,16 @@ export type LayoutIntentInput = LayoutIntent extends infer Intent
 	: never;
 
 export const SettingsSection = {
-	Providers: "providers",
-	Models: "models",
-	Mcp: "mcp",
-	Github: "github",
 	Appearance: "appearance",
+	Editor: "editor",
+	Files: "files",
 	Language: "language",
 	LineWidth: "line-width",
-	Chat: "chat",
 	Layout: "layout",
+	Keybindings: "keybindings",
 	Updates: "updates",
 	Terminal: "terminal",
-	Workspaces: "workspaces",
-	Templates: "templates",
-	Review: "review",
-	Notifications: "notifications",
-	Privacy: "privacy",
-	Feedback: "feedback",
-	Extensions: "extensions",
-	Environment: "environment",
+	Git: "git",
 } as const;
 export type SettingsSection = (typeof SettingsSection)[keyof typeof SettingsSection];
 
@@ -431,552 +338,21 @@ export interface TerminalTab {
 	reservationPending?: true;
 }
 
-export interface ClosedChat {
-	sessionId: string;
-	title: string;
-	firstPrompt?: string;
-	closedAt: number;
-}
-
-export interface ChatLocationRequest {
-	workspaceId: string;
-	projectId: string;
-	sessionId: string;
-	messageIndex: number;
-	anchorText: string;
-	navigation?: CenterNavigationStamp | null;
-}
-
-export interface PendingMarkUnread {
-	candidates: Record<string, string>;
-	attendedSessionId: string | null;
-}
-
-export interface MarkedUnread {
-	workspaceId: string;
-	completionId: string;
-	held: boolean;
-}
-
-export interface SessionRuntime {
-	turns: ChatTurn[];
-	turnIdByMessageIndex?: (string | null)[];
-	toolResults: Record<string, ToolResultState>;
-	toolResponses: Record<string, unknown>;
-	currentAssistantId: string | null;
-	attemptAssistantId: string | null;
-	isStreaming: boolean;
-	settlementTick: number;
-	statsRefreshTick: number;
-	queue: SessionQueueState;
-	model: WireModel | null;
-	thinkingLevel: ThinkingLevel;
-	eventRevision: number;
-	syncedConnectionGeneration: number;
-	stats: SessionStats | null;
-	commands: SlashCommandInfo[];
-	draft: string;
-	pendingExtUi: ExtUiDialogRequest | null;
-	extUiQueue: ExtUiDialogRequest[];
-	extUiStatus: Record<string, string>;
-	extUiWidget: Record<string, string[]>;
-	hostState: SessionState | null;
-}
-
-const EMPTY_QUEUE: SessionQueueState = { steering: [], followUp: [] };
-
-function newRuntime(
-	model: WireModel | null,
-	thinkingLevel: ThinkingLevel,
-	syncedConnectionGeneration = 0,
-): SessionRuntime {
-	return {
-		turns: [],
-		toolResults: {},
-		toolResponses: {},
-		currentAssistantId: null,
-		attemptAssistantId: null,
-		isStreaming: false,
-		settlementTick: 0,
-		statsRefreshTick: 0,
-		queue: EMPTY_QUEUE,
-		model,
-		thinkingLevel,
-		eventRevision: 0,
-		syncedConnectionGeneration,
-		stats: null,
-		commands: [],
-		draft: "",
-		pendingExtUi: null,
-		extUiQueue: [],
-		extUiStatus: {},
-		extUiWidget: {},
-		hostState: null,
-	};
-}
-
-export const EMPTY_RUNTIME: SessionRuntime = newRuntime(null, "medium");
-
-function clearTurnStreaming(turns: ChatTurn[]): ChatTurn[] {
-	if (!turns.some((t) => t.kind === "assistant" && t.streaming)) return turns;
-	return turns.map((t) => (t.kind === "assistant" && t.streaming ? { ...t, streaming: false } : t));
-}
-
-function consumeFailureRecoveries(turns: ChatTurn[]): ChatTurn[] {
-	if (!turns.some((turn) => turn.kind === "error" && turn.recovery)) return turns;
-	return turns.map((turn) => {
-		if (turn.kind !== "error" || !turn.recovery) return turn;
-		const { recovery, ...rest } = turn;
-		return rest;
-	});
-}
-
-function removeSupersededAssistant(
-	turns: ChatTurn[],
-	attemptAssistantId: string | null,
-): ChatTurn[] {
-	if (!attemptAssistantId) return turns;
-	const index = turns.findIndex(
-		(turn) =>
-			turn.id === attemptAssistantId &&
-			turn.kind === "assistant" &&
-			assistantFailure(turn.message) !== null,
-	);
-	return index < 0 ? turns : [...turns.slice(0, index), ...turns.slice(index + 1)];
-}
-
-function compactionOutcome(event: Extract<PiEvent, { type: "compaction_end" }>): CompactionState {
-	if (event.aborted) return { status: "cancelled" };
-	if (event.errorMessage) return { status: "failed", detail: event.errorMessage };
-	const tokensBefore = event.result?.tokensBefore;
-	const tokensAfter = event.result?.estimatedTokensAfter;
-	return {
-		status: "done",
-		...(typeof tokensBefore === "number" ? { tokensBefore } : {}),
-		...(typeof tokensAfter === "number" ? { tokensAfter } : {}),
-		...(event.willRetry ? { resuming: true } : {}),
-	};
-}
-
-function clearCompactionResuming(turns: ChatTurn[]): ChatTurn[] {
-	if (!turns.some((t) => t.kind === "compaction" && t.resuming)) return turns;
-	return turns.map((t) => {
-		if (t.kind !== "compaction" || !t.resuming) return t;
-		const { resuming, ...rest } = t;
-		return rest;
-	});
-}
-
-function settleCompactionTurn(
-	turns: ChatTurn[],
-	event: Extract<PiEvent, { type: "compaction_end" }>,
-): ChatTurn[] {
-	const outcome = compactionOutcome(event);
-	const index = turns.findLastIndex((t) => t.kind === "compaction" && t.status === "running");
-	if (index < 0) return [...turns, { kind: "compaction", id: crypto.randomUUID(), ...outcome }];
-	return turns.map((t, i) => (i === index ? { kind: "compaction", id: t.id, ...outcome } : t));
-}
-
-function reconcileCompactionTurns(
-	current: ChatTurn[],
-	hydrated: ChatTurn[],
-	isStreaming: boolean,
-): ChatTurn[] {
-	const live = current.findLast(
-		(turn) => turn.kind === "compaction" && turn.status === "done" && turn.summary === undefined,
-	);
-	if (live?.kind !== "compaction") return hydrated;
-	const index = hydrated.findLastIndex(
-		(turn) =>
-			turn.kind === "compaction" &&
-			turn.summary !== undefined &&
-			(live.tokensBefore === undefined || turn.tokensBefore === live.tokensBefore),
-	);
-	if (index < 0) return hydrated;
-	return hydrated.map((turn, turnIndex) =>
-		turnIndex === index && turn.kind === "compaction"
-			? {
-					...turn,
-					id: live.id,
-					...(live.tokensAfter !== undefined ? { tokensAfter: live.tokensAfter } : {}),
-					...(isStreaming && live.resuming ? { resuming: true as const } : {}),
-				}
-			: turn,
-	);
-}
-
-type RetrySource = Extract<ChatTurn, { kind: "retry" }>["source"];
-
-function appendRetryTurn(
-	rt: SessionRuntime,
-	source: RetrySource,
-	event: { attempt: number; maxAttempts: number; delayMs: number },
-): SessionRuntime {
-	return {
-		...rt,
-		turns: [
-			...rt.turns.filter((t) => !(t.kind === "retry" && t.source === source)),
-			{
-				kind: "retry",
-				id: crypto.randomUUID(),
-				source,
-				attempt: event.attempt,
-				maxAttempts: event.maxAttempts,
-				delayMs: event.delayMs,
-			},
-		],
-	};
-}
-
-function clearRetryTurns(rt: SessionRuntime, source: RetrySource): SessionRuntime {
-	return rt.turns.some((t) => t.kind === "retry" && t.source === source)
-		? { ...rt, turns: rt.turns.filter((t) => !(t.kind === "retry" && t.source === source)) }
-		: rt;
-}
-
-const STATS_ENTRY_TYPES = new Set(["usage", "compaction", "branch_summary", "context_edit"]);
-
-function invalidatesSessionStats(event: PiEvent): boolean {
-	return (
-		event.type === "message_end" ||
-		event.type === "compaction_end" ||
-		event.type === "agent_settled" ||
-		(event.type === "entry_appended" && STATS_ENTRY_TYPES.has(event.entryType))
-	);
-}
-
-export function reduceSessionEvent(rt: SessionRuntime, event: PiEvent): SessionRuntime {
-	switch (event.type) {
-		case "agent_start":
-			return {
-				...rt,
-				turns: consumeFailureRecoveries(rt.turns),
-				isStreaming: true,
-				attemptAssistantId: null,
-			};
-		case "queue_update":
-			return {
-				...rt,
-				queue: {
-					steering: event.steering,
-					followUp: event.followUp,
-					...(event.hasImages ? { hasImages: true as const } : {}),
-				},
-			};
-		case "message_start": {
-			if (event.message.role === "assistant")
-				return {
-					...rt,
-					currentAssistantId: crypto.randomUUID(),
-					attemptAssistantId: null,
-					turns: clearTurnStreaming(rt.turns),
-				};
-			if (event.message.role === "user") {
-				const message = event.message as UserMessage;
-				const text = userText(message.content);
-				if (isControlMessage(text)) return rt;
-				const last = rt.turns[rt.turns.length - 1];
-				if (last?.kind === "user") {
-					const optimisticText = userText(last.message.content);
-					const invocation = parseSkillInvocation(text);
-					if (
-						optimisticText === text ||
-						(invocation && matchesSkillInvocationCommand(optimisticText, invocation))
-					) {
-						return {
-							...rt,
-							turns: [...rt.turns.slice(0, -1), { ...last, message }],
-						};
-					}
-				}
-				return {
-					...rt,
-					turns: [...rt.turns, { kind: "user", id: crypto.randomUUID(), message }],
-				};
-			}
-			return rt;
-		}
-		case "message_update": {
-			const ame = event.assistantMessageEvent;
-			const snapshot =
-				"partial" in ame
-					? ame.partial
-					: ame.type === "done"
-						? ame.message
-						: ame.type === "error"
-							? ame.error
-							: null;
-			if (!snapshot) return rt;
-			const id = rt.currentAssistantId ?? crypto.randomUUID();
-			const streaming = !(ame.type === "done" || ame.type === "error");
-			const turn: ChatTurn = { kind: "assistant", id, message: snapshot, streaming };
-			return {
-				...rt,
-				currentAssistantId: streaming ? id : null,
-				attemptAssistantId: streaming ? rt.attemptAssistantId : id,
-				turns: rt.turns.some((t) => t.id === id)
-					? rt.turns.map((t) => (t.id === id ? turn : t))
-					: [...rt.turns, turn],
-			};
-		}
-		case "message_end": {
-			const toolResponse = readToolResponseMessage(event.message);
-			if (toolResponse) {
-				const { toolCallId, response } = toolResponse;
-				return { ...rt, toolResponses: { ...rt.toolResponses, [toolCallId]: response } };
-			}
-			if (isBackgroundCommandCompletionMessage(event.message)) {
-				return {
-					...rt,
-					turns: [
-						...rt.turns,
-						{
-							kind: "backgroundCommandCompletion",
-							id: crypto.randomUUID(),
-							details: event.message.details,
-							timestamp: event.message.timestamp,
-						},
-					],
-				};
-			}
-			if (isSubagentCompletionMessage(event.message)) {
-				return {
-					...rt,
-					turns: [
-						...rt.turns,
-						{
-							kind: "subagentCompletion",
-							id: crypto.randomUUID(),
-							details: event.message.details,
-							text: customMessageText(event.message.content),
-							timestamp: event.message.timestamp,
-						},
-					],
-				};
-			}
-			if (isTodoReviewFixMessage(event.message)) {
-				return {
-					...rt,
-					turns: [
-						...rt.turns,
-						{
-							kind: "reviewFix",
-							id: crypto.randomUUID(),
-							details: event.message.details,
-							text: customMessageText(event.message.content),
-							timestamp: event.message.timestamp,
-						},
-					],
-				};
-			}
-			if (event.message.role !== "assistant" || !rt.currentAssistantId) return rt;
-			const id = rt.currentAssistantId;
-			const turn: ChatTurn = { kind: "assistant", id, message: event.message, streaming: false };
-			return {
-				...rt,
-				currentAssistantId: null,
-				attemptAssistantId: id,
-				turns: rt.turns.some((t) => t.id === id)
-					? rt.turns.map((t) => (t.id === id ? turn : t))
-					: [...rt.turns, turn],
-			};
-		}
-		case "tool_execution_start":
-			return {
-				...rt,
-				toolResults: {
-					...rt.toolResults,
-					[event.toolCallId]: { status: "running", raw: undefined },
-				},
-			};
-		case "tool_execution_update":
-			return {
-				...rt,
-				toolResults: {
-					...rt.toolResults,
-					[event.toolCallId]: { status: "running", raw: event.partialResult },
-				},
-			};
-		case "tool_execution_end":
-			return {
-				...rt,
-				toolResults: {
-					...rt.toolResults,
-					[event.toolCallId]: { status: event.isError ? "error" : "done", raw: event.result },
-				},
-			};
-		case "agent_end":
-			return rt;
-		case "agent_settled": {
-			const failure = assistantFailure(event.terminal);
-			const closer: ChatTurn = failure
-				? {
-						kind: "error",
-						id: crypto.randomUUID(),
-						text: failure.message,
-						failure: failure.failure,
-						recovery: "try-again",
-					}
-				: { kind: "system", id: crypto.randomUUID(), endedAt: Date.now() };
-			return {
-				...rt,
-				turns: insertRoundCloser(
-					clearCompactionResuming(clearTurnStreaming(rt.turns)).filter(
-						(turn) => turn.kind !== "retry",
-					),
-					closer,
-				),
-				isStreaming: false,
-				settlementTick: rt.settlementTick + 1,
-				currentAssistantId: null,
-				attemptAssistantId: null,
-			};
-		}
-		case "compaction_start":
-			return {
-				...rt,
-				turns: [...rt.turns, { kind: "compaction", id: crypto.randomUUID(), status: "running" }],
-			};
-		case "compaction_end": {
-			const settled = settleCompactionTurn(rt.turns, event);
-			return event.reason === "overflow" && event.willRetry
-				? {
-						...rt,
-						turns: removeSupersededAssistant(settled, rt.attemptAssistantId),
-						attemptAssistantId: null,
-					}
-				: { ...rt, turns: settled };
-		}
-		case "auto_retry_start":
-			return appendRetryTurn(
-				{
-					...rt,
-					turns: removeSupersededAssistant(rt.turns, rt.attemptAssistantId),
-					attemptAssistantId: null,
-				},
-				"turn",
-				event,
-			);
-		case "auto_retry_end":
-			return clearRetryTurns(rt, "turn");
-		case "summarization_retry_scheduled":
-			return appendRetryTurn(rt, "summarization", event);
-		case "summarization_retry_finished":
-			return clearRetryTurns(rt, "summarization");
-		case "thinking_level_changed":
-			return { ...rt, thinkingLevel: event.level };
-		default:
-			return rt;
-	}
-}
-
-function reduceExtUi(
-	rt: SessionRuntime,
-	request: Exclude<ExtUiRequest, { kind: "setTitle" }>,
-): SessionRuntime {
-	switch (request.kind) {
-		case "dismiss":
-			if (rt.pendingExtUi?.id === request.id) {
-				const [next, ...rest] = rt.extUiQueue;
-				return { ...rt, pendingExtUi: next ?? null, extUiQueue: rest };
-			}
-			if (rt.extUiQueue.some((q) => q.id === request.id))
-				return { ...rt, extUiQueue: rt.extUiQueue.filter((q) => q.id !== request.id) };
-			return rt;
-		case "select":
-		case "confirm":
-		case "input":
-		case "editor":
-			if (
-				rt.pendingExtUi?.id === request.id ||
-				rt.extUiQueue.some((candidate) => candidate.id === request.id)
-			) {
-				return rt;
-			}
-			return rt.pendingExtUi
-				? { ...rt, extUiQueue: [...rt.extUiQueue, request] }
-				: { ...rt, pendingExtUi: request };
-		case "notify": {
-			const kind = request.level === "error" ? "error" : "system";
-			return {
-				...rt,
-				turns: [...rt.turns, { kind, id: crypto.randomUUID(), text: request.message }],
-			};
-		}
-		case "setStatus": {
-			if (request.text === null)
-				return { ...rt, extUiStatus: omitKey(rt.extUiStatus, request.key) };
-			return { ...rt, extUiStatus: { ...rt.extUiStatus, [request.key]: request.text } };
-		}
-		case "setWidget": {
-			if (request.content === null)
-				return { ...rt, extUiWidget: omitKey(rt.extUiWidget, request.key) };
-			return { ...rt, extUiWidget: { ...rt.extUiWidget, [request.key]: request.content } };
-		}
-		default:
-			return rt;
-	}
-}
-
-function withHostState(runtime: SessionRuntime, hostState: SessionState | null): SessionRuntime {
-	let next = runtime.hostState === hostState ? runtime : { ...runtime, hostState };
-	const dialogId =
-		hostState?.needsInput?.kind === "dialog" ? hostState.needsInput.request.id : null;
-	if (dialogId === null) {
-		if (!next.pendingExtUi && next.extUiQueue.length === 0) return next;
-		return { ...next, pendingExtUi: null, extUiQueue: [] };
-	}
-	while (next.pendingExtUi && next.pendingExtUi.id !== dialogId) {
-		next = reduceExtUi(next, {
-			id: next.pendingExtUi.id,
-			sessionId: next.pendingExtUi.sessionId,
-			kind: "dismiss",
-		});
-	}
-	return next;
-}
-
-export type ReviewFocusSurface = { kind: "inline" } | { kind: "diff"; scope: GitDiffScope };
-export type OnboardingWizardGate = "pending" | "shown" | "hidden";
-export interface ProviderStatusSnapshot {
-	version: number;
-	report: ProviderStatusReport | null;
-	failed: boolean;
-}
-
 interface AppState {
-	resourceSnapshots: ChatResourceSnapshots;
-	resourceRevision: number;
-	invalidateChatResources: (scope: ChatResourceScope) => void;
-	installChatResources: (read: ChatResourceRead, snapshot: SessionResources) => void;
-	failChatResources: (read: ChatResourceRead, error: string) => void;
-	clearChatResources: (scope: ChatResourceScope) => void;
-	mcpByWorkspace: Record<string, McpWorkspaceProjection>;
-	mcpRevision: number;
-	installMcpList: (read: McpRead, result: McpListResult) => void;
-	applyMcpStatus: (snapshot: McpStatusSnapshot) => void;
 	status: ConnectionStatus;
 	connectionGeneration: number;
 	welcomeGeneration: number;
 	protocolVersion: number | null;
 	hostPlatform: HostPlatform | null;
 	hostAppVersion: string | null;
-	hostUpdate: HostUpdateNotice | null;
 	projects: Project[];
 	recentProjects: Project[];
 	workspaces: Record<string, Workspace[]>;
 	removedWorkspaceIds: Record<string, true>;
 	expandedProjectIds: Record<string, true>;
-	workspaceSettlingSupported: boolean;
-	settledShelfExpanded: Record<string, true>;
-	settledShelfShown: Record<string, number>;
 	selectedProjectId: string | null;
 	activeWorkspaceId: string | null;
-	/** The active workspace counts as live while this holds, whatever the idle window says. */
-	activeWorkspaceLiveLatch: boolean;
 	workspaceSelectionHistory: string[];
-	routeChatTarget: RouteChatTarget | null;
-	routeChatTargetGeneration: number;
 	workbenchFrame: WorkbenchFrame | null;
 	workspaceViewsByWorkspace: Record<string, WorkspaceViewState>;
 	layoutStateReady: boolean;
@@ -989,109 +365,67 @@ interface AppState {
 	activeTabByWorkspace: Record<string, string | null>;
 	previewTabByWorkspace: Record<string, string>;
 	navTickByWorkspace: Record<string, number>;
-	closedChatsByWorkspace: Record<string, ClosedChat[]>;
-	chatStartsByWorkspace: Record<string, number>;
 	worktreeCreationsByProject: Record<string, number>;
-	deletedSessionsByWorkspace: Record<string, Record<string, true>>;
 	terminalsByWorkspace: Record<string, TerminalTab[]>;
 	activeTerminalByWorkspace: Record<string, string | null>;
-	sessions: Record<string, SessionRuntime>;
-	sessionStateByWorkspace: Record<string, Record<string, SessionStateRecord>>;
-	sessionStateClock: number;
-	sessionStateSnapshotInstalled: boolean;
-	renderedCompletionBySession: Record<string, string>;
-	markingUnreadWorkspaces: Record<string, PendingMarkUnread>;
-	markedUnreadBySession: Record<string, MarkedUnread>;
-	obscuredChatSessions: Record<string, true>;
-	extUiOrphans: ExtUiRequest[];
-	models: WireModel[];
-	hiddenModels: ModelRef[];
-	providerVersion: number;
-	providerStatusVersion: number;
-	providerStatus: ProviderStatusSnapshot;
-	templatesVersion: number;
-	modelsRefreshing: boolean;
-	modelsFresh: boolean;
 	changesRequest: {
 		workspaceId: string;
 		path: string | null;
 		navTick: number;
 		navigation: CenterNavigationStamp | null;
 	} | null;
-	chatLocationRequest: ChatLocationRequest | null;
-	historyOpenRequest: { id: string; sessionId: string } | null;
-	specRequest: {
-		workspaceId: string;
-		path: string;
-		navigation: CenterNavigationStamp | null;
-	} | null;
-	specsByWorkspace: Record<string, SpecGraphNode[]>;
-	reviewsByWorkspace: Record<string, ReviewSnapshot>;
-	reviewFocusRequest: {
-		workspaceId: string;
-		commentId: string;
-		surface: ReviewFocusSurface;
-	} | null;
 	fsChangesByWorkspace: Record<string, { tick: number; paths: string[]; truncated: boolean }>;
-	skillChangeTickByWorkspace: Record<string, number>;
-	skillsSyncedTickBySession: Record<string, number>;
-	activeLogin: LoginState | null;
-	loginStarting: boolean;
 	settingsOpen: boolean;
 	settingsSection: SettingsSection;
-	interviewPromptOpen: boolean;
-	notificationPromptOpen: boolean;
-	sessionSwitcherOpen: boolean;
 	theme: ThemeId;
 	themeMode: ThemeMode;
 	systemThemePair: SystemThemePair | undefined;
-	analyticsEnabled: boolean;
-	analyticsConsentConfirmed: boolean;
-	notificationsEnabled: boolean;
-	subagentsEnabled: boolean;
-	subagentMaxConcurrent: number;
-	settleIdleDays: number | null;
-	jbcentralQuotaEnabled: boolean;
-	jbcentralQuotaRefreshSeconds: number;
+	uiFontFamily: string;
+	codeFontFamily: string;
+	explorerFileIcons: ExplorerFileIconsMode;
+	fileLineWidth: number;
+	fileLineWidthBounded: boolean;
+	editorFontSize: number;
+	editorTabSize: EditorTabSize;
+	editorInsertSpaces: boolean;
+	editorMinimap: boolean;
+	editorLineNumbers: EditorLineNumbersMode;
+	editorRenderWhitespace: EditorRenderWhitespace;
+	editorCursorStyle: EditorCursorStyle;
+	editorAutoSaveDelayMs: number;
+	filesExclude: string[];
+	filesShowHidden: boolean;
+	explorerCompactFolders: boolean;
+	explorerSortOrder: ExplorerSortOrder;
+	filesAssociations: Record<string, string>;
 	terminalReplayKb: number;
 	terminalWindowsShell: TerminalWindowsShell;
-	composerGrowthLimit: ComposerGrowthLimit;
-	chatLineWidth: number;
-	fileLineWidth: number;
-	chatLineWidthBounded: boolean;
-	fileLineWidthBounded: boolean;
-	chatMessageOrder: ChatMessageOrder;
-	streamingResponseMovement: StreamingResponseMovement;
-	defaultModel: WireModel | undefined;
-	defaultEffort: ThinkingLevel | undefined;
-	reviewModel: WireModel | undefined;
-	reviewEffort: ThinkingLevel | undefined;
-	favoriteModels: WireModel[];
-	recentModels: WireModel[];
-	reviewAutoFix: boolean;
-	agentReviewEnabled: boolean;
-	disabledExtensions: string[];
+	terminalShellPath: string;
+	terminalShellArgs: string[];
+	terminalFontSize: number;
+	terminalCursorStyle: TerminalCursorStyle;
+	terminalCursorBlink: boolean;
+	terminalScrollbackLines: number;
+	gitCommitVerify: boolean;
+	gitCommitListMax: number;
+	externalEditorCustomBin: string;
+	customKeybindings: Record<string, string>;
 	locale: string;
 	localLocales: LocalLocalesSnapshot | null;
 	installLocalLocales: (snapshot: LocalLocalesSnapshot | null) => void;
 	userThemes: UserThemesSnapshot | null;
 	installUserThemes: (snapshot: UserThemesSnapshot | null) => void;
-	onboardingDismissed: boolean;
-	onboardingWizard: OnboardingWizardGate;
 	customLayoutPresets: LayoutPreset[];
 	toasts: Toast[];
 	setStatus: (status: ConnectionStatus) => void;
-	setOnboardingWizard: (gate: OnboardingWizardGate) => void;
 	installWelcomeSnapshot: (
 		protocolVersion: number,
 		projects: Project[],
 		recentProjects: Project[],
 		config?: AppConfig,
 		hostPlatform?: HostPlatform,
-		hostUpdate?: HostUpdateNotice,
 		hostAppVersion?: string,
 	) => void;
-	applyHostUpdate: (hostUpdate: HostUpdateNotice) => void;
 	installProjectSnapshot: (projects: Project[], recentProjects: Project[]) => void;
 	applyProjectUpdated: (project: Project) => void;
 	setWorkspaces: (projectId: string, workspaces: Workspace[]) => void;
@@ -1101,18 +435,11 @@ interface AppState {
 	applyWorkspaceRemoved: (projectId: string, workspaceId: string) => void;
 	selectProject: (projectId: string, opts?: { reveal?: boolean }) => void;
 	toggleProjectExpanded: (projectId: string) => void;
-	toggleSettledShelf: (projectId: string, expanded?: boolean) => void;
-	showMoreSettled: (projectId: string, count: number) => void;
 	expandProject: (projectId: string) => void;
 	hydrateExpandedProjects: (projectIds: readonly string[]) => void;
 	selectMain: () => void;
 	activateWorkspace: (workspace: Pick<Workspace, "id" | "projectId">) => void;
-	activateWorkspaceFromRoute: (
-		workspace: Pick<Workspace, "id" | "projectId">,
-		sessionId?: string,
-	) => void;
-	validateRouteChatTarget: (sessionId: string) => void;
-	clearRouteChatTarget: () => void;
+	activateWorkspaceFromRoute: (workspace: Pick<Workspace, "id" | "projectId">) => void;
 	hydrateLocalLayoutState: (payload: LocalLayoutStatePayload) => void;
 	applyLocalLayoutState: (payload: LocalLayoutStatePayload, invalidateProjection?: boolean) => void;
 	setLocalLayoutPreferences: (preferences: LocalLayoutPreferences) => void;
@@ -1164,16 +491,11 @@ interface AppState {
 		id: string,
 		overrides: Record<string, boolean | null>,
 	) => void;
-	requestChangesTabReveal: (
-		workspaceId: string,
-		id: string,
-		path: string,
-		commentId?: string,
-	) => void;
+	requestChangesTabReveal: (workspaceId: string, id: string, path: string) => void;
 	consumeChangesTabReveal: (
 		workspaceId: string,
 		id: string,
-		target: { path: string; commentId?: string } | null,
+		target: { path: string } | null,
 	) => void;
 	setChangesTabSectionRenderer: (
 		workspaceId: string,
@@ -1186,13 +508,6 @@ interface AppState {
 		id: string,
 		path: string,
 		viewState: unknown,
-	) => void;
-	setChangesTabSectionReviewDraft: (
-		workspaceId: string,
-		id: string,
-		path: string,
-		key: string,
-		update: (current: unknown) => unknown,
 	) => void;
 	setChangesTabHunkKept: (
 		workspaceId: string,
@@ -1227,15 +542,6 @@ interface AppState {
 	diffScopeByWorkspace: Record<string, GitDiffScope>;
 	setDiffScope: (workspaceId: string, scope: GitDiffScope) => void;
 	noteFsChanged: (payload: WorkspaceFsChangedPayload) => void;
-	turnsByWorkspace: Record<string, TurnChangeSet[]>;
-	setWorkspaceTurns: (
-		workspaceId: string,
-		turns: TurnChangeSet[],
-		baseline: readonly TurnChangeSet[],
-		connectionGeneration: number,
-	) => void;
-	applyTurnChanged: (turn: TurnChangeSet) => void;
-	markSkillsSynced: (sessionId: string, syncedTick: number) => void;
 	updateFileTabContent: (
 		workspaceId: string,
 		id: string,
@@ -1269,121 +575,16 @@ interface AppState {
 	consumeTerminalInitialCommand: (workspaceId: string, tabKey: string) => void;
 	closeTerminalTab: (workspaceId: string, tabKey: string, syncLayout?: boolean) => void;
 	setActiveTerminalTab: (workspaceId: string, tabKey: string, syncLayout?: boolean) => void;
-	beginChatStart: (workspaceId: string) => void;
-	endChatStart: (workspaceId: string) => void;
 	beginWorktreeCreation: (projectId: string) => void;
 	endWorktreeCreation: (projectId: string) => void;
-	openChatSession: (
-		workspaceId: string,
-		sessionId: string,
-		model: WireModel | null,
-		thinkingLevel: ThinkingLevel,
-		syncedTick?: number,
-		options?: LayoutOpenOptions,
-	) => void;
-	closeChatRuntime: (sessionId: string) => void;
-	closeChatToHistory: (
-		sessionId: string,
-		syncLayout?: boolean,
-		workspaceId?: string,
-		countNavigation?: boolean,
-	) => void;
-	deleteChat: (workspaceId: string, sessionId: string, countNavigation?: boolean) => void;
-	reconcileWorkspaceSessions: (
-		workspaceId: string,
-		baselineSessionIds: readonly string[],
-		authoritativeSessionIds: readonly string[],
-	) => void;
-	installSessionStateSnapshot: (records: readonly SessionStateRecord[]) => void;
-	applySessionState: (record: SessionStateRecord) => void;
-	noteRenderedCompletion: (sessionId: string, completionId: string) => void;
-	beginMarkWorkspaceUnread: (workspaceId: string) => boolean;
-	finishMarkWorkspaceUnread: (workspaceId: string, record: SessionStateRecord | null) => void;
-	releaseUnattendedUnreadHolds: () => void;
-	setChatObscured: (sessionId: string, obscured: boolean) => void;
-	reopenChat: (workspaceId: string, sessionId: string, options?: LayoutOpenOptions) => void;
-	restorePlacedChatCache: (
-		workspaceId: string,
-		tabId: string,
-		sessionId: string,
-		title: string,
-	) => void;
-	noteClosedChats: (workspaceId: string, entries: ClosedChat[]) => void;
-	hydrateSession: (
-		summary: SessionSummary,
-		hydrated: HydratedRuntime,
-		activate?: boolean,
-		syncedTick?: number,
-		options?: LayoutOpenOptions,
-	) => void;
-	reconcileSession: (
-		summary: SessionSummary,
-		hydrated: HydratedRuntime,
-		expectedEventRevision: number,
-		connectionGeneration: number,
-	) => boolean;
-	appendUserMessage: (sessionId: string, text: string, attachments?: ChatAttachment[]) => void;
-	appendErrorTurn: (sessionId: string, text: string) => void;
-	appendCompactionFailureUnlessObserved: (
-		sessionId: string,
-		observedTurnIds: ReadonlySet<string>,
-		detail: string,
-	) => void;
-	handlePiEvent: (event: PiEvent, sessionId: string) => void;
-	handlePiEvents: (payloads: readonly SessionEventPayload[]) => void;
-	setModelsForProviderVersion: (providerVersion: number, models: WireModel[]) => void;
-	hydrateHiddenModels: (hidden: ModelRef[]) => void;
-	setModelVisibility: (model: ModelRef, visible: boolean) => void;
-	toggleModelVisibility: (model: ModelRef) => void;
-	noteProviderChanged: () => void;
-	invalidateProviderStatus: () => void;
-	installProviderStatus: (version: number, report: ProviderStatusReport | null) => void;
-	bumpTemplatesVersion: () => void;
-	beginModelsRefresh: () => number;
-	finishModelsRefresh: (providerVersion: number, result: RefreshedModels | null) => void;
-	dropModelsFreshness: () => void;
-	setCurrentModel: (sessionId: string, model: WireModel) => void;
-	setThinkingLevel: (sessionId: string, level: ThinkingLevel) => void;
-	setStats: (sessionId: string, stats: SessionStats) => void;
-	setCommands: (sessionId: string, commands: SlashCommandInfo[]) => void;
-	setChatDraft: (sessionId: string, text: string) => void;
-	clearPendingExtUi: (sessionId: string, id: string) => void;
-	applyExtUi: (request: ExtUiRequest) => void;
-	reserveLogin: () => boolean;
-	finishLoginStart: () => void;
-	beginLogin: (loginId: string, providerId: string, target?: LoginPush["target"]) => void;
-	applyLoginFrame: (push: LoginPush) => void;
-	clearLoginInput: () => void;
-	clearLogin: () => void;
 	openSettings: (section?: SettingsSection) => void;
 	closeSettings: () => void;
 	setSettingsSection: (section: SettingsSection) => void;
-	showInterviewPrompt: () => void;
-	hideInterviewPrompt: () => void;
-	openNotificationPrompt: () => void;
-	closeNotificationPrompt: () => void;
-	openSessionSwitcher: () => void;
-	closeSessionSwitcher: () => void;
-	toggleSessionSwitcher: () => void;
-	setChatMessageOrder: (order: ChatMessageOrder) => void;
-	setStreamingResponseMovement: (movement: StreamingResponseMovement) => void;
-	setChatPreferences: (order: ChatMessageOrder, movement: StreamingResponseMovement) => void;
 	applyConfig: (config: AppConfig) => void;
 	requestToolView: (workspaceId: string, tool: LayoutToolId) => void;
 	requestChangesView: (workspaceId: string, path: string | null, scope?: GitDiffScope) => void;
 	revealChanges: (workspaceId: string) => void;
 	clearChangesRequest: () => void;
-	requestChatLocation: (req: ChatLocationRequest) => void;
-	clearChatLocation: () => void;
-	requestHistoryOpen: (target: HistoryTarget) => void;
-	clearHistoryOpen: () => void;
-	requestSpecView: (workspaceId: string, path: string) => void;
-	clearSpecRequest: () => void;
-	setWorkspaceSpecs: (workspaceId: string, nodes: SpecGraphNode[]) => void;
-	setWorkspaceReview: (workspaceId: string, snapshot: ReviewSnapshot) => void;
-	requestReviewFocus: (workspaceId: string, commentId: string, surface: ReviewFocusSurface) => void;
-	clearReviewFocus: (commentId?: string) => void;
-	applyReviewChanged: (payload: ReviewChangedPayload) => void;
 	pushToast: (toast: Omit<Toast, "id">) => string;
 	dismissToast: (id: string) => void;
 }
@@ -1392,72 +593,110 @@ function sortProjects(projects: Project[]): Project[] {
 	return [...projects].sort((a, b) => b.lastOpened - a.lastOpened);
 }
 
-function normalizeWorkspaceTurns(turns: readonly TurnChangeSet[]): TurnChangeSet[] {
-	return [...new Map(turns.map((turn) => [turn.id, turn])).values()]
-		.sort((a, b) => a.startedAt - b.startedAt)
-		.slice(-TURNS_PER_WORKSPACE);
-}
-
 function configPatch(config: AppConfig) {
 	const themePreference = normalizeThemePreference(config);
 	return {
 		...themePreference,
 		systemThemePair: themePreference.systemThemePair,
-		analyticsEnabled:
-			typeof config.analyticsEnabled === "boolean"
-				? config.analyticsEnabled
-				: DEFAULT_CONFIG.analyticsEnabled,
-		analyticsConsentConfirmed:
-			typeof config.analyticsConsentConfirmed === "boolean"
-				? config.analyticsConsentConfirmed
-				: DEFAULT_CONFIG.analyticsConsentConfirmed,
-		notificationsEnabled:
-			typeof config.notificationsEnabled === "boolean"
-				? config.notificationsEnabled
-				: DEFAULT_CONFIG.notificationsEnabled,
-		subagentsEnabled: config.subagentsEnabled ?? DEFAULT_CONFIG.subagentsEnabled,
-		subagentMaxConcurrent: isSubagentMaxConcurrent(config.subagentMaxConcurrent)
-			? config.subagentMaxConcurrent
-			: DEFAULT_CONFIG.subagentMaxConcurrent,
-		settleIdleDays: isSettleIdleDays(config.settleIdleDays)
-			? config.settleIdleDays
-			: DEFAULT_CONFIG.settleIdleDays,
-		jbcentralQuotaEnabled: config.jbcentralQuotaEnabled ?? DEFAULT_CONFIG.jbcentralQuotaEnabled,
-		jbcentralQuotaRefreshSeconds:
-			config.jbcentralQuotaRefreshSeconds ?? DEFAULT_CONFIG.jbcentralQuotaRefreshSeconds,
-		terminalReplayKb: config.terminalReplayKb,
-		terminalWindowsShell: isTerminalWindowsShell(config.terminalWindowsShell)
-			? config.terminalWindowsShell
-			: DEFAULT_CONFIG.terminalWindowsShell,
-		composerGrowthLimit: config.composerGrowthLimit ?? DEFAULT_CONFIG.composerGrowthLimit,
-		chatLineWidth: isLineWidth(config.chatLineWidth)
-			? config.chatLineWidth
-			: DEFAULT_CONFIG.chatLineWidth,
+		uiFontFamily:
+			typeof config.uiFontFamily === "string" ? config.uiFontFamily : DEFAULT_CONFIG.uiFontFamily,
+		codeFontFamily:
+			typeof config.codeFontFamily === "string"
+				? config.codeFontFamily
+				: DEFAULT_CONFIG.codeFontFamily,
+		explorerFileIcons: isExplorerFileIcons(config.explorerFileIcons)
+			? config.explorerFileIcons
+			: DEFAULT_CONFIG.explorerFileIcons,
 		fileLineWidth: isLineWidth(config.fileLineWidth)
 			? config.fileLineWidth
 			: DEFAULT_CONFIG.fileLineWidth,
-		chatLineWidthBounded:
-			typeof config.chatLineWidthBounded === "boolean"
-				? config.chatLineWidthBounded
-				: DEFAULT_CONFIG.chatLineWidthBounded,
 		fileLineWidthBounded:
 			typeof config.fileLineWidthBounded === "boolean"
 				? config.fileLineWidthBounded
 				: DEFAULT_CONFIG.fileLineWidthBounded,
+		editorFontSize: isEditorFontSize(config.editorFontSize)
+			? config.editorFontSize
+			: DEFAULT_CONFIG.editorFontSize,
+		editorTabSize: isEditorTabSize(config.editorTabSize)
+			? config.editorTabSize
+			: DEFAULT_CONFIG.editorTabSize,
+		editorInsertSpaces:
+			typeof config.editorInsertSpaces === "boolean"
+				? config.editorInsertSpaces
+				: DEFAULT_CONFIG.editorInsertSpaces,
+		editorMinimap:
+			typeof config.editorMinimap === "boolean"
+				? config.editorMinimap
+				: DEFAULT_CONFIG.editorMinimap,
+		editorLineNumbers: isEditorLineNumbers(config.editorLineNumbers)
+			? config.editorLineNumbers
+			: DEFAULT_CONFIG.editorLineNumbers,
+		editorRenderWhitespace: isEditorRenderWhitespace(config.editorRenderWhitespace)
+			? config.editorRenderWhitespace
+			: DEFAULT_CONFIG.editorRenderWhitespace,
+		editorCursorStyle: isEditorCursorStyle(config.editorCursorStyle)
+			? config.editorCursorStyle
+			: DEFAULT_CONFIG.editorCursorStyle,
+		editorAutoSaveDelayMs: isEditorAutoSaveDelayMs(config.editorAutoSaveDelayMs)
+			? config.editorAutoSaveDelayMs
+			: DEFAULT_CONFIG.editorAutoSaveDelayMs,
+		filesExclude: isFilesExcludeList(config.filesExclude)
+			? [...config.filesExclude]
+			: [...DEFAULT_CONFIG.filesExclude],
+		filesShowHidden:
+			typeof config.filesShowHidden === "boolean"
+				? config.filesShowHidden
+				: DEFAULT_CONFIG.filesShowHidden,
+		explorerCompactFolders:
+			typeof config.explorerCompactFolders === "boolean"
+				? config.explorerCompactFolders
+				: DEFAULT_CONFIG.explorerCompactFolders,
+		explorerSortOrder: isExplorerSortOrder(config.explorerSortOrder)
+			? config.explorerSortOrder
+			: DEFAULT_CONFIG.explorerSortOrder,
+		filesAssociations: isStringMap(config.filesAssociations)
+			? { ...config.filesAssociations }
+			: { ...DEFAULT_CONFIG.filesAssociations },
+		terminalReplayKb: config.terminalReplayKb,
+		terminalWindowsShell: isTerminalWindowsShell(config.terminalWindowsShell)
+			? config.terminalWindowsShell
+			: DEFAULT_CONFIG.terminalWindowsShell,
+		terminalShellPath:
+			typeof config.terminalShellPath === "string"
+				? config.terminalShellPath
+				: DEFAULT_CONFIG.terminalShellPath,
+		terminalShellArgs: isTerminalShellArgs(config.terminalShellArgs)
+			? [...config.terminalShellArgs]
+			: [...DEFAULT_CONFIG.terminalShellArgs],
+		terminalFontSize: isTerminalFontSize(config.terminalFontSize)
+			? config.terminalFontSize
+			: DEFAULT_CONFIG.terminalFontSize,
+		terminalCursorStyle: isTerminalCursorStyle(config.terminalCursorStyle)
+			? config.terminalCursorStyle
+			: DEFAULT_CONFIG.terminalCursorStyle,
+		terminalCursorBlink:
+			typeof config.terminalCursorBlink === "boolean"
+				? config.terminalCursorBlink
+				: DEFAULT_CONFIG.terminalCursorBlink,
+		terminalScrollbackLines: isTerminalScrollbackLines(config.terminalScrollbackLines)
+			? config.terminalScrollbackLines
+			: DEFAULT_CONFIG.terminalScrollbackLines,
+		gitCommitVerify:
+			typeof config.gitCommitVerify === "boolean"
+				? config.gitCommitVerify
+				: DEFAULT_CONFIG.gitCommitVerify,
+		gitCommitListMax: isGitCommitListMax(config.gitCommitListMax)
+			? config.gitCommitListMax
+			: DEFAULT_CONFIG.gitCommitListMax,
+		externalEditorCustomBin:
+			typeof config.externalEditorCustomBin === "string"
+				? config.externalEditorCustomBin
+				: DEFAULT_CONFIG.externalEditorCustomBin,
+		customKeybindings: isStringMap(config.customKeybindings)
+			? { ...config.customKeybindings }
+			: { ...DEFAULT_CONFIG.customKeybindings },
 		customLayoutPresets: config.customLayoutPresets ?? DEFAULT_CONFIG.customLayoutPresets,
-		defaultModel: config.defaultModel,
-		defaultEffort: config.defaultEffort,
-		reviewModel: config.reviewModel,
-		reviewEffort: config.reviewEffort,
-		favoriteModels: config.favoriteModels ?? DEFAULT_CONFIG.favoriteModels,
-		recentModels: config.recentModels ?? DEFAULT_CONFIG.recentModels,
-		reviewAutoFix: config.reviewAutoFix ?? DEFAULT_CONFIG.reviewAutoFix,
-		agentReviewEnabled: config.agentReviewEnabled ?? DEFAULT_CONFIG.agentReviewEnabled,
-		disabledExtensions: Array.isArray(config.disabledExtensions)
-			? config.disabledExtensions
-			: DEFAULT_CONFIG.disabledExtensions,
 		locale: isLocalePreference(config.locale) ? config.locale : DEFAULT_CONFIG.locale,
-		onboardingDismissed: config.onboardingDismissed === true,
 	};
 }
 
@@ -1481,42 +720,15 @@ function withWorkspaceSelected(history: string[], workspaceId: string): string[]
 }
 
 function workspaceActivationPatch(
-	state: Pick<
-		AppState,
-		| "removedWorkspaceIds"
-		| "workspaceSelectionHistory"
-		| "workspaces"
-		| "sessionStateByWorkspace"
-		| "workspaceSettlingSupported"
-		| "settleIdleDays"
-		| "activeWorkspaceId"
-		| "activeWorkspaceLiveLatch"
-	>,
+	state: Pick<AppState, "removedWorkspaceIds" | "workspaceSelectionHistory" | "workspaces">,
 	workspace: Pick<Workspace, "id" | "projectId">,
 ):
-	| Pick<
-			AppState,
-			| "selectedProjectId"
-			| "activeWorkspaceId"
-			| "workspaceSelectionHistory"
-			| "activeWorkspaceLiveLatch"
-	  >
+	| Pick<AppState, "selectedProjectId" | "activeWorkspaceId" | "workspaceSelectionHistory">
 	| Record<string, never> {
 	if (state.removedWorkspaceIds[workspace.id]) return {};
-	const record = state.workspaces[workspace.projectId]?.find((w) => w.id === workspace.id);
-	const activeWorkspaceLiveLatch =
-		state.activeWorkspaceId === workspace.id
-			? state.activeWorkspaceLiveLatch
-			: record === undefined ||
-				selectWorkspaceSettledReason(
-					{ ...state, activeWorkspaceId: null, activeWorkspaceLiveLatch: false },
-					record,
-					Date.now(),
-				) === null;
 	return {
 		selectedProjectId: workspace.projectId,
 		activeWorkspaceId: workspace.id,
-		activeWorkspaceLiveLatch,
 		workspaceSelectionHistory: withWorkspaceSelected(state.workspaceSelectionHistory, workspace.id),
 	};
 }
@@ -1623,18 +835,6 @@ function layoutOpenIntentFields(options: LayoutOpenOptions) {
 	};
 }
 
-function navigationCountedAtRequest(options: LayoutOpenOptions): boolean {
-	return Object.hasOwn(options, "navigation");
-}
-
-function isSessionDeleted(
-	state: Pick<AppState, "deletedSessionsByWorkspace">,
-	workspaceId: string,
-	sessionId: string,
-): boolean {
-	return state.deletedSessionsByWorkspace[workspaceId]?.[sessionId] === true;
-}
-
 function patchResourceTab(
 	state: Pick<AppState, "tabsByWorkspace">,
 	workspaceId: string,
@@ -1715,21 +915,6 @@ function recordChangesTabProgress(
 			countNavigation: false,
 		}),
 	};
-}
-
-function sameSpecNode(a: SpecGraphNode, b: SpecGraphNode): boolean {
-	return (
-		a.id === b.id &&
-		a.type === b.type &&
-		a.title === b.title &&
-		a.status === b.status &&
-		a.path === b.path &&
-		a.parent === b.parent &&
-		shallowEqualArrays(a.dependsOn, b.dependsOn) &&
-		shallowEqualArrays(a.references, b.references) &&
-		shallowEqualArrays(a.implements, b.implements) &&
-		shallowEqualArrays(a.tags, b.tags)
-	);
 }
 
 function bumpNav(s: AppState, workspaceId: string): Record<string, number> {
@@ -1846,382 +1031,6 @@ export function isCenterNavigationCurrent(
 	return clock === undefined || clock === stamp.clock;
 }
 
-function layoutIntentTargetsSession(
-	intent: LayoutIntent,
-	workspaceId: string,
-	sessionId: string,
-): boolean {
-	if (intent.workspaceId !== workspaceId) return false;
-	if (intent.kind === "open") return editorSessionId(intent.tab) === sessionId;
-	if (intent.kind === "select" && intent.resource) {
-		return editorSessionId(intent.resource) === sessionId;
-	}
-	return false;
-}
-
-function withoutChat(
-	s: AppState,
-	workspaceId: string,
-	sessionId: string,
-	countNavigation: boolean,
-): AppState {
-	if (s.removedWorkspaceIds[workspaceId]) return s;
-	const alreadyDeleted = isSessionDeleted(s, workspaceId, sessionId);
-	const tabs = s.tabsByWorkspace[workspaceId] ?? [];
-	const sessionTabs = tabs.filter((candidate) => editorSessionId(candidate) === sessionId);
-	const closed = s.closedChatsByWorkspace[workspaceId] ?? [];
-	const inHistory = closed.some((chat) => chat.sessionId === sessionId);
-	const hasRuntime = s.sessions[sessionId] !== undefined;
-	const hasResources = s.resourceSnapshots[workspaceId]?.[sessionId] !== undefined;
-	const hasMcpStatus = s.mcpByWorkspace[workspaceId]?.sessions[sessionId] !== undefined;
-	const hasHostState = s.sessionStateByWorkspace[workspaceId]?.[sessionId] !== undefined;
-	const hasRenderedCompletion = Object.hasOwn(s.renderedCompletionBySession, sessionId);
-	const isObscured = Boolean(s.obscuredChatSessions[sessionId]);
-	const hasSkillBaseline = Object.hasOwn(s.skillsSyncedTickBySession, sessionId);
-	const targetsLocation =
-		s.chatLocationRequest?.workspaceId === workspaceId &&
-		s.chatLocationRequest.sessionId === sessionId;
-	const targetsRoute =
-		s.routeChatTarget?.workspaceId === workspaceId && s.routeChatTarget.sessionId === sessionId;
-	const targetsHistory = s.historyOpenRequest?.sessionId === sessionId;
-	const hasStaleLayoutIntent = s.layoutIntents.some((intent) =>
-		layoutIntentTargetsSession(intent, workspaceId, sessionId),
-	);
-	if (
-		alreadyDeleted &&
-		sessionTabs.length === 0 &&
-		!inHistory &&
-		!hasRuntime &&
-		!hasResources &&
-		!hasMcpStatus &&
-		!hasHostState &&
-		!hasRenderedCompletion &&
-		!isObscured &&
-		!hasSkillBaseline &&
-		!targetsLocation &&
-		!targetsRoute &&
-		!targetsHistory &&
-		!hasStaleLayoutIntent
-	) {
-		return s;
-	}
-
-	const removedTabIds = new Set(sessionTabs.map((candidate) => candidate.id));
-	const remaining =
-		sessionTabs.length > 0 ? tabs.filter((candidate) => !removedTabIds.has(candidate.id)) : tabs;
-	const wasActive =
-		s.activeTabByWorkspace[workspaceId] !== null &&
-		removedTabIds.has(s.activeTabByWorkspace[workspaceId] ?? "");
-	const survivingLayoutIntents = hasStaleLayoutIntent
-		? s.layoutIntents.filter(
-				(intent) => !layoutIntentTargetsSession(intent, workspaceId, sessionId),
-			)
-		: s.layoutIntents;
-	return {
-		...s,
-		layoutIntents: alreadyDeleted
-			? survivingLayoutIntents
-			: appendLayoutIntent(survivingLayoutIntents, {
-					kind: "remove-session",
-					workspaceId,
-					sessionId,
-				}),
-		...(!alreadyDeleted
-			? {
-					deletedSessionsByWorkspace: Object.assign(
-						Object.create(null),
-						s.deletedSessionsByWorkspace,
-						{
-							[workspaceId]: Object.assign(
-								Object.create(null),
-								s.deletedSessionsByWorkspace[workspaceId],
-								{ [sessionId]: true as const },
-							) as Record<string, true>,
-						},
-					) as Record<string, Record<string, true>>,
-				}
-			: {}),
-		...(sessionTabs.length > 0
-			? { tabsByWorkspace: { ...s.tabsByWorkspace, [workspaceId]: remaining } }
-			: {}),
-		...(wasActive
-			? {
-					activeTabByWorkspace: {
-						...s.activeTabByWorkspace,
-						[workspaceId]: remaining.at(-1)?.id ?? null,
-					},
-					navTickByWorkspace: countNavigation ? bumpNav(s, workspaceId) : s.navTickByWorkspace,
-				}
-			: {}),
-		...(inHistory
-			? {
-					closedChatsByWorkspace: {
-						...s.closedChatsByWorkspace,
-						[workspaceId]: closed.filter((chat) => chat.sessionId !== sessionId),
-					},
-				}
-			: {}),
-		...(hasRuntime ? { sessions: omitKey(s.sessions, sessionId) } : {}),
-		...(hasResources
-			? {
-					resourceSnapshots: {
-						...s.resourceSnapshots,
-						[workspaceId]: omitKey(s.resourceSnapshots[workspaceId] ?? {}, sessionId),
-					},
-				}
-			: {}),
-		...(hasMcpStatus
-			? { mcpByWorkspace: withoutMcpSession(s.mcpByWorkspace, workspaceId, sessionId) }
-			: {}),
-		...(hasHostState
-			? {
-					sessionStateByWorkspace: {
-						...s.sessionStateByWorkspace,
-						[workspaceId]: omitKey(s.sessionStateByWorkspace[workspaceId] ?? {}, sessionId),
-					},
-				}
-			: {}),
-		...(hasRenderedCompletion
-			? { renderedCompletionBySession: omitKey(s.renderedCompletionBySession, sessionId) }
-			: {}),
-		...(isObscured ? { obscuredChatSessions: omitKey(s.obscuredChatSessions, sessionId) } : {}),
-		...(hasSkillBaseline
-			? { skillsSyncedTickBySession: omitKey(s.skillsSyncedTickBySession, sessionId) }
-			: {}),
-		...(targetsLocation ? { chatLocationRequest: null } : {}),
-		...(targetsRoute ? { routeChatTarget: null } : {}),
-		...(targetsHistory ? { historyOpenRequest: null } : {}),
-	};
-}
-
-function sameSpecGraph(prev: SpecGraphNode[] | undefined, next: SpecGraphNode[]): boolean {
-	if (!prev || prev.length !== next.length) return false;
-	return prev.every((node, i) => {
-		const candidate = next[i];
-		return candidate !== undefined && sameSpecNode(node, candidate);
-	});
-}
-
-function sameReviewSnapshot(prev: ReviewSnapshot | undefined, next: ReviewSnapshot): boolean {
-	return prev !== undefined && JSON.stringify(prev) === JSON.stringify(next);
-}
-
-function sameSessionStateRecord(
-	previous: SessionStateRecord | undefined,
-	next: SessionStateRecord,
-): boolean {
-	return previous !== undefined && JSON.stringify(previous) === JSON.stringify(next);
-}
-
-const EXT_UI_ORPHAN_LIMIT = 64;
-const REPLAYABLE_EXT_UI: ReadonlySet<ExtUiRequest["kind"]> = new Set([
-	"notify",
-	"setStatus",
-	"setWidget",
-	"setTitle",
-]);
-
-function isDialogRequest(
-	request: ExtUiRequest,
-): request is Extract<ExtUiRequest, { kind: "select" | "confirm" | "input" | "editor" }> {
-	return (
-		request.kind === "select" ||
-		request.kind === "confirm" ||
-		request.kind === "input" ||
-		request.kind === "editor"
-	);
-}
-
-function dialogIsAuthorized(
-	state: SessionState | null | undefined,
-	request: ExtUiRequest,
-): boolean {
-	return (
-		isDialogRequest(request) &&
-		state?.needsInput?.kind === "dialog" &&
-		state.needsInput.request.id === request.id
-	);
-}
-
-function bufferExtUiOrphan(s: AppState, request: ExtUiRequest): Partial<AppState> {
-	const stateAuthorizesDialog = Object.values(s.sessionStateByWorkspace).some((records) =>
-		dialogIsAuthorized(records[request.sessionId]?.state, request),
-	);
-	if (!REPLAYABLE_EXT_UI.has(request.kind) && !stateAuthorizesDialog) return {};
-	if (s.extUiOrphans.some((frame) => frame.id === request.id)) return {};
-	return { extUiOrphans: [...s.extUiOrphans, request].slice(-EXT_UI_ORPHAN_LIMIT) };
-}
-
-function replayExtUiOrphans(
-	sessionId: string,
-	set: (updater: (s: AppState) => Partial<AppState>) => void,
-	get: () => AppState,
-): void {
-	if (!get().sessions[sessionId]) return;
-	const state = Object.values(get().sessionStateByWorkspace).find(
-		(records) => records[sessionId] !== undefined,
-	)?.[sessionId]?.state;
-	const sessionFrames = get().extUiOrphans.filter((frame) => frame.sessionId === sessionId);
-	if (sessionFrames.length === 0) return;
-	const replay = sessionFrames.filter(
-		(frame) => !isDialogRequest(frame) || dialogIsAuthorized(state, frame),
-	);
-	set((s) => ({ extUiOrphans: s.extUiOrphans.filter((frame) => frame.sessionId !== sessionId) }));
-	for (const frame of replay) get().applyExtUi(frame);
-}
-
-function renameSessionTabs(
-	s: AppState,
-	wsId: string,
-	sessionTabs: readonly (ChatTab | PlanTab)[],
-	title: string,
-): Pick<AppState, "layoutIntents" | "tabsByWorkspace"> | null {
-	let layoutIntents = s.layoutIntents;
-	const cached = s.tabsByWorkspace[wsId] ?? [];
-	let tabs = cached;
-	for (const tab of sessionTabs) {
-		const cacheChanged = tab.name !== title;
-		const renamed = cacheChanged ? { ...tab, name: title } : tab;
-		const identity = editorResourceIdentity(tab);
-		const matchesQueuedOpen = (
-			intent: LayoutIntent,
-		): intent is Extract<LayoutIntent, { kind: "open" }> =>
-			intent.kind === "open" &&
-			intent.workspaceId === wsId &&
-			editorResourceIdentity(intent.tab) === identity;
-		const queuedOpen = layoutIntents.find(matchesQueuedOpen);
-		const placement = selectLayoutIdentityPlacement(s, wsId, identity);
-		const queuedChanged = queuedOpen !== undefined && queuedOpen.tab.name !== title;
-		const placementChanged = placement !== null && placement.tab.name !== title;
-		if (!cacheChanged && !queuedChanged && !placementChanged) continue;
-		if (queuedOpen) {
-			if (queuedChanged || placementChanged) {
-				layoutIntents = layoutIntents.map((intent) =>
-					matchesQueuedOpen(intent)
-						? {
-								...intent,
-								tab: {
-									...intent.tab,
-									...(placementChanged && placement ? { id: placement.tabId } : {}),
-									name: title,
-								},
-							}
-						: intent,
-				);
-			}
-		} else if (placementChanged && placement) {
-			layoutIntents = appendLayoutIntent(layoutIntents, {
-				kind: "open",
-				workspaceId: wsId,
-				tab: { ...renamed, id: placement.tabId },
-				intent: "keep",
-				activate: false,
-			});
-		}
-		if (cacheChanged)
-			tabs = tabs.map((candidate) => (candidate.id === tab.id ? renamed : candidate));
-	}
-	if (layoutIntents === s.layoutIntents && tabs === cached) return null;
-	return {
-		layoutIntents,
-		tabsByWorkspace: tabs === cached ? s.tabsByWorkspace : { ...s.tabsByWorkspace, [wsId]: tabs },
-	};
-}
-
-function renameChat(s: AppState, sessionId: string, title: string): Partial<AppState> | null {
-	let found = false;
-	let patch: Partial<AppState> = {};
-	for (const [wsId, tabs] of Object.entries(s.tabsByWorkspace)) {
-		const sessionTabs = tabs.filter(
-			(tab): tab is ChatTab | PlanTab =>
-				(tab.kind === "chat" || tab.kind === "plan") && tab.sessionId === sessionId,
-		);
-		if (sessionTabs.length === 0) continue;
-		if (sessionTabs.some((tab) => tab.kind === "chat")) found = true;
-		const renamed = renameSessionTabs({ ...s, ...patch }, wsId, sessionTabs, title);
-		if (renamed) patch = { ...patch, ...renamed };
-	}
-	for (const [wsId, chats] of Object.entries(s.closedChatsByWorkspace)) {
-		if (!chats.some((chat) => chat.sessionId === sessionId)) continue;
-		found = true;
-		patch = {
-			...patch,
-			closedChatsByWorkspace: {
-				...s.closedChatsByWorkspace,
-				[wsId]: chats.map((chat) => (chat.sessionId === sessionId ? { ...chat, title } : chat)),
-			},
-		};
-		break;
-	}
-	return found ? patch : null;
-}
-
-function withRuntime(
-	s: AppState,
-	sessionId: string,
-	update: (rt: SessionRuntime) => SessionRuntime,
-): Partial<AppState> {
-	const rt = s.sessions[sessionId];
-	if (!rt) return {};
-	const next = update(rt);
-	return next === rt ? {} : { sessions: { ...s.sessions, [sessionId]: next } };
-}
-
-function newLoginState(
-	loginId: string,
-	providerId: string,
-	target: LoginPush["target"] | undefined,
-): LoginState {
-	return { loginId, providerId, status: "active", ...(target ? { target } : {}) };
-}
-
-function foldLoginFrame(state: LoginState, frame: LoginFrame): LoginState {
-	switch (frame.kind) {
-		case "authUrl":
-			return {
-				...state,
-				url: frame.url,
-				...(frame.instructions ? { instructions: frame.instructions } : {}),
-			};
-		case "deviceCode":
-			return {
-				...state,
-				deviceCode: {
-					userCode: frame.userCode,
-					verificationUri: frame.verificationUri,
-					...(frame.expiresInSeconds ? { expiresInSeconds: frame.expiresInSeconds } : {}),
-				},
-			};
-		case "select": {
-			const { progress: _p, ...rest } = state;
-			return { ...rest, input: { kind: "select", message: frame.message, options: frame.options } };
-		}
-		case "prompt": {
-			const { progress: _p, ...rest } = state;
-			return {
-				...rest,
-				input: {
-					kind: "prompt",
-					message: frame.message,
-					...(frame.placeholder ? { placeholder: frame.placeholder } : {}),
-					...(frame.allowEmpty ? { allowEmpty: true } : {}),
-					...(frame.secret ? { secret: true } : {}),
-				},
-			};
-		}
-		case "progress":
-			return { ...state, progress: frame.message };
-		case "success": {
-			const { input: _i, progress: _p, ...rest } = state;
-			return { ...rest, status: "success" };
-		}
-		case "error": {
-			const { input: _i, progress: _p, ...rest } = state;
-			return { ...rest, status: "error", error: frame.message };
-		}
-	}
-}
-
 function nextTerminalTitle(list: TerminalTab[]): string {
 	const used = list.flatMap((tab) => defaultTerminalIndex(tab.title) ?? []);
 	return defaultTerminalTitle(Math.max(0, ...used) + 1);
@@ -2234,21 +1043,14 @@ export const useAppStore = create<AppState>((set, get) => ({
 	protocolVersion: null,
 	hostPlatform: null,
 	hostAppVersion: null,
-	hostUpdate: null,
 	projects: [],
 	recentProjects: [],
 	workspaces: {},
 	removedWorkspaceIds: Object.create(null) as Record<string, true>,
 	expandedProjectIds: Object.create(null) as Record<string, true>,
-	workspaceSettlingSupported: false,
-	settledShelfExpanded: Object.create(null) as Record<string, true>,
-	settledShelfShown: Object.create(null) as Record<string, number>,
 	selectedProjectId: null,
 	activeWorkspaceId: null,
-	activeWorkspaceLiveLatch: false,
 	workspaceSelectionHistory: [],
-	routeChatTarget: null,
-	routeChatTargetGeneration: 0,
 	workbenchFrame: null,
 	workspaceViewsByWorkspace: {},
 	layoutStateReady: false,
@@ -2261,229 +1063,64 @@ export const useAppStore = create<AppState>((set, get) => ({
 	activeTabByWorkspace: {},
 	previewTabByWorkspace: {},
 	navTickByWorkspace: {},
-	closedChatsByWorkspace: {},
-	chatStartsByWorkspace: {},
 	worktreeCreationsByProject: {},
-	deletedSessionsByWorkspace: Object.create(null) as Record<string, Record<string, true>>,
 	terminalsByWorkspace: {},
 	activeTerminalByWorkspace: {},
-	sessions: {},
-	sessionStateByWorkspace: {},
-	sessionStateClock: 0,
-	sessionStateSnapshotInstalled: false,
-	renderedCompletionBySession: {},
-	markingUnreadWorkspaces: {},
-	markedUnreadBySession: {},
-	obscuredChatSessions: {},
-	extUiOrphans: [],
-	models: [],
-	hiddenModels: [],
-	providerVersion: 0,
-	providerStatusVersion: 0,
-	providerStatus: { version: -1, report: null, failed: false },
-	templatesVersion: 0,
-	modelsRefreshing: false,
-	modelsFresh: false,
 	changesRequest: null,
-	specRequest: null,
-	specsByWorkspace: {},
-	reviewsByWorkspace: {},
-	reviewFocusRequest: null,
 	changesView: "tree",
 	filesMode: "all",
 	filesTreeByWorkspace: {},
 	changesLayout: "stacked",
 	diffScopeByWorkspace: {},
-	chatLocationRequest: null,
-	historyOpenRequest: null,
 	fsChangesByWorkspace: {},
-	turnsByWorkspace: {},
-	skillChangeTickByWorkspace: {},
-	skillsSyncedTickBySession: {},
-	activeLogin: null,
-	loginStarting: false,
 	settingsOpen: false,
-	settingsSection: SettingsSection.Providers,
-	interviewPromptOpen: false,
-	notificationPromptOpen: false,
-	sessionSwitcherOpen: false,
+	settingsSection: SettingsSection.Appearance,
 	theme: DEFAULT_CONFIG.theme,
 	themeMode: DEFAULT_CONFIG.themeMode,
 	systemThemePair: DEFAULT_CONFIG.systemThemePair,
-	analyticsEnabled: DEFAULT_CONFIG.analyticsEnabled,
-	analyticsConsentConfirmed: DEFAULT_CONFIG.analyticsConsentConfirmed,
-	notificationsEnabled: DEFAULT_CONFIG.notificationsEnabled,
-	subagentsEnabled: DEFAULT_CONFIG.subagentsEnabled,
-	subagentMaxConcurrent: DEFAULT_CONFIG.subagentMaxConcurrent,
-	settleIdleDays: DEFAULT_CONFIG.settleIdleDays,
-	jbcentralQuotaEnabled: DEFAULT_CONFIG.jbcentralQuotaEnabled,
-	jbcentralQuotaRefreshSeconds: DEFAULT_CONFIG.jbcentralQuotaRefreshSeconds,
+	uiFontFamily: DEFAULT_CONFIG.uiFontFamily,
+	codeFontFamily: DEFAULT_CONFIG.codeFontFamily,
+	explorerFileIcons: DEFAULT_CONFIG.explorerFileIcons,
+	fileLineWidth: DEFAULT_CONFIG.fileLineWidth,
+	fileLineWidthBounded: DEFAULT_CONFIG.fileLineWidthBounded,
+	editorFontSize: DEFAULT_CONFIG.editorFontSize,
+	editorTabSize: DEFAULT_CONFIG.editorTabSize,
+	editorInsertSpaces: DEFAULT_CONFIG.editorInsertSpaces,
+	editorMinimap: DEFAULT_CONFIG.editorMinimap,
+	editorLineNumbers: DEFAULT_CONFIG.editorLineNumbers,
+	editorRenderWhitespace: DEFAULT_CONFIG.editorRenderWhitespace,
+	editorCursorStyle: DEFAULT_CONFIG.editorCursorStyle,
+	editorAutoSaveDelayMs: DEFAULT_CONFIG.editorAutoSaveDelayMs,
+	filesExclude: [...DEFAULT_CONFIG.filesExclude],
+	filesShowHidden: DEFAULT_CONFIG.filesShowHidden,
+	explorerCompactFolders: DEFAULT_CONFIG.explorerCompactFolders,
+	explorerSortOrder: DEFAULT_CONFIG.explorerSortOrder,
+	filesAssociations: { ...DEFAULT_CONFIG.filesAssociations },
 	terminalReplayKb: DEFAULT_CONFIG.terminalReplayKb,
 	terminalWindowsShell: DEFAULT_CONFIG.terminalWindowsShell,
-	composerGrowthLimit: DEFAULT_CONFIG.composerGrowthLimit,
-	chatLineWidth: DEFAULT_CONFIG.chatLineWidth,
-	fileLineWidth: DEFAULT_CONFIG.fileLineWidth,
-	chatLineWidthBounded: DEFAULT_CONFIG.chatLineWidthBounded,
-	fileLineWidthBounded: DEFAULT_CONFIG.fileLineWidthBounded,
-	chatMessageOrder: "oldest-first",
-	streamingResponseMovement: { ...DEFAULT_STREAMING_RESPONSE_MOVEMENT },
+	terminalShellPath: DEFAULT_CONFIG.terminalShellPath,
+	terminalShellArgs: [...DEFAULT_CONFIG.terminalShellArgs],
+	terminalFontSize: DEFAULT_CONFIG.terminalFontSize,
+	terminalCursorStyle: DEFAULT_CONFIG.terminalCursorStyle,
+	terminalCursorBlink: DEFAULT_CONFIG.terminalCursorBlink,
+	terminalScrollbackLines: DEFAULT_CONFIG.terminalScrollbackLines,
+	gitCommitVerify: DEFAULT_CONFIG.gitCommitVerify,
+	gitCommitListMax: DEFAULT_CONFIG.gitCommitListMax,
+	externalEditorCustomBin: DEFAULT_CONFIG.externalEditorCustomBin,
+	customKeybindings: { ...DEFAULT_CONFIG.customKeybindings },
 	customLayoutPresets: DEFAULT_CONFIG.customLayoutPresets,
-	defaultModel: DEFAULT_CONFIG.defaultModel,
-	defaultEffort: DEFAULT_CONFIG.defaultEffort,
-	reviewModel: DEFAULT_CONFIG.reviewModel,
-	reviewEffort: DEFAULT_CONFIG.reviewEffort,
-	favoriteModels: DEFAULT_CONFIG.favoriteModels,
-	recentModels: DEFAULT_CONFIG.recentModels,
-	reviewAutoFix: DEFAULT_CONFIG.reviewAutoFix,
-	agentReviewEnabled: DEFAULT_CONFIG.agentReviewEnabled,
-	disabledExtensions: DEFAULT_CONFIG.disabledExtensions,
 	locale: DEFAULT_CONFIG.locale,
 	localLocales: null,
 	installLocalLocales: (snapshot) => set({ localLocales: snapshot }),
 	userThemes: null,
 	installUserThemes: (snapshot) => set({ userThemes: snapshot }),
-	onboardingDismissed: DEFAULT_CONFIG.onboardingDismissed,
-	onboardingWizard: "pending",
 	toasts: [],
-	resourceSnapshots: {},
-	resourceRevision: 0,
-	mcpByWorkspace: {},
-	mcpRevision: 0,
-	installMcpList: (read, result) =>
-		set((state) => {
-			if (
-				!selectSupportsMcp(state) ||
-				!isConnectedGeneration(state, read.connectionGeneration) ||
-				state.removedWorkspaceIds[read.workspaceId]
-			)
-				return {};
-			const deleted = state.deletedSessionsByWorkspace[read.workspaceId] ?? {};
-			return {
-				mcpByWorkspace: {
-					...state.mcpByWorkspace,
-					[read.workspaceId]: foldMcpList(
-						state.mcpByWorkspace[read.workspaceId],
-						{
-							...result,
-							statuses: result.statuses.filter((snapshot) => !deleted[snapshot.sessionId]),
-						},
-						read,
-					),
-				},
-			};
-		}),
-	applyMcpStatus: (snapshot) =>
-		set((state) => {
-			if (
-				!selectSupportsMcp(state) ||
-				state.status !== "connected" ||
-				!isChatResourceScopeAlive(state, snapshot)
-			)
-				return {};
-			const projection = state.mcpByWorkspace[snapshot.workspaceId] ?? EMPTY_MCP_PROJECTION;
-			const revision = state.mcpRevision + 1;
-			const held = foldMcpSnapshot(
-				projection.sessions[snapshot.sessionId],
-				snapshot,
-				state.connectionGeneration,
-				revision,
-			);
-			if (!held) return {};
-			return {
-				mcpRevision: revision,
-				mcpByWorkspace: {
-					...state.mcpByWorkspace,
-					[snapshot.workspaceId]: {
-						...projection,
-						sessions: { ...projection.sessions, [snapshot.sessionId]: held },
-					},
-				},
-			};
-		}),
-	invalidateChatResources: (scope) =>
-		set((state) => {
-			if (
-				!isChatResourceScopeAlive(state, scope) ||
-				!supportsChatResources(state.protocolVersion) ||
-				state.status !== "connected"
-			)
-				return {};
-			const previous = state.resourceSnapshots[scope.workspaceId]?.[scope.sessionId];
-			const revision = state.resourceRevision + 1;
-			return {
-				resourceRevision: revision,
-				resourceSnapshots: {
-					...state.resourceSnapshots,
-					[scope.workspaceId]: {
-						...state.resourceSnapshots[scope.workspaceId],
-						[scope.sessionId]: {
-							snapshot: previous?.snapshot ?? null,
-							connectionGeneration: previous?.connectionGeneration ?? null,
-							revision,
-							fresh: false,
-							error: null,
-						},
-					},
-				},
-			};
-		}),
-	installChatResources: (read, snapshot) =>
-		set((state) => {
-			if (
-				!isChatResourceReadCurrent(state, read) ||
-				snapshot.workspaceId !== read.workspaceId ||
-				snapshot.sessionId !== read.sessionId
-			)
-				return {};
-			return {
-				resourceSnapshots: {
-					...state.resourceSnapshots,
-					[read.workspaceId]: {
-						...state.resourceSnapshots[read.workspaceId],
-						[read.sessionId]: {
-							snapshot,
-							connectionGeneration: read.connectionGeneration,
-							revision: read.revision,
-							fresh: true,
-							error: null,
-						},
-					},
-				},
-			};
-		}),
-	failChatResources: (read, error) =>
-		set((state) => {
-			const previous = state.resourceSnapshots[read.workspaceId]?.[read.sessionId];
-			if (!previous || !isChatResourceReadCurrent(state, read)) return {};
-			return {
-				resourceSnapshots: {
-					...state.resourceSnapshots,
-					[read.workspaceId]: {
-						...state.resourceSnapshots[read.workspaceId],
-						[read.sessionId]: { ...previous, fresh: false, error },
-					},
-				},
-			};
-		}),
-	clearChatResources: (scope) =>
-		set((state) => ({
-			resourceSnapshots: {
-				...state.resourceSnapshots,
-				[scope.workspaceId]: omitKey(
-					state.resourceSnapshots[scope.workspaceId] ?? {},
-					scope.sessionId,
-				),
-			},
-		})),
-	setOnboardingWizard: (onboardingWizard) => set({ onboardingWizard }),
 	setStatus: (status) =>
 		set((state) => ({
 			status,
 			protocolVersion: null,
-			resourceSnapshots: staleChatResources(state.resourceSnapshots),
 			connectionGeneration:
 				status === "connected" ? state.connectionGeneration + 1 : state.connectionGeneration,
-			sessionStateSnapshotInstalled: false,
 		})),
 	installWelcomeSnapshot: (
 		protocolVersion,
@@ -2491,31 +1128,22 @@ export const useAppStore = create<AppState>((set, get) => ({
 		recentProjects,
 		config,
 		hostPlatform,
-		hostUpdate,
 		hostAppVersion,
 	) =>
 		set((state) => {
 			const openProjects = sortProjects(projects.filter((project) => project.closed !== true));
 			return {
 				protocolVersion,
-				workspaceSettlingSupported: supportsWorkspaceSettling(protocolVersion),
-				resourceSnapshots: supportsChatResources(protocolVersion)
-					? staleChatResources(state.resourceSnapshots)
-					: {},
-				mcpByWorkspace: selectSupportsMcp({ protocolVersion }) ? state.mcpByWorkspace : {},
 				projects: openProjects,
 				recentProjects: sortProjects(recentProjects),
 				hostPlatform: hostPlatform ?? null,
-				hostUpdate: hostUpdate ?? null,
 				hostAppVersion: hostAppVersion ?? null,
 				...(config ? configPatch(config) : {}),
 				...reconcileProjectNavigation(state, openProjects),
 				...pruneExpandedProjects(state, openProjects),
 				welcomeGeneration: state.welcomeGeneration + 1,
-				providerStatusVersion: state.providerStatusVersion + 1,
 			};
 		}),
-	applyHostUpdate: (hostUpdate) => set({ hostUpdate }),
 	installProjectSnapshot: (projects, recentProjects) =>
 		set((state) => {
 			const openProjects = sortProjects(projects.filter((project) => project.closed !== true));
@@ -2565,9 +1193,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 			const list = s.workspaces[workspace.projectId];
 			const previous = list?.find((w) => w.id === workspace.id);
 			if (!list || !previous) return {};
-			const worked =
-				s.activeWorkspaceId === workspace.id &&
-				(workspace.lastActiveAt ?? 0) > (previous.lastActiveAt ?? 0);
 			return {
 				workspaces: {
 					...s.workspaces,
@@ -2577,7 +1202,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 							: w,
 					),
 				},
-				...(worked && !s.activeWorkspaceLiveLatch ? { activeWorkspaceLiveLatch: true } : {}),
 			};
 		}),
 	removeWorkspace: (projectId, workspaceId) =>
@@ -2593,42 +1217,17 @@ export const useAppStore = create<AppState>((set, get) => ({
 		const wasActive = s.activeWorkspaceId === workspaceId;
 		const fallbackWorkspace = wasActive ? recentWorkspaceFallback(s, workspaceId) : null;
 		const name = s.workspaces[projectId]?.find((w) => w.id === workspaceId)?.name;
-		set((state) => {
-			const removedSessions = new Set(selectWorkspaceSessionIds(state, workspaceId));
-			return {
-				removedWorkspaceIds: Object.assign(Object.create(null), state.removedWorkspaceIds, {
-					[workspaceId]: true,
-				}) as Record<string, true>,
-				workspaceSelectionHistory: state.workspaceSelectionHistory.filter(
-					(id) => id !== workspaceId,
-				),
-				fsChangesByWorkspace: omitKey(state.fsChangesByWorkspace, workspaceId),
-				turnsByWorkspace: omitKey(state.turnsByWorkspace, workspaceId),
-				resourceSnapshots: omitKey(state.resourceSnapshots, workspaceId),
-				mcpByWorkspace: omitKey(state.mcpByWorkspace, workspaceId),
-				activeLogin:
-					state.activeLogin?.target?.workspaceId === workspaceId ? null : state.activeLogin,
-				sessionStateByWorkspace: omitKey(state.sessionStateByWorkspace, workspaceId),
-				skillChangeTickByWorkspace: omitKey(state.skillChangeTickByWorkspace, workspaceId),
-				specsByWorkspace: omitKey(state.specsByWorkspace, workspaceId),
-				diffScopeByWorkspace: omitKey(state.diffScopeByWorkspace, workspaceId),
-				filesTreeByWorkspace: omitKey(state.filesTreeByWorkspace, workspaceId),
-				reviewsByWorkspace: omitKey(state.reviewsByWorkspace, workspaceId),
-				changesRequest:
-					state.changesRequest?.workspaceId === workspaceId ? null : state.changesRequest,
-				specRequest: state.specRequest?.workspaceId === workspaceId ? null : state.specRequest,
-				chatLocationRequest:
-					state.chatLocationRequest?.workspaceId === workspaceId ? null : state.chatLocationRequest,
-				routeChatTarget:
-					state.routeChatTarget?.workspaceId === workspaceId ? null : state.routeChatTarget,
-				historyOpenRequest:
-					state.historyOpenRequest && removedSessions.has(state.historyOpenRequest.sessionId)
-						? null
-						: state.historyOpenRequest,
-				reviewFocusRequest:
-					state.reviewFocusRequest?.workspaceId === workspaceId ? null : state.reviewFocusRequest,
-			};
-		});
+		set((state) => ({
+			removedWorkspaceIds: Object.assign(Object.create(null), state.removedWorkspaceIds, {
+				[workspaceId]: true,
+			}) as Record<string, true>,
+			workspaceSelectionHistory: state.workspaceSelectionHistory.filter((id) => id !== workspaceId),
+			fsChangesByWorkspace: omitKey(state.fsChangesByWorkspace, workspaceId),
+			diffScopeByWorkspace: omitKey(state.diffScopeByWorkspace, workspaceId),
+			filesTreeByWorkspace: omitKey(state.filesTreeByWorkspace, workspaceId),
+			changesRequest:
+				state.changesRequest?.workspaceId === workspaceId ? null : state.changesRequest,
+		}));
 		s.removeWorkspace(projectId, workspaceId);
 		s.clearWorkspaceTabs(workspaceId);
 		if (wasActive) {
@@ -2656,22 +1255,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 			const expandedProjectIds = withExpandedProject(state.expandedProjectIds, projectId);
 			return expandedProjectIds === state.expandedProjectIds ? {} : { expandedProjectIds };
 		}),
-	toggleSettledShelf: (projectId, expanded) =>
-		set((state) => {
-			const next = expanded ?? !state.settledShelfExpanded[projectId];
-			if (next === (state.settledShelfExpanded[projectId] === true)) return {};
-			return {
-				settledShelfExpanded: next
-					? withExpandedProject(state.settledShelfExpanded, projectId)
-					: omitKey(state.settledShelfExpanded, projectId),
-			};
-		}),
-	showMoreSettled: (projectId, count) =>
-		set((state) => {
-			const shown = Math.max(state.settledShelfShown[projectId] ?? SETTLED_SHELF_PAGE, count);
-			if (shown === (state.settledShelfShown[projectId] ?? SETTLED_SHELF_PAGE)) return {};
-			return { settledShelfShown: { ...state.settledShelfShown, [projectId]: shown } };
-		}),
 	hydrateExpandedProjects: (projectIds) =>
 		set(() => ({
 			expandedProjectIds: Object.fromEntries(projectIds.map((id) => [id, true as const])),
@@ -2680,41 +1263,20 @@ export const useAppStore = create<AppState>((set, get) => ({
 		set({
 			selectedProjectId: null,
 			activeWorkspaceId: null,
-			routeChatTarget: null,
 		}),
 	activateWorkspace: (workspace) => {
 		if (get().removedWorkspaceIds[workspace.id]) return;
 		set((state) => workspaceActivationPatch(state, workspace));
 	},
-	activateWorkspaceFromRoute: (workspace, sessionId) =>
+	activateWorkspaceFromRoute: (workspace) =>
 		set((state) => {
 			if (state.removedWorkspaceIds[workspace.id]) return {};
 			const advanced = advanceCenterNavigation(state, workspace.id);
 			return {
 				...advanced.patch,
 				...workspaceActivationPatch(state, workspace),
-				routeChatTarget: sessionId
-					? {
-							workspaceId: workspace.id,
-							sessionId,
-							navTick: selectWorkspaceNavTick(state, workspace.id) + 1,
-							navigation: advanced.stamp,
-							validated: false,
-						}
-					: null,
-				routeChatTargetGeneration: sessionId
-					? state.routeChatTargetGeneration + 1
-					: state.routeChatTargetGeneration,
 			};
 		}),
-	validateRouteChatTarget: (sessionId) =>
-		set((state) => {
-			const target = state.routeChatTarget;
-			if (!target || target.sessionId !== sessionId || target.validated) return state;
-			return { routeChatTarget: { ...target, validated: true } };
-		}),
-	clearRouteChatTarget: () =>
-		set((state) => (state.routeChatTarget ? { routeChatTarget: null } : state)),
 	hydrateLocalLayoutState: (payload) => {
 		set((state) =>
 			state.layoutStateReady
@@ -2826,13 +1388,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 	openTab: (tab, intent, syncLayout = true, options = {}) =>
 		set((s) => {
 			const wsId = tab.workspaceId;
-			const sessionId = editorSessionId(tab);
-			if (
-				s.removedWorkspaceIds[wsId] ||
-				(sessionId !== null && isSessionDeleted(s, wsId, sessionId))
-			) {
-				return {};
-			}
+			if (s.removedWorkspaceIds[wsId]) return {};
 			const tabs = s.tabsByWorkspace[wsId] ?? [];
 			const resolvedId = availableEditorTabId(tabs, tab);
 			const resolvedTab = resolvedId === tab.id ? tab : { ...tab, id: resolvedId };
@@ -2899,13 +1455,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 		}),
 	openDoc: (tab) =>
 		set((s) => {
-			const sessionId = editorSessionId(tab);
-			if (
-				s.removedWorkspaceIds[tab.workspaceId] ||
-				(sessionId !== null && isSessionDeleted(s, tab.workspaceId, sessionId))
-			) {
-				return {};
-			}
+			if (s.removedWorkspaceIds[tab.workspaceId]) return {};
 			const tabs = s.tabsByWorkspace[tab.workspaceId] ?? [];
 			const existing = tabs.find(
 				(candidate) => editorResourceIdentity(candidate) === editorResourceIdentity(tab),
@@ -3048,16 +1598,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 				return { ...tab, collapsed };
 			}),
 		),
-	requestChangesTabReveal: (workspaceId, id, path, commentId) =>
+	requestChangesTabReveal: (workspaceId, id, path) =>
 		set((s) =>
 			patchChangesTab(s, workspaceId, id, (tab) => ({
 				...tab,
-				reveal: { path, tick: (tab.reveal?.tick ?? 0) + 1, ...(commentId ? { commentId } : {}) },
+				reveal: { path, tick: (tab.reveal?.tick ?? 0) + 1 },
 			})),
 		),
 	consumeChangesTabReveal: (workspaceId, id, target) =>
-		set((s) => {
-			const patched = patchChangesTab(s, workspaceId, id, (tab) => {
+		set((s) =>
+			patchChangesTab(s, workspaceId, id, (tab) => {
 				if (!target) return tab.reveal ? { ...tab, reveal: null } : tab;
 				return {
 					...tab,
@@ -3068,21 +1618,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 							? tab.collapsed
 							: { ...tab.collapsed, [target.path]: false },
 				};
-			});
-			const scope = s.tabsByWorkspace[workspaceId]?.find(
-				(tab): tab is ChangesTab => tab.id === id && tab.kind === "changes",
-			)?.scope;
-			return target?.commentId && scope && !s.removedWorkspaceIds[workspaceId]
-				? {
-						...patched,
-						reviewFocusRequest: {
-							workspaceId,
-							commentId: target.commentId,
-							surface: { kind: "diff", scope },
-						},
-					}
-				: patched;
-		}),
+			}),
+		),
 	setChangesTabSectionRenderer: (workspaceId, id, path, rendererId) =>
 		set((s) =>
 			patchChangesTab(s, workspaceId, id, (tab) => ({
@@ -3104,31 +1641,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 						},
 			),
 		),
-	setChangesTabSectionReviewDraft: (workspaceId, id, path, key, update) =>
-		set((s) => {
-			const current = s.tabsByWorkspace[workspaceId]?.find((tab) => tab.id === id);
-			const hasScratch =
-				current?.kind === "changes" &&
-				Object.values(current.sections).some((section) => section.reviewDrafts !== undefined);
-			return (hasScratch ? patchChangesTab : recordChangesTabProgress)(
-				s,
-				workspaceId,
-				id,
-				(tab) => {
-					const section = tab.sections[path];
-					const previous = section?.reviewDrafts?.[key];
-					const next = update(previous);
-					if (Object.is(previous, next)) return tab;
-					const reviewDrafts = { ...section?.reviewDrafts };
-					if (next === undefined) delete reviewDrafts[key];
-					else reviewDrafts[key] = next;
-					return {
-						...tab,
-						sections: { ...tab.sections, [path]: { ...section, reviewDrafts } },
-					};
-				},
-			);
-		}),
 	setChangesTabHunkKept: (workspaceId, id, path, key, kept, hunkKeys) =>
 		set((s) =>
 			recordChangesTabProgress(s, workspaceId, id, (tab) => {
@@ -3191,62 +1703,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 				? {}
 				: { diffScopeByWorkspace: { ...s.diffScopeByWorkspace, [workspaceId]: scope } },
 		),
-	setWorkspaceTurns: (workspaceId, turns, baseline, connectionGeneration) =>
-		set((s) => {
-			if (s.removedWorkspaceIds[workspaceId] || !isConnectedGeneration(s, connectionGeneration)) {
-				return {};
-			}
-			const baselineTurns = new Set(baseline);
-			const pushed = (s.turnsByWorkspace[workspaceId] ?? []).filter(
-				(turn) => !baselineTurns.has(turn),
-			);
-			return {
-				turnsByWorkspace: {
-					...s.turnsByWorkspace,
-					[workspaceId]: normalizeWorkspaceTurns([...turns, ...pushed]),
-				},
-			};
-		}),
-	applyTurnChanged: (turn) =>
-		set((s) => {
-			if (s.removedWorkspaceIds[turn.workspaceId]) return {};
-			return {
-				turnsByWorkspace: {
-					...s.turnsByWorkspace,
-					[turn.workspaceId]: normalizeWorkspaceTurns([
-						...(s.turnsByWorkspace[turn.workspaceId] ?? []),
-						turn,
-					]),
-				},
-			};
-		}),
 	noteFsChanged: (payload) =>
 		set((s) => {
 			if (s.removedWorkspaceIds[payload.workspaceId]) return {};
 			const prev = s.fsChangesByWorkspace[payload.workspaceId];
 			const tick = (prev?.tick ?? 0) + 1;
-			const skillChanged = payload.skillChange !== "none";
 			return {
 				fsChangesByWorkspace: {
 					...s.fsChangesByWorkspace,
 					[payload.workspaceId]: { tick, paths: payload.paths, truncated: payload.truncated },
 				},
-				...(skillChanged
-					? {
-							skillChangeTickByWorkspace: {
-								...s.skillChangeTickByWorkspace,
-								[payload.workspaceId]: tick,
-							},
-						}
-					: {}),
-			};
-		}),
-	markSkillsSynced: (sessionId, syncedTick) =>
-		set((s) => {
-			if (!s.sessions[sessionId]) return {};
-			const synced = Math.max(s.skillsSyncedTickBySession[sessionId] ?? 0, syncedTick);
-			return {
-				skillsSyncedTickBySession: { ...s.skillsSyncedTickBySession, [sessionId]: synced },
 			};
 		}),
 	updateFileTabContent: (workspaceId, id, content, meta, tick) =>
@@ -3304,31 +1770,18 @@ export const useAppStore = create<AppState>((set, get) => ({
 			};
 		}),
 	clearWorkspaceTabs: (workspaceId) =>
-		set((s) => {
-			const sessions = { ...s.sessions };
-			const skillsSyncedTickBySession = { ...s.skillsSyncedTickBySession };
-			for (const sessionId of selectWorkspaceSessionIds(s, workspaceId)) {
-				delete sessions[sessionId];
-				delete skillsSyncedTickBySession[sessionId];
-			}
-			return {
-				resourceSnapshots: omitKey(s.resourceSnapshots, workspaceId),
-				workspaceViewsByWorkspace: omitKey(s.workspaceViewsByWorkspace, workspaceId),
-				layoutDocumentsByWorkspace: omitKey(s.layoutDocumentsByWorkspace, workspaceId),
-				layoutAttentionByWorkspace: omitKey(s.layoutAttentionByWorkspace, workspaceId),
-				layoutIntents: s.layoutIntents.filter((intent) => intent.workspaceId !== workspaceId),
-				tabsByWorkspace: omitKey(s.tabsByWorkspace, workspaceId),
-				activeTabByWorkspace: omitKey(s.activeTabByWorkspace, workspaceId),
-				previewTabByWorkspace: omitKey(s.previewTabByWorkspace, workspaceId),
-				navTickByWorkspace: omitKey(s.navTickByWorkspace, workspaceId),
-				closedChatsByWorkspace: omitKey(s.closedChatsByWorkspace, workspaceId),
-				chatStartsByWorkspace: omitKey(s.chatStartsByWorkspace, workspaceId),
-				terminalsByWorkspace: omitKey(s.terminalsByWorkspace, workspaceId),
-				activeTerminalByWorkspace: omitKey(s.activeTerminalByWorkspace, workspaceId),
-				sessions,
-				skillsSyncedTickBySession,
-			};
-		}),
+		set((s) => ({
+			workspaceViewsByWorkspace: omitKey(s.workspaceViewsByWorkspace, workspaceId),
+			layoutDocumentsByWorkspace: omitKey(s.layoutDocumentsByWorkspace, workspaceId),
+			layoutAttentionByWorkspace: omitKey(s.layoutAttentionByWorkspace, workspaceId),
+			layoutIntents: s.layoutIntents.filter((intent) => intent.workspaceId !== workspaceId),
+			tabsByWorkspace: omitKey(s.tabsByWorkspace, workspaceId),
+			activeTabByWorkspace: omitKey(s.activeTabByWorkspace, workspaceId),
+			previewTabByWorkspace: omitKey(s.previewTabByWorkspace, workspaceId),
+			navTickByWorkspace: omitKey(s.navTickByWorkspace, workspaceId),
+			terminalsByWorkspace: omitKey(s.terminalsByWorkspace, workspaceId),
+			activeTerminalByWorkspace: omitKey(s.activeTerminalByWorkspace, workspaceId),
+		})),
 	addTerminal: (
 		workspaceId,
 		initialCommand,
@@ -3514,820 +1967,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 						: omitKey(s.worktreeCreationsByProject, projectId),
 			};
 		}),
-	beginChatStart: (workspaceId) =>
-		set((s) => ({
-			chatStartsByWorkspace: {
-				...s.chatStartsByWorkspace,
-				[workspaceId]: (s.chatStartsByWorkspace[workspaceId] ?? 0) + 1,
-			},
-		})),
-	endChatStart: (workspaceId) =>
-		set((s) => {
-			const remaining = (s.chatStartsByWorkspace[workspaceId] ?? 0) - 1;
-			return {
-				chatStartsByWorkspace:
-					remaining > 0
-						? { ...s.chatStartsByWorkspace, [workspaceId]: remaining }
-						: omitKey(s.chatStartsByWorkspace, workspaceId),
-			};
-		}),
-	openChatSession: (workspaceId, sessionId, model, thinkingLevel, syncedTick, options = {}) => {
-		set((s) => {
-			if (s.removedWorkspaceIds[workspaceId] || isSessionDeleted(s, workspaceId, sessionId)) {
-				return {};
-			}
-			const tabs = s.tabsByWorkspace[workspaceId] ?? [];
-			const existing = tabs.find(
-				(candidate): candidate is ChatTab =>
-					candidate.kind === "chat" && candidate.sessionId === sessionId,
-			);
-			const preferred: ChatTab = existing ?? {
-				kind: "chat",
-				id: chatTabId(workspaceId, sessionId),
-				workspaceId,
-				name: "",
-				sessionId,
-			};
-			const id = existing?.id ?? availableEditorTabId(tabs, preferred);
-			const tab: ChatTab = id === preferred.id ? preferred : { ...preferred, id };
-			const fresh = !s.sessions[sessionId];
-			const history = s.closedChatsByWorkspace[workspaceId] ?? [];
-			const inHistory = history.some((entry) => entry.sessionId === sessionId);
-			return {
-				layoutIntents: appendLayoutIntent(s.layoutIntents, {
-					kind: "open",
-					workspaceId,
-					tab,
-					intent: "keep",
-					...layoutOpenIntentFields(options),
-				}),
-				tabsByWorkspace: existing
-					? s.tabsByWorkspace
-					: { ...s.tabsByWorkspace, [workspaceId]: [...tabs, tab] },
-				closedChatsByWorkspace: inHistory
-					? {
-							...s.closedChatsByWorkspace,
-							[workspaceId]: history.filter((entry) => entry.sessionId !== sessionId),
-						}
-					: s.closedChatsByWorkspace,
-				activeTabByWorkspace:
-					options.activate === false
-						? s.activeTabByWorkspace
-						: { ...s.activeTabByWorkspace, [workspaceId]: id },
-				navTickByWorkspace:
-					options.activate === false || navigationCountedAtRequest(options)
-						? s.navTickByWorkspace
-						: bumpNav(s, workspaceId),
-				sessions: fresh
-					? {
-							...s.sessions,
-							[sessionId]: {
-								...newRuntime(model, thinkingLevel, s.connectionGeneration),
-								hostState: s.sessionStateByWorkspace[workspaceId]?.[sessionId]?.state ?? null,
-							},
-						}
-					: s.sessions,
-				...(fresh
-					? {
-							skillsSyncedTickBySession: {
-								...s.skillsSyncedTickBySession,
-								[sessionId]: syncedTick ?? selectWorkspaceTick(s, workspaceId),
-							},
-						}
-					: {}),
-			};
-		});
-		replayExtUiOrphans(sessionId, set, get);
-	},
-	closeChatRuntime: (sessionId) =>
-		set((s) => {
-			if (!s.sessions[sessionId]) return {};
-			return {
-				sessions: omitKey(s.sessions, sessionId),
-				skillsSyncedTickBySession: omitKey(s.skillsSyncedTickBySession, sessionId),
-			};
-		}),
-	closeChatToHistory: (sessionId, syncLayout = true, workspaceId, countNavigation = true) =>
-		set((s) => {
-			const wsId = workspaceId ?? s.activeWorkspaceId;
-			if (!wsId || s.removedWorkspaceIds[wsId]) return {};
-			const tabs = s.tabsByWorkspace[wsId] ?? [];
-			const tab = tabs.find((t) => t.kind === "chat" && t.sessionId === sessionId);
-			if (!tab) return {};
-			const remaining = tabs.filter((t) => t.id !== tab.id);
-			const wasActive = s.activeTabByWorkspace[wsId] === tab.id;
-			const firstPrompt = selectChatFirstPrompt(s, wsId, sessionId);
-			const entry: ClosedChat = {
-				sessionId,
-				title: tab.name,
-				...(firstPrompt ? { firstPrompt } : {}),
-				closedAt: Date.now(),
-			};
-			const targetsLocation =
-				s.chatLocationRequest?.workspaceId === wsId &&
-				s.chatLocationRequest.sessionId === sessionId;
-			const targetsHistory = s.historyOpenRequest?.sessionId === sessionId;
-			return {
-				...(syncLayout
-					? {
-							layoutIntents: appendLayoutIntent(s.layoutIntents, {
-								kind: "close",
-								workspaceId: wsId,
-								tabId: tab.id,
-							}),
-						}
-					: {}),
-				tabsByWorkspace: { ...s.tabsByWorkspace, [wsId]: remaining },
-				navTickByWorkspace: wasActive && countNavigation ? bumpNav(s, wsId) : s.navTickByWorkspace,
-				activeTabByWorkspace: {
-					...s.activeTabByWorkspace,
-					[wsId]: wasActive
-						? (remaining.at(-1)?.id ?? null)
-						: (s.activeTabByWorkspace[wsId] ?? null),
-				},
-				closedChatsByWorkspace: {
-					...s.closedChatsByWorkspace,
-					[wsId]: [entry, ...(s.closedChatsByWorkspace[wsId] ?? [])],
-				},
-				...(targetsLocation ? { chatLocationRequest: null } : {}),
-				...(targetsHistory ? { historyOpenRequest: null } : {}),
-			};
-		}),
-	deleteChat: (workspaceId, sessionId, countNavigation = true) =>
-		set((s) => withoutChat(s, workspaceId, sessionId, countNavigation)),
-	reconcileWorkspaceSessions: (workspaceId, baselineSessionIds, authoritativeSessionIds) =>
-		set((s) => {
-			if (s.removedWorkspaceIds[workspaceId]) return {};
-			const authoritative = new Set(authoritativeSessionIds);
-			let next = s;
-			for (const sessionId of baselineSessionIds) {
-				if (!authoritative.has(sessionId)) {
-					next = withoutChat(next, workspaceId, sessionId, false);
-				}
-			}
-			return next;
-		}),
-	installSessionStateSnapshot: (records) =>
-		set((s) => {
-			const sessionStateByWorkspace: Record<string, Record<string, SessionStateRecord>> = {};
-			const stateBySession = new Map<string, SessionState>();
-			for (const record of records) {
-				if (
-					s.removedWorkspaceIds[record.workspaceId] ||
-					isSessionDeleted(s, record.workspaceId, record.sessionId)
-				) {
-					continue;
-				}
-				const workspaceStates = sessionStateByWorkspace[record.workspaceId] ?? {};
-				workspaceStates[record.sessionId] = record;
-				sessionStateByWorkspace[record.workspaceId] = workspaceStates;
-				stateBySession.set(record.sessionId, record.state);
-			}
-			const sessions = Object.fromEntries(
-				Object.entries(s.sessions).map(([sessionId, runtime]) => [
-					sessionId,
-					withHostState(runtime, stateBySession.get(sessionId) ?? null),
-				]),
-			);
-			const extUiOrphans = s.extUiOrphans.filter(
-				(frame) =>
-					!isDialogRequest(frame) || dialogIsAuthorized(stateBySession.get(frame.sessionId), frame),
-			);
-			return {
-				sessionStateByWorkspace,
-				sessions,
-				extUiOrphans,
-				sessionStateClock: s.sessionStateClock + 1,
-				sessionStateSnapshotInstalled: true,
-			};
-		}),
-	applySessionState: (record) =>
-		set((s) => {
-			if (
-				s.removedWorkspaceIds[record.workspaceId] ||
-				isSessionDeleted(s, record.workspaceId, record.sessionId)
-			) {
-				return {};
-			}
-			const workspaceStates = s.sessionStateByWorkspace[record.workspaceId] ?? {};
-			const runtime = s.sessions[record.sessionId];
-			const extUiOrphans = s.extUiOrphans.filter(
-				(frame) =>
-					frame.sessionId !== record.sessionId ||
-					!isDialogRequest(frame) ||
-					dialogIsAuthorized(record.state, frame),
-			);
-			const orphansChanged = extUiOrphans.length !== s.extUiOrphans.length;
-			if (sameSessionStateRecord(workspaceStates[record.sessionId], record)) {
-				if ((!runtime || runtime.hostState === record.state) && !orphansChanged) return {};
-				return {
-					...(runtime && runtime.hostState !== record.state
-						? {
-								sessions: {
-									...s.sessions,
-									[record.sessionId]: withHostState(runtime, record.state),
-								},
-							}
-						: {}),
-					...(orphansChanged ? { extUiOrphans } : {}),
-				};
-			}
-			const sessionStateClock = s.sessionStateClock + 1;
-			return {
-				sessionStateClock,
-				sessionStateByWorkspace: {
-					...s.sessionStateByWorkspace,
-					[record.workspaceId]: { ...workspaceStates, [record.sessionId]: record },
-				},
-				...(orphansChanged ? { extUiOrphans } : {}),
-				...(runtime
-					? {
-							sessions: {
-								...s.sessions,
-								[record.sessionId]: withHostState(runtime, record.state),
-							},
-						}
-					: {}),
-			};
-		}),
-	noteRenderedCompletion: (sessionId, completionId) =>
-		set((s) => {
-			if (s.sessions[sessionId]?.hostState?.completion?.completionId !== completionId) return {};
-			if (s.renderedCompletionBySession[sessionId] === completionId) return {};
-			return {
-				renderedCompletionBySession: {
-					...s.renderedCompletionBySession,
-					[sessionId]: completionId,
-				},
-			};
-		}),
-	beginMarkWorkspaceUnread: (workspaceId) => {
-		if (get().markingUnreadWorkspaces[workspaceId]) return false;
-		set((s) => {
-			const candidates: Record<string, string> = {};
-			for (const record of Object.values(s.sessionStateByWorkspace[workspaceId] ?? {})) {
-				const completionId = record.state.completion?.completionId;
-				if (completionId && canMarkCompletionUnread(record.state)) {
-					candidates[record.sessionId] = completionId;
-				}
-			}
-			const attendedSessionId =
-				Object.keys(candidates).find((sessionId) =>
-					selectChatAttended(s, workspaceId, sessionId),
-				) ?? null;
-			return {
-				markingUnreadWorkspaces: {
-					...s.markingUnreadWorkspaces,
-					[workspaceId]: { candidates, attendedSessionId },
-				},
-			};
-		});
-		return true;
-	},
-	finishMarkWorkspaceUnread: (workspaceId, record) => {
-		set((s) => {
-			const completionId = record?.state.completion?.completionId;
-			const pending = s.markingUnreadWorkspaces[workspaceId];
-			return {
-				markingUnreadWorkspaces: omitKey(s.markingUnreadWorkspaces, workspaceId),
-				...(record && completionId
-					? {
-							markedUnreadBySession: {
-								...s.markedUnreadBySession,
-								[record.sessionId]: {
-									workspaceId: record.workspaceId,
-									completionId,
-									held: pending?.attendedSessionId === record.sessionId,
-								},
-							},
-						}
-					: {}),
-			};
-		});
-		if (record) get().applySessionState(record);
-	},
-	releaseUnattendedUnreadHolds: () =>
-		set((s) => {
-			let markingUnreadWorkspaces = s.markingUnreadWorkspaces;
-			for (const [workspaceId, pending] of Object.entries(s.markingUnreadWorkspaces)) {
-				if (
-					pending.attendedSessionId !== null &&
-					!selectChatAttended(s, workspaceId, pending.attendedSessionId)
-				) {
-					markingUnreadWorkspaces = {
-						...markingUnreadWorkspaces,
-						[workspaceId]: { ...pending, attendedSessionId: null },
-					};
-				}
-			}
-			let markedUnreadBySession = s.markedUnreadBySession;
-			for (const [sessionId, mark] of Object.entries(s.markedUnreadBySession)) {
-				if (mark.held && !selectChatAttended(s, mark.workspaceId, sessionId)) {
-					markedUnreadBySession = {
-						...markedUnreadBySession,
-						[sessionId]: { ...mark, held: false },
-					};
-				}
-			}
-			return markingUnreadWorkspaces === s.markingUnreadWorkspaces &&
-				markedUnreadBySession === s.markedUnreadBySession
-				? {}
-				: { markingUnreadWorkspaces, markedUnreadBySession };
-		}),
-	setChatObscured: (sessionId, obscured) =>
-		set((s) => {
-			if (obscured === Boolean(s.obscuredChatSessions[sessionId])) return {};
-			return {
-				obscuredChatSessions: obscured
-					? { ...s.obscuredChatSessions, [sessionId]: true }
-					: omitKey(s.obscuredChatSessions, sessionId),
-			};
-		}),
-	reopenChat: (wsId, sessionId, options = {}) =>
-		set((s) => {
-			if (s.removedWorkspaceIds[wsId] || isSessionDeleted(s, wsId, sessionId)) return {};
-			const closed = s.closedChatsByWorkspace[wsId] ?? [];
-			const entry = closed.find((c) => c.sessionId === sessionId);
-			if (!entry) return {};
-			const tabs = s.tabsByWorkspace[wsId] ?? [];
-			const existing = tabs.find(
-				(candidate): candidate is ChatTab =>
-					candidate.kind === "chat" && candidate.sessionId === sessionId,
-			);
-			const preferred: ChatTab = {
-				kind: "chat",
-				id: existing?.id ?? chatTabId(wsId, sessionId),
-				workspaceId: wsId,
-				name: entry.title,
-				sessionId,
-			};
-			const id = existing?.id ?? availableEditorTabId(tabs, preferred);
-			const tab: ChatTab = id === preferred.id ? preferred : { ...preferred, id };
-			return {
-				layoutIntents: appendLayoutIntent(s.layoutIntents, {
-					kind: "open",
-					workspaceId: wsId,
-					tab,
-					intent: "keep",
-					...layoutOpenIntentFields(options),
-				}),
-				tabsByWorkspace: existing
-					? existing.name === tab.name
-						? s.tabsByWorkspace
-						: {
-								...s.tabsByWorkspace,
-								[wsId]: tabs.map((candidate) => (candidate === existing ? tab : candidate)),
-							}
-					: { ...s.tabsByWorkspace, [wsId]: [...tabs, tab] },
-				activeTabByWorkspace:
-					options.activate === false
-						? s.activeTabByWorkspace
-						: { ...s.activeTabByWorkspace, [wsId]: id },
-				navTickByWorkspace:
-					options.activate === false || navigationCountedAtRequest(options)
-						? s.navTickByWorkspace
-						: bumpNav(s, wsId),
-				closedChatsByWorkspace: {
-					...s.closedChatsByWorkspace,
-					[wsId]: closed.filter((c) => c.sessionId !== sessionId),
-				},
-			};
-		}),
-	restorePlacedChatCache: (workspaceId, tabId, sessionId, title) =>
-		set((s) => {
-			if (s.removedWorkspaceIds[workspaceId] || isSessionDeleted(s, workspaceId, sessionId)) {
-				return {};
-			}
-			const tabs = s.tabsByWorkspace[workspaceId] ?? [];
-			const placed = tabs.find(
-				(tab): tab is ChatTab => tab.kind === "chat" && tab.sessionId === sessionId,
-			);
-			const idAvailable = (candidateId: string) =>
-				!tabs.some((candidate) => candidate !== placed && candidate.id === candidateId);
-			const canonicalId = chatTabId(workspaceId, sessionId);
-			const available = [tabId, placed?.id, canonicalId].find(
-				(candidateId): candidateId is string =>
-					candidateId !== undefined && idAvailable(candidateId),
-			);
-			let id = available ?? randomId("chat-cache");
-			while (!idAvailable(id)) id = randomId("chat-cache");
-			const closed = s.closedChatsByWorkspace[workspaceId] ?? [];
-			const inHistory = closed.some((chat) => chat.sessionId === sessionId);
-			const metadataChanged = placed?.name !== title || placed.id !== id;
-			if (placed && !inHistory && !metadataChanged) return {};
-			const tab: ChatTab = { kind: "chat", id, workspaceId, name: title, sessionId };
-			const retargeted = placed !== undefined && placed.id !== id;
-			return {
-				tabsByWorkspace: placed
-					? metadataChanged
-						? {
-								...s.tabsByWorkspace,
-								[workspaceId]: tabs.map((candidate) => (candidate === placed ? tab : candidate)),
-							}
-						: s.tabsByWorkspace
-					: { ...s.tabsByWorkspace, [workspaceId]: [...tabs, tab] },
-				closedChatsByWorkspace: inHistory
-					? {
-							...s.closedChatsByWorkspace,
-							[workspaceId]: closed.filter((chat) => chat.sessionId !== sessionId),
-						}
-					: s.closedChatsByWorkspace,
-				activeTabByWorkspace:
-					retargeted && s.activeTabByWorkspace[workspaceId] === placed?.id
-						? { ...s.activeTabByWorkspace, [workspaceId]: id }
-						: s.activeTabByWorkspace,
-				previewTabByWorkspace:
-					retargeted && s.previewTabByWorkspace[workspaceId] === placed?.id
-						? { ...s.previewTabByWorkspace, [workspaceId]: id }
-						: s.previewTabByWorkspace,
-			};
-		}),
-	noteClosedChats: (workspaceId, entries) =>
-		set((s) => {
-			if (s.removedWorkspaceIds[workspaceId]) return {};
-			const existing = s.closedChatsByWorkspace[workspaceId] ?? [];
-			const open = new Set(
-				(s.tabsByWorkspace[workspaceId] ?? [])
-					.filter((tab): tab is ChatTab => tab.kind === "chat")
-					.map((tab) => tab.sessionId),
-			);
-			const incoming = new Map(
-				entries
-					.filter(
-						(entry) =>
-							!isSessionDeleted(s, workspaceId, entry.sessionId) &&
-							!open.has(entry.sessionId) &&
-							!s.sessions[entry.sessionId],
-					)
-					.map((entry) => [entry.sessionId, entry]),
-			);
-			let changed = false;
-			const refreshed = existing.map((entry) => {
-				const replacement = incoming.get(entry.sessionId);
-				if (!replacement) return entry;
-				incoming.delete(entry.sessionId);
-				const firstPrompt = replacement.firstPrompt ?? entry.firstPrompt;
-				if (replacement.title === entry.title && firstPrompt === entry.firstPrompt) return entry;
-				changed = true;
-				return { ...entry, title: replacement.title, ...(firstPrompt ? { firstPrompt } : {}) };
-			});
-			if (incoming.size > 0) changed = true;
-			if (!changed) return {};
-			return {
-				closedChatsByWorkspace: {
-					...s.closedChatsByWorkspace,
-					[workspaceId]: [...refreshed, ...incoming.values()].sort(
-						(a, b) => b.closedAt - a.closedAt,
-					),
-				},
-			};
-		}),
-	hydrateSession: (summary, hydrated, activate = false, syncedTick, options = {}) => {
-		set((s) => {
-			if (
-				s.removedWorkspaceIds[summary.workspaceId] ||
-				isSessionDeleted(s, summary.workspaceId, summary.sessionId)
-			) {
-				return {};
-			}
-			if (s.sessions[summary.sessionId]) return {};
-			const wsId = summary.workspaceId;
-			const runtime: SessionRuntime = {
-				...newRuntime(summary.model, summary.thinkingLevel, s.connectionGeneration),
-				turns: hydrated.turns,
-				toolResults: hydrated.toolResults,
-				toolResponses: hydrated.toolResponses,
-				isStreaming: summary.isStreaming,
-				hostState:
-					summary.state ??
-					s.sessionStateByWorkspace[summary.workspaceId]?.[summary.sessionId]?.state ??
-					null,
-				...(summary.queue ? { queue: summary.queue } : {}),
-				...(hydrated.turnIdByMessageIndex
-					? { turnIdByMessageIndex: hydrated.turnIdByMessageIndex }
-					: {}),
-			};
-			const tabs = s.tabsByWorkspace[wsId] ?? [];
-			const existing = tabs.find(
-				(candidate): candidate is ChatTab =>
-					candidate.kind === "chat" && candidate.sessionId === summary.sessionId,
-			);
-			const preferred: ChatTab = {
-				kind: "chat",
-				id: existing?.id ?? chatTabId(wsId, summary.sessionId),
-				workspaceId: wsId,
-				name: summary.title,
-				sessionId: summary.sessionId,
-			};
-			const id = existing?.id ?? availableEditorTabId(tabs, preferred);
-			const tab: ChatTab = id === preferred.id ? preferred : { ...preferred, id };
-			const hasActive = s.activeTabByWorkspace[wsId] != null;
-			const takesFocus = options.activate !== false && (activate || !hasActive);
-			const closed = s.closedChatsByWorkspace[wsId] ?? [];
-			return {
-				...(activate
-					? {
-							layoutIntents: appendLayoutIntent(s.layoutIntents, {
-								kind: "open",
-								workspaceId: wsId,
-								tab,
-								intent: "keep",
-								...layoutOpenIntentFields(options),
-							}),
-						}
-					: {}),
-				sessions: { ...s.sessions, [summary.sessionId]: runtime },
-				...(syncedTick !== undefined
-					? {
-							skillsSyncedTickBySession: {
-								...s.skillsSyncedTickBySession,
-								[summary.sessionId]: syncedTick,
-							},
-						}
-					: {}),
-				tabsByWorkspace: existing
-					? existing.name === tab.name
-						? s.tabsByWorkspace
-						: {
-								...s.tabsByWorkspace,
-								[wsId]: tabs.map((candidate) => (candidate === existing ? tab : candidate)),
-							}
-					: { ...s.tabsByWorkspace, [wsId]: [...tabs, tab] },
-				activeTabByWorkspace: takesFocus
-					? { ...s.activeTabByWorkspace, [wsId]: id }
-					: s.activeTabByWorkspace,
-				navTickByWorkspace:
-					takesFocus && !navigationCountedAtRequest(options)
-						? bumpNav(s, wsId)
-						: s.navTickByWorkspace,
-				closedChatsByWorkspace: closed.some((c) => c.sessionId === summary.sessionId)
-					? {
-							...s.closedChatsByWorkspace,
-							[wsId]: closed.filter((c) => c.sessionId !== summary.sessionId),
-						}
-					: s.closedChatsByWorkspace,
-			};
-		});
-		replayExtUiOrphans(summary.sessionId, set, get);
-	},
-	reconcileSession: (summary, hydrated, expectedEventRevision, connectionGeneration) => {
-		let applied = false;
-		set((s) => {
-			const current = s.sessions[summary.sessionId];
-			if (
-				!current ||
-				current.eventRevision !== expectedEventRevision ||
-				s.removedWorkspaceIds[summary.workspaceId] ||
-				isSessionDeleted(s, summary.workspaceId, summary.sessionId) ||
-				!selectWorkspaceSessionIds(s, summary.workspaceId).includes(summary.sessionId)
-			) {
-				return {};
-			}
-			const { turnIdByMessageIndex: _previousMessageIndex, ...preserved } = current;
-			void _previousMessageIndex;
-			const runtime: SessionRuntime = {
-				...preserved,
-				turns: reconcileCompactionTurns(current.turns, hydrated.turns, summary.isStreaming),
-				toolResults: hydrated.toolResults,
-				toolResponses: hydrated.toolResponses,
-				currentAssistantId: null,
-				attemptAssistantId: null,
-				isStreaming: summary.isStreaming,
-				queue: summary.queue ?? EMPTY_QUEUE,
-				model: summary.model,
-				thinkingLevel: summary.thinkingLevel,
-				hostState:
-					summary.state ??
-					s.sessionStateByWorkspace[summary.workspaceId]?.[summary.sessionId]?.state ??
-					current.hostState,
-				eventRevision: current.eventRevision + 1,
-				syncedConnectionGeneration: Math.max(
-					current.syncedConnectionGeneration,
-					connectionGeneration,
-				),
-				...(hydrated.turnIdByMessageIndex
-					? { turnIdByMessageIndex: hydrated.turnIdByMessageIndex }
-					: {}),
-			};
-			applied = true;
-			return { sessions: { ...s.sessions, [summary.sessionId]: runtime } };
-		});
-		return applied;
-	},
-	appendUserMessage: (sessionId, text, attachments) =>
-		set((s) =>
-			withRuntime(s, sessionId, (rt) => ({
-				...rt,
-				turns: [
-					...consumeFailureRecoveries(rt.turns),
-					{
-						kind: "user",
-						id: crypto.randomUUID(),
-						message: {
-							role: "user",
-							content:
-								attachments && attachments.length > 0
-									? [
-											...(text ? [{ type: "text" as const, text }] : []),
-											...attachments.map((a) => a.content),
-										]
-									: text,
-							timestamp: Date.now(),
-						},
-						...(attachments && attachments.length > 0
-							? { attachmentNames: attachments.map((a) => a.name) }
-							: {}),
-					},
-				],
-			})),
-		),
-	appendErrorTurn: (sessionId, text) =>
-		set((s) =>
-			withRuntime(s, sessionId, (rt) => ({
-				...rt,
-				turns: [...rt.turns, { kind: "error", id: crypto.randomUUID(), text }],
-			})),
-		),
-	appendCompactionFailureUnlessObserved: (sessionId, observedTurnIds, detail) =>
-		set((s) =>
-			withRuntime(s, sessionId, (rt) => {
-				const lifecycleObserved = rt.turns.some(
-					(turn) => turn.kind === "compaction" && !observedTurnIds.has(turn.id),
-				);
-				return lifecycleObserved
-					? rt
-					: {
-							...rt,
-							turns: [
-								...rt.turns,
-								{ kind: "compaction", id: crypto.randomUUID(), status: "failed", detail },
-							],
-						};
-			}),
-		),
-	handlePiEvent: (event, sessionId) => get().handlePiEvents([{ event, sessionId }]),
-	handlePiEvents: (payloads) =>
-		set((s) => {
-			let state = s;
-			let sessions = s.sessions;
-			for (const { event, sessionId } of payloads) {
-				if (event.type === "session_info_changed") {
-					const title = event.name?.trim() ?? "";
-					const renamed = renameChat(state, sessionId, title);
-					if (renamed && Object.keys(renamed).length > 0) state = { ...state, ...renamed };
-				}
-				const runtime = sessions[sessionId];
-				if (!runtime) continue;
-				if (sessions === s.sessions) sessions = { ...sessions };
-				const next = reduceSessionEvent(runtime, event);
-				sessions[sessionId] = {
-					...next,
-					eventRevision: runtime.eventRevision + 1,
-					statsRefreshTick: runtime.statsRefreshTick + (invalidatesSessionStats(event) ? 1 : 0),
-				};
-			}
-			if (sessions !== s.sessions) state = { ...state, sessions };
-			return state;
-		}),
-	setModelsForProviderVersion: (providerVersion, models) =>
-		set((s) => (s.providerVersion === providerVersion ? { models, modelsFresh: false } : s)),
-	hydrateHiddenModels: (hiddenModels) => set({ hiddenModels }),
-	setModelVisibility: (model, visible) =>
-		set((s) => {
-			const hidden = s.hiddenModels.some((h) => sameModel(h, model));
-			if (visible !== hidden) return s;
-			return {
-				hiddenModels: visible
-					? s.hiddenModels.filter((h) => !sameModel(h, model))
-					: [...s.hiddenModels, { provider: model.provider, id: model.id }],
-			};
-		}),
-	toggleModelVisibility: (model) =>
-		get().setModelVisibility(
-			model,
-			get().hiddenModels.some((h) => sameModel(h, model)),
-		),
-	noteProviderChanged: () =>
-		set((s) => ({
-			models: [],
-			modelsFresh: false,
-			modelsRefreshing: false,
-			providerVersion: s.providerVersion + 1,
-			providerStatusVersion: s.providerStatusVersion + 1,
-		})),
-	invalidateProviderStatus: () =>
-		set((s) => ({ providerStatusVersion: s.providerStatusVersion + 1 })),
-	installProviderStatus: (version, report) =>
-		set((s) =>
-			s.providerStatusVersion === version
-				? {
-						providerStatus: {
-							version,
-							report: report ?? s.providerStatus.report,
-							failed: report === null,
-						},
-					}
-				: s,
-		),
-	bumpTemplatesVersion: () => set((s) => ({ templatesVersion: s.templatesVersion + 1 })),
-	beginModelsRefresh: () => {
-		const providerVersion = get().providerVersion;
-		set({ modelsRefreshing: true });
-		return providerVersion;
-	},
-	dropModelsFreshness: () => set({ modelsFresh: false }),
-	finishModelsRefresh: (providerVersion, result) =>
-		set((s) =>
-			s.providerVersion === providerVersion
-				? {
-						modelsRefreshing: false,
-						models: result?.models ?? s.models,
-						modelsFresh: result ? result.complete : s.modelsFresh,
-					}
-				: s,
-		),
-	setCurrentModel: (sessionId, model) =>
-		set((s) => withRuntime(s, sessionId, (rt) => ({ ...rt, model }))),
-	setThinkingLevel: (sessionId, level) =>
-		set((s) => withRuntime(s, sessionId, (rt) => ({ ...rt, thinkingLevel: level }))),
-	setStats: (sessionId, stats) => set((s) => withRuntime(s, sessionId, (rt) => ({ ...rt, stats }))),
-	setCommands: (sessionId, commands) =>
-		set((s) => withRuntime(s, sessionId, (rt) => ({ ...rt, commands }))),
-	setChatDraft: (sessionId, draft) =>
-		set((s) => withRuntime(s, sessionId, (rt) => ({ ...rt, draft }))),
-	clearPendingExtUi: (sessionId, id) =>
-		set((s) =>
-			withRuntime(s, sessionId, (rt) => {
-				if (rt.pendingExtUi?.id !== id) return rt;
-				const [next, ...rest] = rt.extUiQueue;
-				return { ...rt, pendingExtUi: next ?? null, extUiQueue: rest };
-			}),
-		),
-	applyExtUi: (request) =>
-		set((s): Partial<AppState> => {
-			if (request.kind === "setTitle")
-				return renameChat(s, request.sessionId, request.title) ?? bufferExtUiOrphan(s, request);
-			if (!s.sessions[request.sessionId]) return bufferExtUiOrphan(s, request);
-			return withRuntime(s, request.sessionId, (rt) => reduceExtUi(rt, request));
-		}),
-	reserveLogin: () => {
-		const state = get();
-		if (state.loginStarting || state.activeLogin !== null) return false;
-		set({ loginStarting: true });
-		return true;
-	},
-	finishLoginStart: () => set({ loginStarting: false }),
-	beginLogin: (loginId, providerId, target) =>
-		set((s) => {
-			if (target && s.removedWorkspaceIds[target.workspaceId]) return {};
-			return {
-				activeLogin:
-					s.activeLogin?.loginId === loginId || s.activeLogin?.status === "active"
-						? s.activeLogin
-						: newLoginState(loginId, providerId, target),
-			};
-		}),
-	applyLoginFrame: (push) =>
-		set((s) => {
-			if (push.target && s.removedWorkspaceIds[push.target.workspaceId]) return {};
-			const statusChanged =
-				push.frame.kind === "success" && !push.target
-					? { providerStatusVersion: s.providerStatusVersion + 1 }
-					: {};
-			const cur = s.activeLogin;
-			if (cur && cur.loginId !== push.loginId && cur.status === "active") return statusChanged;
-			const base =
-				cur && cur.loginId === push.loginId
-					? cur
-					: newLoginState(push.loginId, push.providerId, push.target);
-			return { activeLogin: foldLoginFrame(base, push.frame), ...statusChanged };
-		}),
-	clearLoginInput: () =>
-		set((s) => {
-			if (!s.activeLogin?.input) return {};
-			const { input: _drop, ...rest } = s.activeLogin;
-			return { activeLogin: rest };
-		}),
-	clearLogin: () => set({ activeLogin: null }),
-	openSettings: (section = SettingsSection.Providers) =>
+	openSettings: (section = SettingsSection.Appearance) =>
 		set({ settingsOpen: true, settingsSection: section }),
 	closeSettings: () => set({ settingsOpen: false }),
 	setSettingsSection: (section) => set({ settingsSection: section }),
-	openNotificationPrompt: () =>
-		set((state) => (state.notificationPromptOpen ? state : { notificationPromptOpen: true })),
-	closeNotificationPrompt: () => set({ notificationPromptOpen: false }),
-	openSessionSwitcher: () =>
-		set((state) => (state.sessionSwitcherOpen ? state : { sessionSwitcherOpen: true })),
-	closeSessionSwitcher: () => set({ sessionSwitcherOpen: false }),
-	toggleSessionSwitcher: () =>
-		set((state) => ({ sessionSwitcherOpen: !state.sessionSwitcherOpen })),
-	showInterviewPrompt: () =>
-		set((state) => (state.interviewPromptOpen ? state : { interviewPromptOpen: true })),
-	hideInterviewPrompt: () => set({ interviewPromptOpen: false }),
-	setChatMessageOrder: (chatMessageOrder) => set({ chatMessageOrder }),
-	setStreamingResponseMovement: (streamingResponseMovement) => set({ streamingResponseMovement }),
-	setChatPreferences: (chatMessageOrder, streamingResponseMovement) =>
-		set({ chatMessageOrder, streamingResponseMovement }),
 	applyConfig: (config) => set(configPatch(config)),
 	requestToolView: (workspaceId, tool) =>
 		set((state) =>
@@ -4362,120 +2005,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 	revealChanges: (workspaceId) =>
 		set((s) => (s.removedWorkspaceIds[workspaceId] ? {} : revealChangedFilesPatch(s, workspaceId))),
 	clearChangesRequest: () => set({ changesRequest: null }),
-	requestChatLocation: (req) =>
-		set((state) => {
-			if (
-				state.removedWorkspaceIds[req.workspaceId] ||
-				isSessionDeleted(state, req.workspaceId, req.sessionId)
-			) {
-				return {};
-			}
-			const hydrated = state.layoutAttentionByWorkspace[req.workspaceId] !== undefined;
-			const advanced = hydrated ? advanceCenterNavigation(state, req.workspaceId) : null;
-			return {
-				...(advanced?.patch ?? {}),
-				chatLocationRequest: {
-					...req,
-					...(advanced ? { navigation: advanced.stamp } : {}),
-				},
-				...workspaceActivationPatch(state, { id: req.workspaceId, projectId: req.projectId }),
-			};
-		}),
-	clearChatLocation: () => set({ chatLocationRequest: null }),
-	requestHistoryOpen: (target) =>
-		set((s) => {
-			if (
-				s.removedWorkspaceIds[target.workspaceId] ||
-				isSessionDeleted(s, target.workspaceId, target.sessionId)
-			) {
-				return {};
-			}
-			const cache = s.tabsByWorkspace[target.workspaceId]?.find(
-				(candidate): candidate is ChatTab =>
-					candidate.kind === "chat" && candidate.sessionId === target.sessionId,
-			);
-			const resource: ChatTab =
-				cache ??
-				({
-					kind: "chat",
-					id: target.tabId,
-					workspaceId: target.workspaceId,
-					name: "",
-					sessionId: target.sessionId,
-				} satisfies ChatTab);
-			const resourcePlacement = selectLayoutResourcePlacement(s, target.workspaceId, resource);
-			const navigation = advanceCenterNavigation(
-				s,
-				target.workspaceId,
-				resourcePlacement?.area === "center" ? resourcePlacement.groupId : undefined,
-			);
-			const historyRequestId = randomId("history-open");
-			return {
-				...navigation.patch,
-				layoutIntents: appendLayoutIntent(s.layoutIntents, {
-					kind: "select",
-					workspaceId: target.workspaceId,
-					tabId: resourcePlacement?.tabId ?? target.tabId,
-					resource,
-					focus: false,
-					historyRequestId,
-					navigation: navigation.stamp,
-				}),
-				historyOpenRequest: { id: historyRequestId, sessionId: target.sessionId },
-				activeTabByWorkspace: cache
-					? { ...s.activeTabByWorkspace, [target.workspaceId]: cache.id }
-					: s.activeTabByWorkspace,
-			};
-		}),
-	clearHistoryOpen: () => set({ historyOpenRequest: null }),
-	requestSpecView: (workspaceId, path) =>
-		set((s) => {
-			if (s.removedWorkspaceIds[workspaceId]) return {};
-			const advanced = advanceCenterNavigation(s, workspaceId);
-			return {
-				layoutIntents: appendLayoutIntent(s.layoutIntents, {
-					kind: "reveal-tool",
-					workspaceId,
-					tool: "specs",
-				}),
-				specRequest: { workspaceId, path, navigation: advanced.stamp },
-				...advanced.patch,
-			};
-		}),
-	clearSpecRequest: () => set({ specRequest: null }),
-	setWorkspaceSpecs: (workspaceId, nodes) =>
-		set((s) =>
-			s.removedWorkspaceIds[workspaceId] || sameSpecGraph(s.specsByWorkspace[workspaceId], nodes)
-				? {}
-				: { specsByWorkspace: { ...s.specsByWorkspace, [workspaceId]: nodes } },
-		),
-	requestReviewFocus: (workspaceId, commentId, surface) =>
-		set((state) =>
-			state.removedWorkspaceIds[workspaceId]
-				? {}
-				: { reviewFocusRequest: { workspaceId, commentId, surface } },
-		),
-	clearReviewFocus: (commentId) =>
-		set((state) =>
-			commentId !== undefined && state.reviewFocusRequest?.commentId !== commentId
-				? {}
-				: { reviewFocusRequest: null },
-		),
-	setWorkspaceReview: (workspaceId, snapshot) =>
-		set((s) =>
-			s.removedWorkspaceIds[workspaceId] ||
-			sameReviewSnapshot(s.reviewsByWorkspace[workspaceId], snapshot)
-				? {}
-				: { reviewsByWorkspace: { ...s.reviewsByWorkspace, [workspaceId]: snapshot } },
-		),
-	applyReviewChanged: (payload) =>
-		set((s) => {
-			if (s.removedWorkspaceIds[payload.workspaceId]) return {};
-			const next = { review: payload.review, comments: payload.comments };
-			return sameReviewSnapshot(s.reviewsByWorkspace[payload.workspaceId], next)
-				? {}
-				: { reviewsByWorkspace: { ...s.reviewsByWorkspace, [payload.workspaceId]: next } };
-		}),
 	pushToast: (toast) => {
 		const twin = get().toasts.find(
 			(t) =>
@@ -4506,19 +2035,6 @@ export const useAppStore = create<AppState>((set, get) => ({
 			s.toasts.some((t) => t.id === id) ? { toasts: s.toasts.filter((t) => t.id !== id) } : {},
 		),
 }));
-
-useAppStore.subscribe((state) => {
-	const unattended =
-		Object.entries(state.markingUnreadWorkspaces).some(
-			([workspaceId, pending]) =>
-				pending.attendedSessionId !== null &&
-				!selectChatAttended(state, workspaceId, pending.attendedSessionId),
-		) ||
-		Object.entries(state.markedUnreadBySession).some(
-			([sessionId, mark]) => mark.held && !selectChatAttended(state, mark.workspaceId, sessionId),
-		);
-	if (unattended) state.releaseUnattendedUnreadHolds();
-});
 
 export const toast = {
 	error: (message: string, title?: string) =>

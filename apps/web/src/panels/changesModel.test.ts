@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
-import type { GitFileChange } from "@thinkrail/contracts";
-import { currentTranslator } from "@thinkrail/locales/react";
-import { VIRTUALIZED_DIFF_LINES } from "@thinkrail/resource-renderers";
+import type { GitFileChange } from "@realthing/contracts";
+import { currentTranslator } from "@realthing/locales/react";
+import { VIRTUALIZED_DIFF_LINES } from "@realthing/resource-renderers";
 import {
 	buildChangeMarks,
 	buildChangesTree,
@@ -16,7 +16,6 @@ import {
 	sectionCollapsedByDefault,
 	splitPath,
 	stackedDiffBounded,
-	turnScope,
 } from "./changesModel";
 
 function change(path: string, over: Partial<GitFileChange> = {}): GitFileChange {
@@ -132,43 +131,6 @@ test("scopeLabel keeps a commit scope short (sha), with the subject in the toolt
 test("splitPath separates the muted directory prefix from the bright basename", () => {
 	expect(splitPath("apps/web/src/a.ts")).toEqual({ dir: "apps/web/src/", base: "a.ts" });
 	expect(splitPath("README.md")).toEqual({ dir: "", base: "README.md" });
-});
-
-test("a turn scope is keyed by its id, labelled Last turn only while it is the newest, and read-only", () => {
-	const older = {
-		id: "s1:100",
-		workspaceId: "ws1",
-		sessionId: "s1",
-		startedAt: 100,
-		settledAt: 200,
-		baseTree: "a".repeat(40),
-		headTree: "b".repeat(40),
-		changes: [change("src/a.ts")],
-	};
-	const newer = {
-		...older,
-		id: "s1:300",
-		startedAt: 300,
-		settledAt: 400,
-		headTree: "c".repeat(40),
-	};
-	const scope = turnScope(older);
-	expect(scope).toEqual({
-		kind: "turn",
-		id: "s1:100",
-		baseTree: older.baseTree,
-		headTree: older.headTree,
-		startedAt: 100,
-	});
-	expect(scopeKey(scope)).toBe("turn:s1:100");
-	expect(diffTabId("ws1", scope, "src/a.ts")).not.toBe(
-		diffTabId("ws1", turnScope(newer), "src/a.ts"),
-	);
-	expect(scopeLabel(currentTranslator(), turnScope(newer), [], [older, newer])).toBe("Last turn");
-	expect(scopeLabel(currentTranslator(), scope, [], [older, newer])).toMatch(/^Turn /);
-	expect(scopeTitle(currentTranslator(), scope, [], [older, newer])).toMatch(
-		/^Agent turn at .* · 1 file$/,
-	);
 });
 
 test("a loading section reserves a height in the order of its eventual diff", () => {

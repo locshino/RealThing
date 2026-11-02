@@ -6,12 +6,11 @@ import {
 	serializeLocation,
 } from "./location";
 
-test("the codec round-trips all four location kinds", () => {
+test("the codec round-trips all three location kinds", () => {
 	const locations: NavigationLocation[] = [
 		{ kind: "main" },
 		{ kind: "project", projectId: "p1" },
 		{ kind: "workspace", projectId: "p1", workspaceId: "w1" },
-		{ kind: "chat", projectId: "p1", workspaceId: "w1", sessionId: "s1" },
 	];
 	for (const location of locations) {
 		expect(parseFragment(serializeLocation(location))).toEqual(location);
@@ -20,13 +19,12 @@ test("the codec round-trips all four location kinds", () => {
 
 test("ids that need encoding survive the round trip as single path segments", () => {
 	const location: NavigationLocation = {
-		kind: "chat",
+		kind: "workspace",
 		projectId: "p/with slash",
-		workspaceId: "w#hash?q",
-		sessionId: "s%25already",
+		workspaceId: "w#hash?q%25already",
 	};
 	const fragment = serializeLocation(location);
-	expect(fragment.split("/")).toHaveLength(8);
+	expect(fragment.split("/")).toHaveLength(6);
 	expect(parseFragment(fragment)).toEqual(location);
 });
 
@@ -48,6 +46,7 @@ test("malformed and unknown fragments canonicalize safely to main", () => {
 		"#/v1/projects/p1/",
 		"#/v1/projects/p1/workspaces",
 		"#/v1/projects/p1/workspaces/w1/chats",
+		"#/v1/projects/p1/workspaces/w1/chats/s1",
 		"#/v1/projects/p1/workspaces/w1/chats/s1/extra",
 		"#/v1/projects/p1/tabs/t1",
 		"#/v1/projects/%GG",

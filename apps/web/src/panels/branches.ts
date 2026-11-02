@@ -1,4 +1,4 @@
-import type { BranchList } from "@thinkrail/contracts";
+import type { BranchList } from "@realthing/contracts";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getTransport } from "../transport";
 

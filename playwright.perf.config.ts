@@ -32,9 +32,9 @@ export default defineConfig({
 	webServer: {
 		...server,
 		command:
-			process.env.THINKRAIL_E2E_SKIP_BUILD === "1"
+			process.env.REALTHING_E2E_SKIP_BUILD === "1"
 				? host
 				: `${bun} run --cwd apps/web build:profile && ${host}`,
-		env: { ...server.env, THINKRAIL_STATIC_DIR: profileDir },
+		env: { ...server.env, REALTHING_STATIC_DIR: profileDir },
 	},
 });

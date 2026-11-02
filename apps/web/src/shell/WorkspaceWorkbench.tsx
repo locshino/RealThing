@@ -1,12 +1,11 @@
 import {
 	RiGitBranchLine as GitBranch,
-	RiChatNewLine as MessageSquarePlus,
 	RiTerminalBoxLine as SquareTerminal,
 } from "@remixicon/react";
-import type { MessageKey } from "@thinkrail/locales";
-import { t, useT } from "@thinkrail/locales/react";
-import { Button, IconButton } from "@thinkrail/ui/button";
-import { LoadingRegion } from "@thinkrail/ui/skeleton";
+import type { MessageKey } from "@realthing/locales";
+import { t, useT } from "@realthing/locales/react";
+import { IconButton } from "@realthing/ui/button";
+import { LoadingRegion } from "@realthing/ui/skeleton";
 import {
 	Fragment,
 	lazy,
@@ -17,41 +16,28 @@ import {
 	useMemo,
 	useState,
 } from "react";
-import { useShallow } from "zustand/react/shallow";
-import { prepareChatTitle } from "../chat/chatTitle";
-import { useAutoPlanSummary } from "../chat/useChatTodos";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { preloadedLazy } from "../components/preloadedLazy";
 import { QuietScrollArea } from "../components/QuietScrollArea";
 import { type LayoutAttention, layoutResourceIdentity } from "../lib";
 import { DiffPane } from "../panels/DiffPane";
+import { whenFilesTreeIdle } from "../panels/editorWarm";
 import { FilePane } from "../panels/FilePane";
 import { FilesPanel } from "../panels/FilesPanel";
-import { startChatInTab } from "../panels/openChat";
-import { fileComparisonTab, openFileInTab } from "../panels/openTabs";
+import { fileComparisonTab } from "../panels/openTabs";
 import { ProjectTree } from "../panels/ProjectTree";
-import { ReviewPanel, selectActiveReviewedPath } from "../panels/ReviewPanel";
-import { reviewFlagForPaths, reviewFlags, tabReviewPaths } from "../panels/reviewModel";
-import { SpecsPanel } from "../panels/SpecsPanel";
 import { TerminalWorkbenchBody, useTerminalClose } from "../panels/TerminalWorkbench";
-import { useWorkspaceReview } from "../panels/useWorkspaceReview";
-import { useWorkspaceSpecs } from "../panels/useWorkspaceSpecs";
-import { useLoadWorkspaceTurns } from "../panels/useWorkspaceTurns";
 import {
+	type ChangesTab,
 	createChangesTab,
 	type EditorTab,
-	editorSessionId,
 	isConnectedGeneration,
 	isDefaultWorkspace,
 	isExternalWorkspace,
 	isFileComparison,
 	type LayoutIntent,
-	selectCanRenameChat,
 	selectContextProject,
 	selectDiffTabTargetRef,
-	selectRailPlanSessionId,
-	selectReviewDraftCount,
-	selectUnnamedChatFirstPrompts,
 	selectWorkspaceById,
 	selectWorkspaceNavTick,
 	selectWorkspaceTick,
@@ -60,24 +46,15 @@ import {
 	workspaceName,
 } from "../store";
 import { errorText, getTransport } from "../transport";
-import {
-	currentChatDestination,
-	hydrateChatResource,
-	useChatLocationReconciliation,
-	useDeletedChatPlacementReconciliation,
-	useWorkspaceChatCatalogReconciliation,
-} from "./chatReconciliation";
 import { subscribeCloseRequest } from "./closeRequestChannel";
 import {
 	collectAllGroups,
 	findPlacedResource,
 	findTabLocation,
-	isToolShowing,
 	type LayoutCenterTab,
 	type LayoutTab,
 	type LayoutTabFocusRequest,
 	type LayoutToolId,
-	showingAuxiliaryKey,
 	Workbench,
 	type WorkspaceLayoutDocument,
 } from "./layout";
@@ -92,22 +69,9 @@ import {
 import { syncLegacySelectionFromAttention, useLegacySelectionAdapter } from "./legacySelection";
 import { useTerminalPlacementReconciliation } from "./terminalReconciliation";
 import { useIdleEditorPreload } from "./useIdleEditorPreload";
-import { WorkspaceChatHistory } from "./WorkspaceChatHistory";
 
-function PlanSummaryAutoDraft({
-	workspaceId,
-	sessionId,
-}: {
-	workspaceId: string;
-	sessionId: string;
-}) {
-	useAutoPlanSummary(workspaceId, sessionId);
-	return null;
-}
-
-const ChatView = preloadedLazy(() => import("../chat/ChatView"));
 const PlanPane = lazy(() => import("../panels/PlanPane"));
-const ChangesReviewPane = lazy(() =>
+const ChangesReviewPane = preloadedLazy<{ tab: ChangesTab }>(() =>
 	import("../panels/ChangesReviewPane").then((module) => ({ default: module.ChangesReviewPane })),
 );
 const PlanRailPane = lazy(() => import("../panels/PlanRailPane"));
@@ -119,7 +83,6 @@ const RESTORING_LABEL = {
 	changes: "shell.workbench.restoring.changes",
 	diff: "shell.workbench.restoring.diff",
 	editor: "shell.workbench.restoring.editor",
-	chat: "shell.workbench.restoring.chat",
 	plan: "shell.workbench.restoring.plan",
 	terminal: "shell.workbench.restoring.terminal",
 } satisfies Record<string, MessageKey>;
@@ -183,77 +146,6 @@ function EditorResourceBody({ workspaceId, tab }: { workspaceId: string; tab: Ed
 	);
 }
 
-const CHAT_RETRY_DELAY_MS = 4000;
-
-function ChatResourceBody({
-	workspaceId,
-	tab,
-	onOpenFile,
-}: {
-	workspaceId: string;
-	tab: Extract<LayoutCenterTab, { kind: "chat" }>;
-	onOpenFile: (path: string) => void;
-}) {
-	const t = useT();
-	const available = useAppStore((state) => state.sessions[tab.sessionId] !== undefined);
-	const [stalled, setStalled] = useState(false);
-	useEffect(() => {
-		if (available) return;
-		setStalled(false);
-		const timer = setTimeout(() => setStalled(true), CHAT_RETRY_DELAY_MS);
-		return () => clearTimeout(timer);
-	}, [available, tab.sessionId]);
-	if (available) {
-		return (
-			<ErrorBoundary
-				label={t("shell.workbench.panel.chat")}
-				reportId="chat"
-				resetKeys={[workspaceId, tab.id]}
-			>
-				<Suspense fallback={<MissingResource kind="chat" />}>
-					<ChatView sessionId={tab.sessionId} workspaceId={workspaceId} onOpenFile={onOpenFile} />
-				</Suspense>
-			</ErrorBoundary>
-		);
-	}
-	const retry = () => {
-		void hydrateChatResource(workspaceId, tab.sessionId)
-			.then((installed) => {
-				if (installed) return;
-				const { state, current } = currentChatDestination(workspaceId, tab, undefined);
-				if (
-					current &&
-					!state.removedWorkspaceIds[workspaceId] &&
-					!state.deletedSessionsByWorkspace[workspaceId]?.[tab.sessionId]
-				) {
-					toast.error(
-						t("shell.workbench.chatRestoreFailed"),
-						t("shell.workbench.chatRestoreFailedTitle"),
-					);
-				}
-			})
-			.catch((error) => {
-				const { state, current } = currentChatDestination(workspaceId, tab, undefined);
-				if (
-					current &&
-					!state.removedWorkspaceIds[workspaceId] &&
-					!state.deletedSessionsByWorkspace[workspaceId]?.[tab.sessionId]
-				) {
-					toast.error(errorText(error), t("shell.workbench.chatRestoreFailedTitle"));
-				}
-			});
-	};
-	if (!stalled) return <MissingResource kind="chat" />;
-	return (
-		<div className="flex h-full flex-col items-center justify-center gap-8 text-text-muted">
-			<span className="tr-text-ui">{t("shell.workbench.chatRestoreSlow")}</span>
-			<Button variant="outline" size="m" onClick={retry}>
-				{t("common.retry")}
-			</Button>
-		</div>
-	);
-}
-
 function useTerminalReservation(workspaceId: string): void {
 	const status = useAppStore((state) => state.status);
 	const connectionGeneration = useAppStore((state) => state.connectionGeneration);
@@ -314,7 +206,6 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 	const t = useT();
 	const status = useAppStore((state) => state.status);
 	const connectionGeneration = useAppStore((state) => state.connectionGeneration);
-	const canRenameChat = useAppStore(selectCanRenameChat);
 	const document = useAppStore((state) => state.layoutDocumentsByWorkspace[workspaceId]);
 	const attention = useAppStore((state) => state.layoutAttentionByWorkspace[workspaceId]);
 	const frame = useAppStore((state) => state.workbenchFrame);
@@ -323,61 +214,19 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 	const workspace = useAppStore((state) => selectWorkspaceById(state, workspaceId));
 	const contextProject = useAppStore(selectContextProject);
 	const editorTabs = useAppStore((state) => state.tabsByWorkspace[workspaceId] ?? NO_EDITOR_TABS);
-	const planSessionIds = useMemo(() => {
-		const seen = new Set<string>();
-		for (const tab of editorTabs) {
-			const sid = editorSessionId(tab);
-			if (sid) seen.add(sid);
-		}
-		return [...seen];
-	}, [editorTabs]);
-	const chatStarting = useAppStore((state) => (state.chatStartsByWorkspace[workspaceId] ?? 0) > 0);
-	const deletedSessions = useAppStore((state) => state.deletedSessionsByWorkspace[workspaceId]);
 	const terminalClose = useTerminalClose();
-	const specs = useWorkspaceSpecs(workspaceId);
-	const review = useWorkspaceReview(workspaceId);
-	useLoadWorkspaceTurns(workspaceId);
 	useIdleEditorPreload(workspaceId);
-	const reviewComments = useAppStore((state) => state.reviewsByWorkspace[workspaceId]?.comments);
-	const railPlanSessionId = useAppStore((state) => selectRailPlanSessionId(state, workspaceId));
-	const reviewDraftCount = useAppStore((state) => selectReviewDraftCount(state, workspaceId));
-	const reviewFlagByPath = useMemo(() => reviewFlags(reviewComments), [reviewComments]);
-	useEffect(() => {
-		void ChatView.preload();
-	}, []);
+	useEffect(
+		() =>
+			whenFilesTreeIdle(
+				() => {
+					void ChangesReviewPane.preload();
+				},
+				{ timeout: 400, fallbackDelay: 150 },
+			),
+		[],
+	);
 	const [focusRequest, setFocusRequest] = useState<LayoutTabFocusRequest | null>(null);
-	const requestRenameChat = useCallback(
-		(sessionId: string, titleInput: string, currentTitle: string) => {
-			const prepared = prepareChatTitle(titleInput);
-			if ("reason" in prepared || prepared.title === currentTitle) return;
-			void getTransport()
-				.request("session.rename", { workspaceId, sessionId, title: prepared.title })
-				.catch((error) => toast.error(errorText(error), t("shell.workbench.chatRenameFailed")));
-		},
-		[t, workspaceId],
-	);
-	const activeReviewedPath = useAppStore((state) => selectActiveReviewedPath(state, workspaceId));
-	const readActiveReviewedPath = useCallback(
-		() => selectActiveReviewedPath(useAppStore.getState(), workspaceId),
-		[workspaceId],
-	);
-	const readAuxiliary = useCallback(() => {
-		const state = useAppStore.getState();
-		const layout = state.layoutDocumentsByWorkspace[workspaceId];
-		const layoutAttention = state.layoutAttentionByWorkspace[workspaceId];
-		return layout && layoutAttention
-			? {
-					reviewShowing: isToolShowing(layout, layoutAttention, "review"),
-					showingKey: showingAuxiliaryKey(layout, layoutAttention),
-				}
-			: { reviewShowing: false, showingKey: "" };
-	}, [workspaceId]);
-	const openToolFile = useCallback(
-		(path: string) => {
-			void openFileInTab(workspaceId, path, "preview");
-		},
-		[workspaceId],
-	);
 
 	useWorkspaceLayoutState(workspaceId);
 
@@ -415,11 +264,7 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 			) {
 				continue;
 			}
-			if (current.kind === "chat") {
-				latest.closeChatToHistory(current.sessionId, false, workspaceId, false);
-			} else {
-				latest.closeTab(current.id, false, false, workspaceId);
-			}
+			latest.closeTab(current.id, false, false, workspaceId);
 		}
 	}, [document, editorTabs, workspaceId]);
 
@@ -443,13 +288,10 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 		[document, workspaceId],
 	);
 
-	useLegacySelectionAdapter(workspaceId, activeReviewedPath, readActiveReviewedPath, readAuxiliary);
-	useDeletedChatPlacementReconciliation(workspaceId);
+	useLegacySelectionAdapter(workspaceId);
 	useTerminalReservation(workspaceId);
 	useLayoutIntentProcessing(workspaceId, commit, changeAttention, setFocusRequest);
-	useWorkspaceChatCatalogReconciliation(workspaceId, commit);
 	const { terminals } = useTerminalPlacementReconciliation(workspaceId, commit);
-	useChatLocationReconciliation(workspaceId, changeAttention);
 
 	useEffect(() => {
 		if (!document || status !== "connected") return;
@@ -574,18 +416,11 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 				: emptyWorkspaceProjection(frame, workspaceProjectionReference(workspaceId)),
 		[attention, document, frame, workspaceId],
 	);
-	const chatFirstPrompts = useAppStore(
-		useShallow((state) => selectUnnamedChatFirstPrompts(state, workspaceId)),
-	);
 	const rendered = document && attention ? { document, attention } : pendingProjection;
 
 	const renderResourceBody = useCallback(
 		(tab: LayoutCenterTab | Extract<LayoutTab, { kind: "terminal" }>) => {
-			if (tab.kind === "chat") {
-				return <ChatResourceBody workspaceId={workspaceId} tab={tab} onOpenFile={openToolFile} />;
-			}
 			if (tab.kind === "document") {
-				if (deletedSessions?.[tab.sourceId]) return <MissingResource kind="plan" />;
 				return (
 					<ErrorBoundary
 						label={t("shell.workbench.panel.plan")}
@@ -593,7 +428,7 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 						resetKeys={[workspaceId, tab.id]}
 					>
 						<Suspense fallback={<MissingResource kind="plan" />}>
-							<PlanPane workspaceId={workspaceId} sessionId={tab.sourceId} />
+							<PlanPane workspaceId={workspaceId} />
 						</Suspense>
 					</ErrorBoundary>
 				);
@@ -624,7 +459,7 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 			}
 			return <EditorResourceBody workspaceId={workspaceId} tab={tab} />;
 		},
-		[deletedSessions, document, openToolFile, t, terminalByKey, workspaceId],
+		[document, t, terminalByKey, workspaceId],
 	);
 	const renderTabBody = useCallback(
 		(tab: LayoutCenterTab | Extract<LayoutTab, { kind: "terminal" }>) => (
@@ -644,30 +479,17 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 					<ProjectTree />
 				</QuietScrollArea>
 			),
-			specs: (
-				<QuietScrollArea className="h-full" viewportClassName="p-panel-inset">
-					<SpecsPanel workspaceId={workspaceId} failed={specs.failed} onRetry={specs.reload} />
-				</QuietScrollArea>
-			),
 			files: <FilesPanel key={workspaceId} workspaceId={workspaceId} />,
-			review: <ReviewPanel key={workspaceId} workspaceId={workspaceId} failed={review.failed} />,
-			plan: railPlanSessionId ? (
+			plan: (
 				<ErrorBoundary
 					label={t("shell.workbench.panel.planRail")}
 					reportId="plan_rail"
-					resetKeys={[workspaceId, railPlanSessionId]}
+					resetKeys={[workspaceId]}
 				>
 					<Suspense fallback={<MissingResource kind="plan" />}>
-						<PlanRailPane workspaceId={workspaceId} sessionId={railPlanSessionId} />
+						<PlanRailPane workspaceId={workspaceId} />
 					</Suspense>
 				</ErrorBoundary>
-			) : (
-				<div
-					data-testid="plan-rail-empty"
-					className="flex h-full items-center justify-center p-16 text-text-subtle tr-text-ui"
-				>
-					{t("shell.workbench.planRailEmpty")}
-				</div>
 			),
 		};
 		for (const tool of Object.keys(bodies) as LayoutToolId[]) {
@@ -682,55 +504,16 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 			);
 		}
 		return bodies;
-	}, [railPlanSessionId, review.failed, specs.failed, specs.reload, t, workspaceId]);
+	}, [t, workspaceId]);
 	const renderToolBody = useCallback((tool: LayoutToolId) => toolBodies[tool], [toolBodies]);
 
 	const isDefault = workspace != null && isDefaultWorkspace(workspace);
 	const isExternal = workspace != null && isExternalWorkspace(workspace);
 
-	const startChat = useCallback(
-		(groupId: string) => {
-			const currentAttention = useAppStore.getState().layoutAttentionByWorkspace[workspaceId];
-			if (!currentAttention) return;
-			changeAttention({ ...currentAttention, lastFocusedCenterGroupId: groupId });
-			void startChatInTab(workspaceId, { preferredGroupId: groupId });
-		},
-		[changeAttention, workspaceId],
-	);
-
-	const renderTabAdornment = useCallback(
-		(tab: LayoutTab): ReactNode => {
-			if (tab.kind === "tool" && tab.tool === "review" && reviewDraftCount > 0) {
-				return (
-					<span
-						data-testid="review-pending-badge"
-						className="inline-flex min-w-16 items-center justify-center rounded-full bg-primary px-2 tr-text-label-pill text-text-on-primary"
-					>
-						{reviewDraftCount}
-					</span>
-				);
-			}
-			if (tab.kind !== "file" && tab.kind !== "diff") return null;
-			const flag = reviewFlagForPaths(reviewFlagByPath, tabReviewPaths(tab));
-			return flag ? (
-				<span
-					data-testid="review-tab-flag"
-					data-flag={flag}
-					className={
-						flag === "draft"
-							? "shrink-0 tr-text-eyebrow text-primary"
-							: "shrink-0 tr-text-eyebrow text-text-subtle"
-					}
-				>
-					{t("shell.workbench.reviewFlag")}
-				</span>
-			) : null;
-		},
-		[reviewDraftCount, reviewFlagByPath, t],
-	);
+	const renderTabAdornment = useCallback((_tab: LayoutTab): ReactNode => null, []);
 
 	const renderEmptyCenter = useCallback(
-		(groupId: string): ReactNode => (
+		(_groupId: string): ReactNode => (
 			<div
 				data-testid="workspace-ready"
 				className="flex h-full flex-col items-center justify-center gap-4 px-16 text-center"
@@ -769,47 +552,24 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 						? t("shell.workbench.ready.defaultDescription")
 						: t("shell.workbench.ready.worktreeDescription")}
 				</p>
-				<Button
-					variant="outline"
-					size="m"
-					iconLeft={MessageSquarePlus}
-					loading={chatStarting}
-					data-testid="start-chat"
-					data-starting={chatStarting || undefined}
-					disabled={chatStarting}
-					onClick={() => startChat(groupId)}
-					className="mt-4"
-				>
-					{chatStarting
-						? t("shell.workbench.ready.startingChat")
-						: t("shell.workbench.ready.newChat")}
-				</Button>
 			</div>
 		),
-		[chatStarting, contextProject, isDefault, isExternal, startChat, t, workspace],
+		[contextProject, isDefault, isExternal, t, workspace],
 	);
 
 	const renderCenterActions = useCallback(
 		(groupId: string): ReactNode => (
-			<>
-				<WorkspaceChatHistory
-					key={workspaceId}
-					workspaceId={workspaceId}
-					targetGroupId={groupId}
-					{...(canRenameChat ? { onRenameChat: requestRenameChat } : {})}
-				/>
-				<IconButton
-					variant="ghost"
-					size="m"
-					icon={SquareTerminal}
-					label={t("shell.workbench.newTerminal")}
-					data-testid="new-terminal"
-					onClick={() => useAppStore.getState().addTerminal(workspaceId, undefined, groupId)}
-					className="shrink-0 self-center"
-				/>
-			</>
+			<IconButton
+				variant="ghost"
+				size="m"
+				icon={SquareTerminal}
+				label={t("shell.workbench.newTerminal")}
+				data-testid="new-terminal"
+				onClick={() => useAppStore.getState().addTerminal(workspaceId, undefined, groupId)}
+				className="shrink-0 self-center"
+			/>
 		),
-		[canRenameChat, requestRenameChat, t, workspaceId],
+		[t, workspaceId],
 	);
 
 	if (!rendered) {
@@ -822,13 +582,6 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 
 	return (
 		<div data-testid="workspace-workbench" data-layout-status="settled" className="contents">
-			{planSessionIds.map((sessionId) => (
-				<PlanSummaryAutoDraft
-					key={`plan-summary-draft:${workspaceId}:${sessionId}`}
-					workspaceId={workspaceId}
-					sessionId={sessionId}
-				/>
-			))}
 			<Workbench
 				workspaceId={workspaceId}
 				document={rendered.document}
@@ -847,8 +600,6 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 				onAttentionChange={changeAttention}
 				onUserNavigation={() => useAppStore.getState().noteNavigation(workspaceId)}
 				readNavigationTick={() => selectWorkspaceNavTick(useAppStore.getState(), workspaceId)}
-				{...(canRenameChat ? { onRenameChat: requestRenameChat } : {})}
-				chatFirstPrompts={chatFirstPrompts}
 				onRequestClose={(tab, prepare) => {
 					if (tab.kind === "terminal") {
 						const close = () => {
@@ -901,9 +652,7 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 									? { document: current, attention: currentAttention }
 									: undefined,
 							);
-							if (tab.kind === "chat") {
-								state.closeChatToHistory(tab.sessionId, false, workspaceId, false);
-							} else if (
+							if (
 								tab.kind === "file" ||
 								tab.kind === "diff" ||
 								tab.kind === "changes" ||
@@ -919,7 +668,6 @@ export function WorkspaceWorkbench({ workspaceId }: { workspaceId: string }) {
 						})
 						.catch(() => {});
 				}}
-				onNewChat={startChat}
 				onNewTerminal={(groupId, area, options) =>
 					useAppStore
 						.getState()

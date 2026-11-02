@@ -1,4 +1,4 @@
-import { t } from "@thinkrail/locales/react";
+import { t } from "@realthing/locales/react";
 import { type LayoutAttention, readLayoutSelection, tupleKey } from "../../lib";
 import {
 	findAuxiliaryGroup,

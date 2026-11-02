@@ -11,7 +11,7 @@ test("projectFolderName turns a typed name into one plain folder name", () => {
 });
 
 test("joinHostPath keeps the host's separator and drops a trailing one", () => {
-	expect(joinHostPath("~/thinkrail", "app")).toBe("~/thinkrail/app");
+	expect(joinHostPath("~/realthing", "app")).toBe("~/realthing/app");
 	expect(joinHostPath("/srv/code/", "app")).toBe("/srv/code/app");
 	expect(joinHostPath("C:\\Users\\me\\code\\", "app")).toBe("C:\\Users\\me\\code\\app");
 });

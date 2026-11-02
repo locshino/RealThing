@@ -1,12 +1,12 @@
 import {
 	RiArrowDownSLine as ChevronDown,
 	RiArrowRightSLine as ChevronRight,
-	RiFileFill,
-	RiFileLine,
 	RiFolderFill,
 	RiFolderLine,
 } from "@remixicon/react";
 import type { MouseEvent, ReactNode, Ref } from "react";
+import { useAppStore } from "../store";
+import { getFileIcon } from "./fileIcons";
 
 export function TreeRow({
 	ref,
@@ -43,9 +43,10 @@ export function TreeRow({
 	onContextMenu?: ((event: MouseEvent) => void) | undefined;
 	onWarm?: ((trigger: "hover" | "focus") => void) | undefined;
 }) {
+	const explorerFileIcons = useAppStore((s) => s.explorerFileIcons);
 	const Chevron = expanded ? ChevronDown : ChevronRight;
 	const Folder = active ? RiFolderFill : RiFolderLine;
-	const FileIcon = active ? RiFileFill : RiFileLine;
+	const FileIcon = getFileIcon(label, Boolean(active), explorerFileIcons);
 	const tone = subtle ? "text-text-subtle" : "text-text-muted";
 	return (
 		<button

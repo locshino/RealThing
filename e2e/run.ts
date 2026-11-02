@@ -1,7 +1,6 @@
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { availableParallelism, tmpdir } from "node:os";
 import { join } from "node:path";
-import { REAL_CENTRAL_E2E_ENV } from "./fixtures/centralAgent";
 import { holdE2eIdleSleep } from "./idleSleep";
 import {
 	E2E_ROOT_DIR,
@@ -34,10 +33,9 @@ function playwrightCommand(args: string[]): string[] {
 }
 
 function childEnv(): NodeJS.ProcessEnv {
-	const env: NodeJS.ProcessEnv = { ...process.env, THINKRAIL_E2E_SKIP_BUILD: "1" };
-	delete env.THINKRAIL_E2E_LANE;
+	const env: NodeJS.ProcessEnv = { ...process.env, REALTHING_E2E_SKIP_BUILD: "1" };
+	delete env.REALTHING_E2E_LANE;
 	delete env.PLAYWRIGHT_BLOB_OUTPUT_FILE;
-	delete env[REAL_CENTRAL_E2E_ENV];
 	delete env[PARENT_SIGNAL_OWNER_ENV];
 	return env;
 }
@@ -86,7 +84,7 @@ async function runShards(
 	job: JobShard | undefined,
 ): Promise<number> {
 	const startedAt = performance.now();
-	const reportDir = mkdtempSync(join(tmpdir(), "thinkrail-e2e-blobs-"));
+	const reportDir = mkdtempSync(join(tmpdir(), "realthing-e2e-blobs-"));
 	const children: Promise<number>[] = [];
 
 	console.log(
@@ -95,7 +93,7 @@ async function runShards(
 	for (let shard = 1; shard <= shardCount; shard += 1) {
 		const env = {
 			...childEnv(),
-			THINKRAIL_E2E_LANE: String(shard - 1),
+			REALTHING_E2E_LANE: String(shard - 1),
 			PLAYWRIGHT_BLOB_OUTPUT_FILE: join(reportDir, `report-${shard}.zip`),
 			PWTEST_CACHE_DIR: join(reportDir, `transform-cache-${shard}`),
 		};
@@ -157,18 +155,18 @@ async function runShards(
 async function main(): Promise<number> {
 	await holdE2eIdleSleep();
 	const { playwrightArgs, shardOverride } = parseRunnerArgs(process.argv.slice(2));
-	const job = parseJobShard(process.env.THINKRAIL_E2E_JOB_SHARD);
+	const job = parseJobShard(process.env.REALTHING_E2E_JOB_SHARD);
 	if (job && playwrightArgs.some((arg) => arg === "--shard" || arg.startsWith("--shard="))) {
-		throw new Error("THINKRAIL_E2E_JOB_SHARD cannot be combined with an explicit --shard");
+		throw new Error("REALTHING_E2E_JOB_SHARD cannot be combined with an explicit --shard");
 	}
 	const shardCount = resolveShardCount({
 		shardOverride,
-		envValue: process.env.THINKRAIL_E2E_SHARDS,
+		envValue: process.env.REALTHING_E2E_SHARDS,
 		availableCpuCount: availableParallelism(),
 		hasPlaywrightArgs: playwrightArgs.length > 0,
 	});
 
-	if (!playwrightArgs.includes("--list") && process.env.THINKRAIL_E2E_SKIP_BUILD !== "1") {
+	if (!playwrightArgs.includes("--list") && process.env.REALTHING_E2E_SKIP_BUILD !== "1") {
 		const buildStartedAt = performance.now();
 		console.log("E2E: building web once before host startup");
 		const buildCode = await run([bun, "run", "build:web"]);

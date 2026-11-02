@@ -4,9 +4,9 @@ import {
 	RiCloseLine,
 	RiSubtractLine,
 } from "@remixicon/react";
-import type { NativeWindowState } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
-import { cn } from "@thinkrail/ui/utils";
+import type { NativeWindowState } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
+import { cn } from "@realthing/ui/utils";
 
 const BUTTON_CLASS =
 	"flex h-topbar-row w-46 items-center justify-center text-text-muted outline-none transition-colors focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary";

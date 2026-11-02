@@ -4,15 +4,15 @@ import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
 import { cssColorToHex } from "@/lib";
 import { SYNTAX_VARIABLES } from "./runtime";
 import {
-	resolveThinkrailShikiTheme,
-	THINKRAIL_MONACO_COLOR_VARIABLES,
-	THINKRAIL_SHIKI_THEME,
-	THINKRAIL_SHIKI_THEME_NAME,
+	resolveRealthingShikiTheme,
+	REALTHING_MONACO_COLOR_VARIABLES,
+	REALTHING_SHIKI_THEME,
+	REALTHING_SHIKI_THEME_NAME,
 } from "./shiki";
 
 test("the TextMate map references exactly the semantic syntax variables", () => {
 	const referenced = new Set<string>();
-	for (const entry of THINKRAIL_SHIKI_THEME.settings ?? []) {
+	for (const entry of REALTHING_SHIKI_THEME.settings ?? []) {
 		for (const color of [entry.settings?.foreground, entry.settings?.background]) {
 			for (const match of (color ?? "").matchAll(/var\((--[a-z-]+)\)/g)) {
 				if (match[1]) referenced.add(match[1]);
@@ -25,21 +25,21 @@ test("the TextMate map references exactly the semantic syntax variables", () => 
 
 test("the Monaco theme resolves every semantic syntax variable to hex", () => {
 	const variables = new Set<string>();
-	for (const entry of THINKRAIL_SHIKI_THEME.settings ?? []) {
+	for (const entry of REALTHING_SHIKI_THEME.settings ?? []) {
 		for (const color of [entry.settings?.foreground, entry.settings?.background]) {
 			for (const match of (color ?? "").matchAll(/var\((--[a-z-]+)\)/g)) {
 				if (match[1]) variables.add(match[1]);
 			}
 		}
 	}
-	for (const variable of Object.values(THINKRAIL_MONACO_COLOR_VARIABLES)) variables.add(variable);
+	for (const variable of Object.values(REALTHING_MONACO_COLOR_VARIABLES)) variables.add(variable);
 	const palette = new Map(
 		[...variables].map((variable, index) => [
 			variable,
 			`#${(index + 1).toString(16).padStart(6, "0")}`,
 		]),
 	);
-	const theme = resolveThinkrailShikiTheme({
+	const theme = resolveRealthingShikiTheme({
 		name: "resolved",
 		type: "dark",
 		readVariable: (name) => palette.get(name) ?? "",
@@ -55,7 +55,7 @@ test("the Monaco theme resolves every semantic syntax variable to hex", () => {
 });
 
 test("a missing Monaco theme variable falls back to Shiki's base palette", async () => {
-	const theme = resolveThinkrailShikiTheme({
+	const theme = resolveRealthingShikiTheme({
 		name: "resolved-with-gap",
 		type: "dark",
 		readVariable: (name) => (name === "--code-foreground" ? "" : "#123456"),
@@ -74,13 +74,13 @@ test("a missing Monaco theme variable falls back to Shiki's base palette", async
 
 test("highlighted output carries CSS variables only, never a baked palette color", async () => {
 	const highlighter = await createHighlighterCore({
-		themes: [THINKRAIL_SHIKI_THEME],
+		themes: [REALTHING_SHIKI_THEME],
 		langs: [import("@shikijs/langs/typescript")],
 		engine: createJavaScriptRegexEngine(),
 	});
 	const html = highlighter.codeToHtml('const message = "hello"', {
 		lang: "typescript",
-		theme: THINKRAIL_SHIKI_THEME_NAME,
+		theme: REALTHING_SHIKI_THEME_NAME,
 	});
 	expect(html).toContain("var(--code-");
 	expect(html).not.toMatch(/#[0-9a-f]{3,8}\b/i);

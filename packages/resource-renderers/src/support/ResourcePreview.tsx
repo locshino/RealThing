@@ -1,6 +1,6 @@
-import { useT } from "@thinkrail/locales/react";
-import { LoadingRegion } from "@thinkrail/ui/skeleton";
-import { cn } from "@thinkrail/ui/utils";
+import { useT } from "@realthing/locales/react";
+import { LoadingRegion } from "@realthing/ui/skeleton";
+import { cn } from "@realthing/ui/utils";
 import { type ReactNode, Suspense, useEffect, useMemo, useState } from "react";
 import { useResourceHost, useResourceScope } from "../host";
 import {

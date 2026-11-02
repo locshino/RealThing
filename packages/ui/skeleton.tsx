@@ -1,4 +1,4 @@
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 
 const ROWS = [
 	{ key: "r1", width: "w-3/4" },

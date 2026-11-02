@@ -11,21 +11,21 @@ import {
 } from "./paths";
 
 test("installMetaFile is where both installers write install.json", () => {
-	expect(installMetaFile("/home/u")).toBe(join("/home/u", ".config", "thinkrail", "install.json"));
-	expect(installConfigDir("/home/u")).toBe(join("/home/u", ".config", "thinkrail"));
+	expect(installMetaFile("/home/u")).toBe(join("/home/u", ".config", "realthing", "install.json"));
+	expect(installConfigDir("/home/u")).toBe(join("/home/u", ".config", "realthing"));
 });
 
 test("normalizes native and legacy Windows install prefixes", () => {
-	expect(normalizeWindowsInstallPrefix("C:\\tools\\thinkrail")).toBe("C:/tools/thinkrail");
-	expect(normalizeWindowsInstallPrefix("/c/tools/thinkrail")).toBe("C:/tools/thinkrail");
-	expect(normalizeWindowsInstallPrefix("/cygdrive/c/tools/thinkrail")).toBe("C:/tools/thinkrail");
-	expect(normalizeWindowsInstallPrefix("//nas/share/thinkrail")).toBe("//nas/share/thinkrail");
+	expect(normalizeWindowsInstallPrefix("C:\\tools\\realthing")).toBe("C:/tools/realthing");
+	expect(normalizeWindowsInstallPrefix("/c/tools/realthing")).toBe("C:/tools/realthing");
+	expect(normalizeWindowsInstallPrefix("/cygdrive/c/tools/realthing")).toBe("C:/tools/realthing");
+	expect(normalizeWindowsInstallPrefix("//nas/share/realthing")).toBe("//nas/share/realthing");
 	expect(normalizeWindowsInstallPrefix("/home/u/.local")).toBeUndefined();
-	expect(sameWindowsPath("c:/TOOLS/thinkrail/", "C:\\tools\\thinkrail")).toBe(true);
+	expect(sameWindowsPath("c:/TOOLS/realthing/", "C:\\tools\\realthing")).toBe(true);
 });
 
 test("readInstallMeta reads the installers' file and degrades to {} on anything else", () => {
-	const home = mkdtempSync(join(tmpdir(), "thinkrail-paths-"));
+	const home = mkdtempSync(join(tmpdir(), "realthing-paths-"));
 	try {
 		expect(readInstallMeta(home)).toEqual({});
 

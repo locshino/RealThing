@@ -11,13 +11,13 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { removeTree } from "@thinkrail/shared/removeTree";
+import { removeTree } from "@realthing/shared/removeTree";
 
 export const PORT_BLOCK_BASE = 25000;
 export const PORT_BLOCK_STRIDE = 10;
 export const PORT_BLOCK_SLOTS = 500;
 
-export const PORT_BLOCK_REGISTRY = join(tmpdir(), "thinkrail-e2e-port-blocks");
+export const PORT_BLOCK_REGISTRY = join(tmpdir(), "realthing-e2e-port-blocks");
 
 export interface PortBlockOwner {
 	key: string;

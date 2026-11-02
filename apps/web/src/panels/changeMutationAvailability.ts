@@ -1,4 +1,4 @@
-import type { GitDiffScope } from "@thinkrail/contracts";
+import type { GitDiffScope } from "@realthing/contracts";
 import { supportsChangeMutations } from "@/transport";
 
 export function scopeHasMutableModifiedSide(scope: GitDiffScope): boolean {

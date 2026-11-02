@@ -3,7 +3,6 @@ import {
 	createWorkspaceViaDialog,
 	openAppFresh,
 	openFixtureProject,
-	openWorkspaceChat,
 	revealWorkbenchTool,
 	visibleTerminalScreen,
 	waitTerminalReady,
@@ -93,10 +92,9 @@ test("Monaco and xterm render the generated code family and size", async ({ page
 	expect(termType.size).toBe("13px");
 });
 
-test("the chat and document markdown surfaces each wear their own prose system", async ({
-	page,
-}) => {
-	await openWorkspaceChat(page);
+test("the document markdown surface wears its prose system", async ({ page }) => {
+	await openFixtureProject(page);
+	await createWorkspaceViaDialog(page);
 	await revealWorkbenchTool(page, "files");
 	await page.getByTestId("file-node").filter({ hasText: "README.md" }).first().dblclick();
 	await expect(page.getByTestId("markdown-preview")).toContainText("sample-project");

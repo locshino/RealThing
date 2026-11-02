@@ -1,11 +1,5 @@
-import type { Workspace } from "@thinkrail/contracts";
-import {
-	selectAttentionCenterTab,
-	selectCurrentRouteChatTarget,
-	selectWorkspaceById,
-	selectWorkspaceNavTick,
-	useAppStore,
-} from "../store";
+import type { Workspace } from "@realthing/contracts";
+import { selectWorkspaceById, selectWorkspaceNavTick, useAppStore } from "../store";
 import type { NavigationDriver } from "./driver";
 import { type NavigationLocation, parseFragment, serializeLocation } from "./location";
 
@@ -14,34 +8,15 @@ export interface NavigationDeps {
 	listWorkspaces: (projectId: string) => Promise<Workspace[]>;
 }
 
-type WorkspaceLayoutDocument = Parameters<
-	typeof selectAttentionCenterTab
->[0]["layoutDocumentsByWorkspace"][string];
-
 export function deriveLocation(state: {
 	activeWorkspaceId: string | null;
 	selectedProjectId: string | null;
 	workspaces: Record<string, Workspace[]>;
-	layoutDocumentsByWorkspace: Parameters<
-		typeof selectAttentionCenterTab
-	>[0]["layoutDocumentsByWorkspace"];
-	layoutAttentionByWorkspace: Parameters<
-		typeof selectAttentionCenterTab
-	>[0]["layoutAttentionByWorkspace"];
 }): NavigationLocation | null {
 	const workspaceId = state.activeWorkspaceId;
 	if (workspaceId) {
 		const workspace = selectWorkspaceById(state, workspaceId);
 		if (!workspace) return null;
-		const active = selectAttentionCenterTab(state, workspaceId);
-		if (active?.kind === "chat") {
-			return {
-				kind: "chat",
-				projectId: workspace.projectId,
-				workspaceId,
-				sessionId: active.sessionId,
-			};
-		}
 		return { kind: "workspace", projectId: workspace.projectId, workspaceId };
 	}
 	if (state.selectedProjectId) return { kind: "project", projectId: state.selectedProjectId };
@@ -52,38 +27,6 @@ interface NavigationIntentState {
 	selectedProjectId: string | null;
 	activeWorkspaceId: string | null;
 	navTickByWorkspace: Record<string, number>;
-	layoutDocumentsByWorkspace: Record<string, WorkspaceLayoutDocument>;
-	layoutAttentionByWorkspace: Record<
-		string,
-		{
-			selectedByGroup: Record<string, string>;
-			lastFocusedCenterGroupId: string;
-			navigationClockByGroup: Record<string, number>;
-		}
-	>;
-}
-
-function centerPlacesTab(node: WorkspaceLayoutDocument["center"], tabId: string): boolean {
-	if (node.kind === "split") {
-		return centerPlacesTab(node.children[0], tabId) || centerPlacesTab(node.children[1], tabId);
-	}
-	return node.tabs.some((tab) => tab.id === tabId);
-}
-
-function isSelectedCenterTabRemovalEdge(
-	state: NavigationIntentState,
-	previous: NavigationIntentState,
-): boolean {
-	const workspaceId = state.activeWorkspaceId;
-	if (!workspaceId || previous.activeWorkspaceId !== workspaceId) return false;
-	const before = previous.layoutDocumentsByWorkspace[workspaceId];
-	const after = state.layoutDocumentsByWorkspace[workspaceId];
-	if (!before || !after || before === after) return false;
-	const attention = previous.layoutAttentionByWorkspace[workspaceId];
-	if (!attention) return false;
-	const selectedId = attention.selectedByGroup[attention.lastFocusedCenterGroupId];
-	if (selectedId === undefined) return false;
-	return centerPlacesTab(before.center, selectedId) && !centerPlacesTab(after.center, selectedId);
 }
 
 function isUserNavigationEdge(
@@ -94,15 +37,7 @@ function isUserNavigationEdge(
 	if (state.activeWorkspaceId !== previous.activeWorkspaceId) return true;
 	const workspaceId = state.activeWorkspaceId;
 	if (!workspaceId) return false;
-	if (selectWorkspaceNavTick(state, workspaceId) > selectWorkspaceNavTick(previous, workspaceId)) {
-		return true;
-	}
-	const attention = state.layoutAttentionByWorkspace[workspaceId];
-	const before = previous.layoutAttentionByWorkspace[workspaceId];
-	if (!attention || attention === before) return false;
-	return Object.entries(attention.navigationClockByGroup).some(
-		([groupId, clock]) => clock > (before?.navigationClockByGroup[groupId] ?? 0),
-	);
+	return selectWorkspaceNavTick(state, workspaceId) > selectWorkspaceNavTick(previous, workspaceId);
 }
 
 export function startNavigation({ driver, listWorkspaces }: NavigationDeps): () => void {
@@ -125,7 +60,6 @@ export function startNavigation({ driver, listWorkspaces }: NavigationDeps): () 
 	const syncNow = () => {
 		if (pending) return;
 		const state = useAppStore.getState();
-		if (state.routeChatTarget) return;
 		const location = deriveLocation(state);
 		if (!location) return;
 		const fragment = serializeLocation(location);
@@ -184,14 +118,7 @@ export function startNavigation({ driver, listWorkspaces }: NavigationDeps): () 
 			resolvePending(gen);
 			return;
 		}
-		applyRoute(() =>
-			useAppStore
-				.getState()
-				.activateWorkspaceFromRoute(
-					workspace,
-					location.kind === "chat" ? location.sessionId : undefined,
-				),
-		);
+		applyRoute(() => useAppStore.getState().activateWorkspaceFromRoute(workspace));
 		resolvePending(gen);
 	};
 
@@ -203,7 +130,6 @@ export function startNavigation({ driver, listWorkspaces }: NavigationDeps): () 
 		applyRoute(() => {
 			const state = useAppStore.getState();
 			if (state.activeWorkspaceId) state.noteNavigation(state.activeWorkspaceId);
-			useAppStore.getState().clearRouteChatTarget();
 		});
 		const canonical = serializeLocation(location);
 		if (canonical !== fragment) driver.replace(canonical);
@@ -213,10 +139,7 @@ export function startNavigation({ driver, listWorkspaces }: NavigationDeps): () 
 
 	const unsubscribeDriver = driver.onIncoming(acceptFragment);
 	const unsubscribeStore = useAppStore.subscribe((state, previous) => {
-		if (
-			!applyingRoute &&
-			(isUserNavigationEdge(state, previous) || isSelectedCenterTabRemovalEdge(state, previous))
-		) {
+		if (!applyingRoute && isUserNavigationEdge(state, previous)) {
 			armedPush = true;
 		}
 		if (
@@ -230,10 +153,6 @@ export function startNavigation({ driver, listWorkspaces }: NavigationDeps): () 
 		}
 		if (state.welcomeGeneration !== previous.welcomeGeneration && pending) {
 			void attempt(pending.generation);
-		}
-		if (state.routeChatTarget && !selectCurrentRouteChatTarget(state)) {
-			state.clearRouteChatTarget();
-			return;
 		}
 		syncNow();
 	});

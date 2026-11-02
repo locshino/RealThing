@@ -1,6 +1,6 @@
-# Contributing to ThinkRail
+# Contributing to RealThing
 
-Thanks for your interest in ThinkRail! Contributions of all kinds are welcome — bug
+Thanks for your interest in RealThing! Contributions of all kinds are welcome — bug
 reports, fixes, features, docs, and feedback.
 
 By contributing, you agree that your contributions will be licensed under the
@@ -23,28 +23,28 @@ Node.js ≥ 22.19 (required by the in-process `pi` engine), and an authenticated
 
 ```bash
 git clone <repo-url>
-cd thinkrail
+cd realthing
 bun install
 bun run dev
 ```
 
 `bun run dev` boots the host and the web client together and cleans up on `Ctrl+C`. Source/dev runs and
 locally unstamped builds expose no application updater: update a checkout with Git and rebuild it.
-Running `thinkrail update` from source installs a published binary; it does not pull, install
+Running `realthing update` from source installs a published binary; it does not pull, install
 dependencies, or rebuild the checkout. On-disk app state (projects, workspaces, worktrees) lives under
-`~/.thinkrail`.
+`~/.realthing`.
 
 To run the launchers:
 
 ```bash
-bun run --filter @thinkrail/cli dev  # browser launcher
+bun run --filter @realthing/cli dev  # browser launcher
 bun run build:binary                 # standalone CLI artifact
 bun run desktop:dev                  # package and open the Electrobun app
 bun run desktop:build                # package without opening it
 ```
 
 Desktop commands use the standard Electrobun CLI/configuration. Its pre-build hook builds the shared UI
-and stages ThinkRail's PI/native resources; Electrobun owns preload bundling and installer creation.
+and stages RealThing's PI/native resources; Electrobun owns preload bundling and installer creation.
 Create host-native installers with `bun run desktop:package:stable` or `bun run desktop:package:canary`;
 `canary` is Electrobun's internal name for the public **nightly** channel. Native/installer smoke and shared
 CLI/desktop probes live in `packages/artifact-tests`, outside the application packages. Run
@@ -92,7 +92,7 @@ and run against a real provider on an **isolated** `pi` agent dir — never your
 
 ## Module boundaries
 
-ThinkRail is built as a set of clearly bounded, fractal modules: each package is a
+RealThing is built as a set of clearly bounded, fractal modules: each package is a
 module, and directories inside a package are modules too. A sub-module exposes its
 public surface through an `index.ts` barrel; siblings import through that barrel,
 never its internals. Every module has a `SPEC.md` that states what it owns, what it
@@ -101,7 +101,7 @@ cover a module's public surface with tests where practical.
 
 ## Specification-driven development
 
-ThinkRail is developed spec-first: hierarchical, interconnected specs live in the
+RealThing is developed spec-first: hierarchical, interconnected specs live in the
 repo alongside the code — top-level specs at the root
 ([`goal-and-requirements.md`](goal-and-requirements.md),
 [`architecture.md`](architecture.md)) and a co-located `SPEC.md` for every module.
@@ -111,11 +111,11 @@ it. See [`AGENTS.md`](AGENTS.md) for the spec workflow.
 
 ## Translations
 
-ThinkRail's interface strings live in one file,
+RealThing's interface strings live in one file,
 [`packages/locales/en.json`](packages/locales/en.json): a flat JSON object of named keys
 (`"settings.language.title": "Language"`). A translation is the same file with the values translated.
 
-1. Copy `en.json` into `~/.thinkrail/locales/` as your language's code — `de.json`, `pt-BR.json`,
+1. Copy `en.json` into `~/.realthing/locales/` as your language's code — `de.json`, `pt-BR.json`,
    `zh-Hant.json`. Keep the keys; translate the values. Strings you leave out stay in English.
 2. Keep every `{{placeholder}}` exactly as written (a string whose placeholders differ from English is
    ignored) and keep `<0>…</0>` markers around the same words. Keep literals the user must type
@@ -129,7 +129,7 @@ ThinkRail's interface strings live in one file,
    `"tools.read.firstLines_few": "первые {{count}} строки"`,
    `"tools.read.firstLines_many": "первые {{count}} строк"`. Each form may show `{{count}}` or leave it
    out; a form you skip falls back to your `_other`, so a counter never switches to English.
-4. Open **Settings → Language** and pick your language. ThinkRail reloads the file every time you save,
+4. Open **Settings → Language** and pick your language. RealThing reloads the file every time you save,
    and the page shows a problem with the file if it can't be read.
 
 To ship a translation built-in for everyone, open a pull request that adds it as

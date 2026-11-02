@@ -1,8 +1,8 @@
 export const siteMetadata = {
-	origin: "https://thinkrail.ai",
+	origin: "https://realthing.ai",
 	path: "/vibecoding/",
-	title: "ThinkRail — Parallel AI Coding Agents, Under Control",
+	title: "RealThing — Parallel Workspaces, Under Control",
 	description:
-		"Run parallel AI coding agents safely: each gets a clear plan, an isolated Git worktree, and a visible trail of progress you can review and trust.",
+		"Develop across parallel Git worktrees safely: each task gets a clear plan, an isolated workspace, multi-scope diff review, and an integrated terminal.",
 	openGraphImagePath: "/vibecoding/og.png",
 } as const;

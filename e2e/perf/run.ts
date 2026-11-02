@@ -15,7 +15,7 @@ import { isScenarioName, SCENARIO_NAMES } from "./scenarios";
 
 const bun = process.execPath;
 const DEFAULT_RUNS = 5;
-const DEFAULT_OUT = join(tmpdir(), "thinkrail-render-profile.json");
+const DEFAULT_OUT = join(tmpdir(), "realthing-render-profile.json");
 const TABLE_ROWS = 15;
 
 interface RunnerArgs {
@@ -224,14 +224,14 @@ async function main(): Promise<number> {
 	const build = await runE2eProcess([bun, "run", "--cwd", "apps/web", "build:profile"]);
 	if (build.exitCode !== 0) return build.exitCode;
 
-	const runDir = mkdtempSync(join(tmpdir(), "thinkrail-perf-runs-"));
+	const runDir = mkdtempSync(join(tmpdir(), "realthing-perf-runs-"));
 	const env = {
 		...process.env,
-		THINKRAIL_E2E_SKIP_BUILD: "1",
-		THINKRAIL_PERF_RUNS: String(runs),
-		THINKRAIL_PERF_OUT: runDir,
-		THINKRAIL_PERF_CPU: String(cpu),
-		...(selected ? { THINKRAIL_PERF_SCENARIOS: selected } : {}),
+		REALTHING_E2E_SKIP_BUILD: "1",
+		REALTHING_PERF_RUNS: String(runs),
+		REALTHING_PERF_OUT: runDir,
+		REALTHING_PERF_CPU: String(cpu),
+		...(selected ? { REALTHING_PERF_SCENARIOS: selected } : {}),
 	};
 	const result = await runE2eProcess(
 		[bun, "x", "playwright", "test", "-c", "playwright.perf.config.ts", ...playwrightArgs],

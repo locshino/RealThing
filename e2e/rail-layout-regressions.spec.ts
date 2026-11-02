@@ -45,7 +45,7 @@ test("bottom measurement reconnects after a frame transition and viewport resize
 	page,
 }) => {
 	await openDefault(page);
-	await page.getByTestId("tool-rail-specs").click();
+	await page.getByTestId("tool-rail-files").click();
 	await page.getByRole("button", { name: "Bottom panel alignment" }).click();
 	await page.getByRole("menuitemradio", { name: "Full width", exact: true }).click();
 	await page.setViewportSize({ width: 1440, height: 680 });
@@ -81,7 +81,7 @@ for (const allFolded of [false, true]) {
 		const destination = await terminalRail.getAttribute("data-group-id");
 		if (!destination) throw new Error("Missing terminal group identity");
 		if (!allFolded) {
-			await page.getByTestId("tool-rail-review").click({ button: "right" });
+			await page.getByTestId("tool-rail-plan").click({ button: "right" });
 			await page.getByRole("menuitem", { name: "New bottom group at right", exact: true }).click();
 		}
 		await terminalRail.click();
@@ -108,16 +108,16 @@ test("a terminal dropped on a rail boundary beside a folded tool pane gets its o
 	page,
 }) => {
 	await openDefault(page);
-	const specs = page.getByTestId("tool-rail-specs");
-	const specsGroupId = await specs.evaluate(
+	const files = page.getByTestId("tool-rail-files");
+	const filesGroupId = await files.evaluate(
 		(button) => button.closest<HTMLElement>("[data-group-id]")?.dataset.groupId,
 	);
-	await specs.click();
-	await expect(specs).toHaveAttribute("aria-pressed", "false");
+	await files.click();
+	await expect(files).toHaveAttribute("aria-pressed", "false");
 	await page.getByTestId("center-tab-strip").getByTestId("new-terminal").click();
 	const terminal = page.getByTestId("center-group").getByTestId("terminal-tab");
 	await startDrag(page, terminal);
-	await expect(page.locator('[data-drop-label="Insert before Specs"]')).toHaveCount(0);
+	await expect(page.locator('[data-drop-label="Insert before Files"]')).toHaveCount(0);
 	await expect(page.locator('[data-drop-label="Join right group"]')).toHaveCount(0);
 	const boundary = page.locator('[data-drop-label="New right pane here"]').first();
 	await expect(boundary).toBeVisible();
@@ -125,12 +125,12 @@ test("a terminal dropped on a rail boundary beside a folded tool pane gets its o
 	const panes = page.locator('[data-side="right"][data-group-id]');
 	await expect(panes).toHaveCount(2);
 	const created = panes.first();
-	await expect(created).not.toHaveAttribute("data-group-id", specsGroupId ?? "");
+	await expect(created).not.toHaveAttribute("data-group-id", filesGroupId ?? "");
 	await expect(created.getByTestId("terminal-tab")).toHaveCount(1);
 	await expect(created.locator('[data-testid="terminal-instance"][data-ready="true"]')).toHaveCount(
 		1,
 	);
-	await expect(specs).toHaveAttribute("aria-pressed", "false");
+	await expect(files).toHaveAttribute("aria-pressed", "false");
 	await expect(page.getByTestId("tool-rail-plan")).toHaveAttribute("aria-pressed", "true");
 });
 
@@ -173,7 +173,7 @@ async function groupSizes(handle: Locator): Promise<number[]> {
 
 async function frame(page: Page): Promise<string> {
 	return page.evaluate(() => {
-		const key = Object.keys(localStorage).find((key) => key.startsWith("thinkrail:workbench:"));
+		const key = Object.keys(localStorage).find((key) => key.startsWith("realthing:workbench:"));
 		if (!key) throw new Error("Missing persisted frame");
 		return JSON.stringify(JSON.parse(localStorage.getItem(key) ?? "null").frame);
 	});
@@ -200,7 +200,7 @@ for (const kind of [
 			await page.getByRole("menuitemradio", { name: "Full width", exact: true }).click();
 		}
 		if (kind === "bottom-groups") {
-			await page.getByTestId("tool-rail-review").click({ button: "right" });
+			await page.getByTestId("tool-rail-plan").click({ button: "right" });
 			await page.getByRole("menuitem", { name: "New bottom group at right", exact: true }).click();
 		}
 		if (kind === "center-split") {

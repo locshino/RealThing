@@ -1,5 +1,5 @@
 import { RiQuestionnaireLine as MessageCircleQuestion } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 
 export function AttentionLine({
 	announced = false,

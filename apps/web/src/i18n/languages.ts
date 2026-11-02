@@ -1,11 +1,11 @@
-import type { LocalLocaleFileErrorCode, LocalLocalesSnapshot } from "@thinkrail/contracts";
+import type { LocalLocaleFileErrorCode, LocalLocalesSnapshot } from "@realthing/contracts";
 import {
 	BUNDLED_LOCALES,
 	type Catalog,
 	languageName,
 	resolveLocale,
 	SYSTEM_LOCALE,
-} from "@thinkrail/locales";
+} from "@realthing/locales";
 
 export type LanguageSource = "builtin" | "local" | "builtin+local";
 

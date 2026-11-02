@@ -6,8 +6,8 @@ import { E2E_BINARY_CACHE, E2E_BINARY_PORT } from "./e2e/fixtures/paths";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
 const binary =
-	process.env.THINKRAIL_E2E_BINARY ??
-	fileURLToPath(new URL("./apps/cli/dist/thinkrail", import.meta.url));
+	process.env.REALTHING_E2E_BINARY ??
+	fileURLToPath(new URL("./apps/cli/dist/realthing", import.meta.url));
 if (!existsSync(binary)) {
 	throw new Error(`binary not found at ${binary} — run \`bun run build:binary\` first.`);
 }
@@ -23,7 +23,7 @@ export default defineConfig({
 		timeout: 120_000,
 		env: {
 			...artifactHostEnvironment(E2E_BINARY_CACHE),
-			THINKRAIL_PORT: String(E2E_BINARY_PORT),
+			REALTHING_PORT: String(E2E_BINARY_PORT),
 		},
 	},
 });

@@ -1,4 +1,4 @@
-import type { GitDiffScope, GitStatus } from "@thinkrail/contracts";
+import type { GitDiffScope, GitStatus } from "@realthing/contracts";
 import { useAppStore } from "../store";
 import { getTransport, wsErrorCode } from "../transport";
 import { scopeKey } from "./changesModel";

@@ -45,11 +45,11 @@ function post(url: string, body: unknown, origin?: string): Request {
 
 describe("claim HTTP guards and validation", () => {
 	test.each([
-		"https://thinkrail-website.pages.dev/api/attribution/claims",
-		"https://pr-42.thinkrail-website.pages.dev/api/attribution/claims",
-		"https://www.thinkrail.ai/api/attribution/claims",
-		"http://thinkrail.ai/api/attribution/claims",
-		"https://thinkrail.ai:8443/api/attribution/claims",
+		"https://realthing-website.pages.dev/api/attribution/claims",
+		"https://pr-42.realthing-website.pages.dev/api/attribution/claims",
+		"https://www.realthing.ai/api/attribution/claims",
+		"http://realthing.ai/api/attribution/claims",
+		"https://realthing.ai:8443/api/attribution/claims",
 	])("returns generic 404 without touching D1 on %s", async (url) => {
 		const database = new TrackingDatabase();
 		const response = await handleCreateClaim(
@@ -63,10 +63,10 @@ describe("claim HTTP guards and validation", () => {
 	});
 
 	test("requires exact browser Origin before bind can read or mutate D1", async () => {
-		for (const origin of [undefined, "https://www.thinkrail.ai", "https://thinkrail.ai/"]) {
+		for (const origin of [undefined, "https://www.realthing.ai", "https://realthing.ai/"]) {
 			const database = new TrackingDatabase();
 			const response = await handleBindClaim(
-				post("https://thinkrail.ai/api/attribution/claims/id/bind", {}, origin),
+				post("https://realthing.ai/api/attribution/claims/id/bind", {}, origin),
 				environment(database),
 				validId,
 			);
@@ -82,7 +82,7 @@ describe("claim HTTP guards and validation", () => {
 	])("rejects strict create bodies before D1", async (body) => {
 		const database = new TrackingDatabase();
 		const response = await handleCreateClaim(
-			post("https://thinkrail.ai/api/attribution/claims", body),
+			post("https://realthing.ai/api/attribution/claims", body),
 			environment(database),
 		);
 		expect(response.status).toBe(400);
@@ -91,7 +91,7 @@ describe("claim HTTP guards and validation", () => {
 
 	test("rejects oversized and malformed verifier bodies before D1", async () => {
 		const database = new TrackingDatabase();
-		const oversized = post("https://thinkrail.ai/api/attribution/claims/x/redeem", {
+		const oversized = post("https://realthing.ai/api/attribution/claims/x/redeem", {
 			verifier: "A".repeat(200),
 		});
 		const response = await handleRedeemClaim(oversized, environment(database), validId);
@@ -103,7 +103,7 @@ describe("claim HTTP guards and validation", () => {
 		const database = new TrackingDatabase();
 		database.quotaAvailable = false;
 		const response = await handleCreateClaim(
-			post("https://thinkrail.ai/api/attribution/claims", { challenge: validId }),
+			post("https://realthing.ai/api/attribution/claims", { challenge: validId }),
 			environment(database),
 		);
 		expect(response.status).toBe(429);
@@ -116,7 +116,7 @@ describe("claim HTTP guards and validation", () => {
 		const database = new TrackingDatabase();
 		database.changes = 0;
 		const response = await handleCreateClaim(
-			post("https://thinkrail.ai/api/attribution/claims", { challenge: validId }),
+			post("https://realthing.ai/api/attribution/claims", { challenge: validId }),
 			environment(database),
 		);
 		expect(response.status).toBe(503);
@@ -126,7 +126,7 @@ describe("claim HTTP guards and validation", () => {
 	test("creates only on the apex host with no-store and no CORS response headers", async () => {
 		const database = new TrackingDatabase();
 		const response = await handleCreateClaim(
-			post("https://thinkrail.ai/api/attribution/claims", { challenge: validId }),
+			post("https://realthing.ai/api/attribution/claims", { challenge: validId }),
 			environment(database),
 		);
 		expect(response.status).toBe(201);

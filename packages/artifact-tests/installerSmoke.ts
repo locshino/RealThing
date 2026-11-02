@@ -3,7 +3,7 @@
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { removeTree } from "@thinkrail/shared/removeTree";
+import { removeTree } from "@realthing/shared/removeTree";
 import { locateWindowsSetupExecutable } from "./src/artifact";
 import { hostEnvironment } from "./src/artifactProbes";
 import { assertInstallerSmokeEnvironment } from "./src/installerEnvironment";
@@ -19,7 +19,7 @@ function resolveArtifact(value: string | undefined): string {
 }
 
 const artifact = resolveArtifact(process.argv[2]);
-const root = mkdtempSync(join(tmpdir(), "thinkrail-desktop-installer-smoke-"));
+const root = mkdtempSync(join(tmpdir(), "realthing-desktop-installer-smoke-"));
 const readyPath = join(root, "desktop.ready.json");
 const controlPath = join(root, "desktop.control");
 const channel = process.argv[3] ?? "stable";
@@ -34,16 +34,14 @@ const isolationEnv = hostEnvironment({
 	XDG_DATA_HOME: join(root, "xdg-data"),
 	XDG_CACHE_HOME: join(root, "cache"),
 	ELECTROBUN_INSTALLER_UI_AUTOCLOSE: "1",
-	THINKRAIL_DATA_DIR: join(root, "data"),
-	PI_CODING_AGENT_DIR: join(root, "agent"),
-	PI_OFFLINE: "1",
-	THINKRAIL_NO_ANALYTICS: "1",
+	REALTHING_DATA_DIR: join(root, "data"),
+	REALTHING_NO_ANALYTICS: "1",
 	CI: "1",
-	THINKRAIL_DESKTOP_READY_FILE: readyPath,
-	THINKRAIL_DESKTOP_CONTROL_FILE: controlPath,
-	THINKRAIL_DESKTOP_USER_DATA: join(root, "user-data"),
-	THINKRAIL_DESKTOP_E2E_HOST: "1",
-	THINKRAIL_DESKTOP_HIDDEN: "1",
+	REALTHING_DESKTOP_READY_FILE: readyPath,
+	REALTHING_DESKTOP_CONTROL_FILE: controlPath,
+	REALTHING_DESKTOP_USER_DATA: join(root, "user-data"),
+	REALTHING_DESKTOP_E2E_HOST: "1",
+	REALTHING_DESKTOP_HIDDEN: "1",
 });
 let installerProcess: ReturnType<typeof Bun.spawn> | undefined;
 let appPid: number | undefined;
@@ -65,10 +63,10 @@ function installerExecutable(): string {
 		mkdirSync(mount, { recursive: true });
 		run(["hdiutil", "attach", artifact, "-nobrowse", "-readonly", "-mountpoint", mount]);
 		try {
-			const appName = channel === "stable" ? "ThinkRail.app" : `ThinkRail-${channel}.app`;
+			const appName = channel === "stable" ? "RealThing.app" : `RealThing-${channel}.app`;
 			const app = join(mount, appName);
 			if (!existsSync(app)) throw new Error(`desktop DMG does not contain ${appName}`);
-			const installed = join(root, "ThinkRail.app");
+			const installed = join(root, "RealThing.app");
 			cpSync(app, installed, { recursive: true });
 			return join(installed, "Contents", "MacOS", "launcher");
 		} finally {
@@ -143,11 +141,11 @@ try {
 	const nativePid = launcherPid;
 	const launcher =
 		process.platform === "darwin"
-			? join(root, "ThinkRail.app", "Contents", "MacOS", "launcher")
+			? join(root, "RealThing.app", "Contents", "MacOS", "launcher")
 			: join(
 					root,
 					process.platform === "win32" ? "local" : "xdg-data",
-					"ai.thinkrail.app",
+					"ai.realthing.app",
 					channel,
 					"app",
 					"bin",

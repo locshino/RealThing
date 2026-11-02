@@ -1,9 +1,9 @@
 import { mkdirSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { removeTree } from "@thinkrail/shared/removeTree";
-import { toolHomeEnv } from "@thinkrail/shared/toolHomes";
-import { channel, posthogProjectKey, version } from "@thinkrail/shared/version";
+import { removeTree } from "@realthing/shared/removeTree";
+import { toolHomeEnv } from "@realthing/shared/toolHomes";
+import { channel, posthogProjectKey, version } from "@realthing/shared/version";
 import {
 	type ArtifactHostAdapter,
 	hostEnvironment,
@@ -87,13 +87,11 @@ export function analyticsProbeEnvironment(
 			XDG_CONFIG_HOME: join(root, "config"),
 			XDG_DATA_HOME: join(root, "xdg-data"),
 			XDG_CACHE_HOME: join(root, "cache"),
-			THINKRAIL_DATA_DIR: join(root, "data"),
-			PI_CODING_AGENT_DIR: join(root, "agent"),
-			PI_OFFLINE: "1",
-			THINKRAIL_POSTHOG_HOST: endpoint.origin,
+			REALTHING_DATA_DIR: join(root, "data"),
+			REALTHING_POSTHOG_HOST: endpoint.origin,
 			NO_PROXY: "127.0.0.1,localhost",
 		},
-		["CI", "NODE_ENV", "THINKRAIL_NO_ANALYTICS", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"],
+		["CI", "NODE_ENV", "REALTHING_NO_ANALYTICS", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY"],
 		inherited,
 	);
 }
@@ -166,7 +164,7 @@ export function assertDesktopLaunch(
 
 export async function runDesktopAnalyticsProbe(adapter: ArtifactHostAdapter): Promise<void> {
 	assert(posthogProjectKey !== "", "the analytics probe needs a release-stamped (keyed) build");
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-desktop-analytics-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-desktop-analytics-"));
 	const collector = startAnalyticsCollector();
 	let host: RunningArtifactHost | undefined;
 	try {
@@ -185,7 +183,7 @@ export async function runDesktopAnalyticsProbe(adapter: ArtifactHostAdapter): Pr
 			{ label: "human-first-launch", overrides: {}, muted: false },
 			{
 				label: "human-restart-additional-opt-out",
-				overrides: { THINKRAIL_NO_ANALYTICS: "1" },
+				overrides: { REALTHING_NO_ANALYTICS: "1" },
 				muted: false,
 			},
 			{ label: "ci-muted", overrides: { CI: "1" }, muted: true },

@@ -1,16 +1,16 @@
 import { useDroppable } from "@dnd-kit/core";
 import { RiAddLine as Plus, RiCloseLine as X } from "@remixicon/react";
-import type { MessageKey } from "@thinkrail/locales";
-import { useT } from "@thinkrail/locales/react";
-import { IconButton } from "@thinkrail/ui/button";
+import type { MessageKey } from "@realthing/locales";
+import { useT } from "@realthing/locales/react";
+import { IconButton } from "@realthing/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "@thinkrail/ui/dropdown-menu";
-import { type ImperativePanelGroupHandle, ResizablePanelGroup } from "@thinkrail/ui/resizable";
+} from "@realthing/ui/dropdown-menu";
+import { type ImperativePanelGroupHandle, ResizablePanelGroup } from "@realthing/ui/resizable";
 import { memo, type ReactNode, useMemo, useRef } from "react";
 import { type LayoutAttention, readLayoutSelection, tupleKey } from "../../lib";
 import { AuxiliaryPaneHeader, AuxiliaryPaneHideButton } from "./AuxiliaryPaneHeader";
@@ -146,11 +146,7 @@ export const SideGroupView = memo(function SideGroupView({
 			aria-label={t(PANE_LABELS[side], {
 				name: selected ? layoutTabName(t, selected) : t("workbench.pane.tools"),
 			})}
-			data-testid={
-				group.tabs.some((tab) => tab.kind === "tool" && tab.tool === "specs")
-					? "right-panel"
-					: "side-group"
-			}
+			data-testid="side-group"
 			data-side={side}
 			data-group-id={group.id}
 			data-tools={group.tabs.flatMap((tab) => (tab.kind === "tool" ? [tab.tool] : [])).join(" ")}
@@ -342,8 +338,6 @@ export function AuxiliaryGroupHeader({
 				onFocusAdjacentGroup={shared.onFocusAdjacentGroup}
 				onHideSide={shared.onHideSide}
 				onRevealTool={shared.onRevealTool}
-				onRenameChat={shared.onRenameChat}
-				{...(shared.chatFirstPrompts ? { chatFirstPrompts: shared.chatFirstPrompts } : {})}
 				canFocusAdjacentGroup={shared.canFocusAdjacentGroup}
 				renderTabAdornment={shared.renderTabAdornment}
 				trailing={actions}

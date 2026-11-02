@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { PROTOCOL_VERSION, WS_CHANNELS } from "@thinkrail/contracts";
+import { PROTOCOL_VERSION, WS_CHANNELS } from "@realthing/contracts";
 import { WsTransport } from "./transport";
 
 class TestWebSocket {
@@ -82,24 +82,9 @@ test("advertises the client protocol version in the WebSocket handshake", () => 
 describe("WsTransport channel replay", () => {
 	test.each([
 		[
-			"resource invalidations deliver live but are not replayed on remount",
-			WS_CHANNELS.sessionResourcesChanged,
-			{ workspaceId: "workspace", sessionId: "session" },
-		],
-		[
 			"does not replay a stale terminal takeover to a late terminal body",
 			WS_CHANNELS.terminalDetached,
 			{ workspaceId: "w1", tabKey: "terminal-1" },
-		],
-		[
-			"does not replay a provider invalidation to a late settings pane",
-			WS_CHANNELS.providerChanged,
-			{},
-		],
-		[
-			"does not replay an addressed interview invitation to a late subscriber",
-			WS_CHANNELS.feedbackInterview,
-			{},
 		],
 	])("%s", (_name, channel, data) => {
 		const transport = new WsTransport({ url: "ws://localhost:24242/ws" });

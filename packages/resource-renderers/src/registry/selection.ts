@@ -15,8 +15,8 @@ export function rendererImplementationKey(rendererId: string, mobile: boolean): 
 }
 
 export function rendererTestId(rendererId: string): string {
-	const suffix = rendererId.startsWith("thinkrail/")
-		? rendererId.slice("thinkrail/".length)
+	const suffix = rendererId.startsWith("realthing/")
+		? rendererId.slice("realthing/".length)
 		: rendererId.replaceAll("/", "-");
 	return `view-toggle-${suffix}`;
 }

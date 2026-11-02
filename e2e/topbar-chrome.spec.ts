@@ -1,11 +1,10 @@
-import { writeFileSync } from "node:fs";
 import { expect, type Locator, type Page, test } from "@playwright/test";
 import type {
 	NativeUpdateBridge,
 	NativeUpdateState,
 	NativeWindowControlsBridge,
 	NativeWindowState,
-} from "@thinkrail/contracts";
+} from "@realthing/contracts";
 import {
 	enterDefaultWorkspace,
 	expandDisclosure,
@@ -13,8 +12,6 @@ import {
 	openFixtureProject,
 	PHONE_VIEWPORT,
 } from "./fixtures/app";
-import { connectCentral, openProviders, waitForCentralState } from "./fixtures/jbcentral";
-import { E2E_CENTRAL_STATE } from "./fixtures/paths";
 
 interface Rect {
 	x: number;
@@ -90,13 +87,6 @@ async function headerColors(page: Page): Promise<{ actual: string; expected: str
 		probe.remove();
 		return { actual: getComputedStyle(header).backgroundColor, expected };
 	});
-}
-
-async function setQuotaInterval(page: Page, seconds: number): Promise<void> {
-	const interval = page.getByTestId("jbcentral-quota-interval");
-	await interval.fill(String(seconds));
-	await interval.press("Enter");
-	await expect(interval).toHaveValue(String(seconds));
 }
 
 async function selectOppositeAppearanceTheme(page: Page): Promise<string> {
@@ -228,8 +218,8 @@ test("native updates progress from explicit download through install and restart
 				return () => listeners.delete(listener);
 			},
 		};
-		Object.defineProperty(globalThis, "__THINKRAIL_NATIVE_UPDATES__", { value: bridge });
-		Object.defineProperty(globalThis, "__THINKRAIL_TEST_UPDATE__", { value: publish });
+		Object.defineProperty(globalThis, "__REALTHING_NATIVE_UPDATES__", { value: bridge });
+		Object.defineProperty(globalThis, "__REALTHING_TEST_UPDATE__", { value: publish });
 	});
 	await openAppFresh(page);
 
@@ -241,17 +231,17 @@ test("native updates progress from explicit download through install and restart
 	await page.evaluate(() => {
 		(
 			globalThis as typeof globalThis & {
-				__THINKRAIL_TEST_UPDATE__: (next: Partial<NativeUpdateState>) => void;
+				__REALTHING_TEST_UPDATE__: (next: Partial<NativeUpdateState>) => void;
 			}
-		).__THINKRAIL_TEST_UPDATE__({ status: "preparing", progress: 100 });
+		).__REALTHING_TEST_UPDATE__({ status: "preparing", progress: 100 });
 	});
 	await expect(page.getByText("Preparing update…")).toBeVisible();
 	await page.evaluate(() => {
 		(
 			globalThis as typeof globalThis & {
-				__THINKRAIL_TEST_UPDATE__: (next: Partial<NativeUpdateState>) => void;
+				__REALTHING_TEST_UPDATE__: (next: Partial<NativeUpdateState>) => void;
 			}
-		).__THINKRAIL_TEST_UPDATE__({ status: "ready" });
+		).__REALTHING_TEST_UPDATE__({ status: "ready" });
 	});
 	await expect(page.getByTestId("update-restart")).toHaveText("Install & Restart");
 	await page.keyboard.press("Escape");
@@ -263,9 +253,7 @@ test("native updates progress from explicit download through install and restart
 	await expect(page.getByTestId("update-install-dialog")).toBeVisible();
 });
 
-test("the action cluster keeps Update, quota Retry and Settings out of the drag region", async ({
-	page,
-}) => {
+test("the action cluster keeps Update and Settings out of the drag region", async ({ page }) => {
 	await page.addInitScript(() => {
 		const state: NativeUpdateState = {
 			revision: 1,
@@ -288,22 +276,12 @@ test("the action cluster keeps Update, quota Retry and Settings out of the drag 
 			dismissInstallResult: async () => {},
 			subscribe: () => () => {},
 		};
-		Object.defineProperty(globalThis, "__THINKRAIL_NATIVE_UPDATES__", { value: bridge });
+		Object.defineProperty(globalThis, "__REALTHING_NATIVE_UPDATES__", { value: bridge });
 	});
 	await openFixtureProject(page);
 	await enterDefaultWorkspace(page);
-	await openProviders(page);
-	await waitForCentralState(page, "supported");
-	await setQuotaInterval(page, 3600);
-	writeFileSync(E2E_CENTRAL_STATE, "quota-error");
-	await connectCentral(page);
-	await waitForCentralState(page, "configured");
-	const quota = page.getByTestId("jbcentral-quota");
-	await expect(quota).toHaveAttribute("data-state", "unavailable");
-	await page.keyboard.press("Escape");
-	await expect(page.getByTestId("settings-dialog")).toBeHidden();
 
-	const buttons = ["update-ready", "jbcentral-quota", "open-settings"];
+	const buttons = ["update-ready", "open-settings"];
 	await page.evaluate(() =>
 		document.documentElement.style.setProperty("--window-chrome-drag-region", "drag"),
 	);
@@ -318,12 +296,6 @@ test("the action cluster keeps Update, quota Retry and Settings out of the drag 
 	await expect(page.getByTestId("settings-updates")).toBeVisible();
 	await page.keyboard.press("Escape");
 	await expect(page.getByTestId("settings-dialog")).toBeHidden();
-
-	await openProviders(page);
-	await setQuotaInterval(page, 30);
-	writeFileSync(E2E_CENTRAL_STATE, "");
-	await page.getByTestId("jetbrains-disconnect").click();
-	await waitForCentralState(page, "supported");
 });
 
 test("HTML window controls appear only with the native bridge and drive it", async ({ page }) => {
@@ -351,7 +323,7 @@ test("HTML window controls appear only with the native bridge and drive it", asy
 				};
 			},
 		};
-		Object.defineProperty(globalThis, "__THINKRAIL_NATIVE_WINDOW_CONTROLS__", { value: bridge });
+		Object.defineProperty(globalThis, "__REALTHING_NATIVE_WINDOW_CONTROLS__", { value: bridge });
 		Object.defineProperty(globalThis, "__TEST_WINDOW_ACTIONS__", { value: actions });
 		Object.defineProperty(globalThis, "__TEST_WINDOW_LISTENERS__", { value: listeners });
 	});

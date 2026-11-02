@@ -1,4 +1,4 @@
-import type { GitFileChange } from "@thinkrail/contracts";
+import type { GitFileChange } from "@realthing/contracts";
 import { firstClickOnly } from "../lib";
 import type { TabIntent } from "../store";
 import { ChangeRowActions, ROW_MENU_SLOT } from "./ChangeRowActions";

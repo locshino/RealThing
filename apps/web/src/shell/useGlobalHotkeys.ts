@@ -1,50 +1,86 @@
 import { useEffect, useInsertionEffect, useRef } from "react";
 import { hasPlatformModifier } from "../lib";
-import { selectHistoryTarget, useAppStore } from "../store";
-import { hasLayer, isInTerminal, MODAL_LAYER_SELECTOR } from "./shortcutLayers";
+import { useAppStore } from "../store";
+import { matchesCustomKeybinding } from "./shortcutCommands";
+import { hasLayer, MODAL_LAYER_SELECTOR } from "./shortcutLayers";
 
 type GlobalHotkeyActions = {
 	onProjects: () => void;
 	onWorkspace?: () => void;
 	onBottom?: () => void;
 	onNewWorkspace?: () => void;
-	onSessionSwitcher?: () => void;
 };
 
-type GlobalHotkeyCommand =
-	| "projects"
-	| "workspace"
-	| "bottom"
-	| "new-workspace"
-	| "session-switcher";
+type GlobalHotkeyCommand = "projects" | "workspace" | "bottom" | "new-workspace";
 
 type GlobalHotkeyAvailability = {
 	projects: boolean;
 	workspace: boolean;
 	bottom: boolean;
 	newWorkspace: boolean;
-	sessionSwitcher: boolean;
 };
 
 type GlobalHotkeyEvent = Pick<
 	KeyboardEvent,
 	"altKey" | "code" | "ctrlKey" | "metaKey" | "shiftKey"
->;
+> & {
+	key?: string;
+};
 
 export function globalHotkeyCommand(
 	event: GlobalHotkeyEvent,
 	available: GlobalHotkeyAvailability,
 	modalOpen: boolean,
 	platform?: string,
+	customKeybindings: Readonly<Record<string, string>> = useAppStore.getState().customKeybindings,
 ): GlobalHotkeyCommand | null {
-	if (modalOpen || !hasPlatformModifier(event, platform)) return null;
-	if (!event.shiftKey && event.code === "KeyN" && available.newWorkspace) return "new-workspace";
-	if (!event.shiftKey && !event.altKey && event.code === "KeyK" && available.sessionSwitcher)
-		return "session-switcher";
+	if (modalOpen) return null;
+	const entries: readonly [GlobalHotkeyCommand, boolean][] = [
+		["new-workspace", available.newWorkspace],
+		["projects", available.projects],
+		["workspace", available.workspace],
+		["bottom", available.bottom],
+	];
+	for (const [command, isAvailable] of entries) {
+		const custom = customKeybindings[command]?.trim();
+		if (custom) {
+			if (isAvailable && matchesCustomKeybinding(event, custom, platform)) return command;
+		}
+	}
+	if (!hasPlatformModifier(event, platform)) return null;
+	if (
+		!customKeybindings["new-workspace"]?.trim() &&
+		!event.shiftKey &&
+		event.code === "KeyN" &&
+		available.newWorkspace
+	) {
+		return "new-workspace";
+	}
 	if (event.altKey) return null;
-	if (!event.shiftKey && event.code === "KeyB" && available.projects) return "projects";
-	if (!event.shiftKey && event.code === "KeyJ" && available.workspace) return "workspace";
-	if (event.shiftKey && event.code === "KeyJ" && available.bottom) return "bottom";
+	if (
+		!customKeybindings.projects?.trim() &&
+		!event.shiftKey &&
+		event.code === "KeyB" &&
+		available.projects
+	) {
+		return "projects";
+	}
+	if (
+		!customKeybindings.workspace?.trim() &&
+		!event.shiftKey &&
+		event.code === "KeyJ" &&
+		available.workspace
+	) {
+		return "workspace";
+	}
+	if (
+		!customKeybindings.bottom?.trim() &&
+		event.shiftKey &&
+		event.code === "KeyJ" &&
+		available.bottom
+	) {
+		return "bottom";
+	}
 	return null;
 }
 
@@ -67,7 +103,6 @@ export function useGlobalHotkeys(actions: GlobalHotkeyActions): void {
 					workspace: actionsRef.current.onWorkspace !== undefined,
 					bottom: actionsRef.current.onBottom !== undefined,
 					newWorkspace: actionsRef.current.onNewWorkspace !== undefined,
-					sessionSwitcher: actionsRef.current.onSessionSwitcher !== undefined,
 				},
 				hasOpenModal(),
 			);
@@ -78,26 +113,9 @@ export function useGlobalHotkeys(actions: GlobalHotkeyActions): void {
 					if (command === "projects") actionsRef.current.onProjects();
 					else if (command === "workspace") actionsRef.current.onWorkspace?.();
 					else if (command === "bottom") actionsRef.current.onBottom?.();
-					else if (command === "session-switcher") actionsRef.current.onSessionSwitcher?.();
 					else actionsRef.current.onNewWorkspace?.();
 				}
-				return;
 			}
-
-			if (
-				event.code !== "KeyR" ||
-				!event.ctrlKey ||
-				event.metaKey ||
-				event.altKey ||
-				event.shiftKey
-			) {
-				return;
-			}
-			if (isInTerminal(event.target)) return;
-			event.preventDefault();
-			event.stopPropagation();
-			const target = selectHistoryTarget(useAppStore.getState());
-			if (target) useAppStore.getState().requestHistoryOpen(target);
 		};
 		window.addEventListener("keydown", onKeyDown, true);
 		return () => window.removeEventListener("keydown", onKeyDown, true);

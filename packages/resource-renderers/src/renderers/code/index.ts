@@ -1,7 +1,7 @@
 import type { ResourceRenderer } from "../../registry";
 
 export const codeRenderer: ResourceRenderer = {
-	id: "thinkrail/code",
+	id: "realthing/code",
 	labelKey: "viewer.renderer.source",
 	match: { text: true },
 	rank: 100,

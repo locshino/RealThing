@@ -15,10 +15,6 @@ async function freezePageTimers(page: import("@playwright/test").Page): Promise<
 async function openWorkspaceFiles(page: import("@playwright/test").Page): Promise<void> {
 	await openFixtureProject(page);
 	await createWorkspaceViaDialog(page);
-	const chatTab = page.locator('[data-testid="editor-tab"][data-kind="chat"]');
-	await chatTab.hover();
-	await chatTab.getByTestId("editor-tab-close").click();
-	await expect(chatTab).toHaveCount(0);
 	await revealWorkbenchTool(page, "files");
 	await expect(page.getByTestId("file-node").first()).toBeVisible();
 }
@@ -301,32 +297,4 @@ test("a newer tab click cancels an older preview-tab settle timer", async ({ pag
 
 	await expect(notes).toHaveAttribute("data-active", "true");
 	await expect(readme).toHaveAttribute("data-preview", "true");
-});
-
-test("the Specs panel shares the one slot, and closing the preview tab releases it", async ({
-	page,
-}) => {
-	await openWorkspaceFiles(page);
-	const tabs = page.getByTestId("editor-tab");
-
-	await page.getByTestId("file-node").filter({ hasText: "README.md" }).dblclick();
-	await page.getByTestId("file-node").filter({ hasText: "notes.txt" }).click();
-	await expect(tabs).toHaveCount(2);
-	await expect(tabs.nth(1)).toContainText("notes.txt");
-
-	await revealWorkbenchTool(page, "specs");
-	await page.locator('[data-testid="spec-node"][data-spec-id="sample-root"]').click();
-	await expect(tabs).toHaveCount(2);
-	await expect(tabs.first()).toContainText("README.md");
-	await expect(tabs.nth(1)).toContainText("SPEC.md");
-	await expect(tabs.nth(1)).toHaveAttribute("data-preview", "true");
-
-	await tabs.nth(1).hover();
-	await tabs.nth(1).getByTestId("editor-tab-close").click();
-	await expect(tabs).toHaveCount(1);
-	await revealWorkbenchTool(page, "files");
-	await page.getByTestId("file-node").filter({ hasText: "notes.txt" }).click();
-	await expect(tabs).toHaveCount(2);
-	await expect(tabs.nth(1)).toContainText("notes.txt");
-	await expect(tabs.nth(1)).toHaveAttribute("data-preview", "true");
 });

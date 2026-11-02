@@ -1,5 +1,5 @@
 {
-	"name": "@thinkrail/artifact-tests",
+	"name": "@realthing/artifact-tests",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
@@ -11,9 +11,9 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@thinkrail/cli": "workspace:*",
-		"@thinkrail/server": "workspace:*",
-		"@thinkrail/shared": "workspace:*"
+		"@realthing/cli": "workspace:*",
+		"@realthing/server": "workspace:*",
+		"@realthing/shared": "workspace:*"
 	},
 	"devDependencies": {
 		"@types/bun": "catalog:",

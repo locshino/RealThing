@@ -19,7 +19,7 @@ afterEach(() => {
 });
 
 function preferencePath(): string {
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-preferences-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-preferences-"));
 	roots.push(root);
 	mkdirSync(join(root, "nested"));
 	return join(root, "nested", "preferences.json");
@@ -114,7 +114,7 @@ test("idempotent writes preserve the stored document", () => {
 });
 
 test("filesystem failures reject a write without changing the in-memory document", () => {
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-preferences-blocked-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-preferences-blocked-"));
 	roots.push(root);
 	const blocker = join(root, "blocker");
 	writeFileSync(blocker, "not a directory");

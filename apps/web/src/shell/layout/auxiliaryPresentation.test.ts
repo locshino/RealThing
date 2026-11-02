@@ -37,7 +37,7 @@ function document(): WorkspaceLayoutDocument {
 					id: "tools",
 					weight: 0.3,
 					folded: false,
-					tabs: [{ ...toolTab("files"), id: "custom-files" }, toolTab("review")],
+					tabs: [{ ...toolTab("files"), id: "custom-files" }, toolTab("plan")],
 				},
 				{ id: "shells", weight: 0.4, folded: false, tabs: [terminal("build"), terminal("tests")] },
 				{ id: "other", weight: 0.3, folded: false, tabs: [terminal("server")] },
@@ -102,25 +102,27 @@ test("rail entries keep each pane's terminals together and tools in their own pa
 
 test("rail clusters mirror the panes in order and park unplaced tools in a trailing cluster", () => {
 	const doc = document();
-	const attention = reconcileAttention(doc);
+	const closedPlan = closeLayoutTab(doc, toolTab("plan").id).document;
+	closedPlan.toolRestoreTargets.plan = { region: "right", index: 1 };
+	const attention = reconcileAttention(closedPlan);
 	expect(
-		clusterAuxiliaryRail(projectAuxiliaryRail(doc, attention, "right")).map((cluster) => [
+		clusterAuxiliaryRail(projectAuxiliaryRail(closedPlan, attention, "right")).map((cluster) => [
 			cluster.groupId,
 			cluster.entries.map((entry) => (entry.kind === "tool" ? entry.tool : entry.kind)),
 		]),
 	).toEqual([
-		["tools", ["files", "review"]],
+		["tools", ["files"]],
 		["shells", ["terminals"]],
 		["other", ["terminals"]],
-		[null, ["specs", "plan"]],
+		[null, ["plan"]],
 	]);
-	const closed = closeLayoutTab(doc, "custom-files").document;
+	const closed = closeLayoutTab(closedPlan, "custom-files").document;
 	closed.toolRestoreTargets.files = { region: "right", index: 0 };
 	const clusters = clusterAuxiliaryRail(projectAuxiliaryRail(closed, attention, "right"));
 	expect(clusters.map((cluster) => cluster.groupId)).toEqual(["tools", "shells", "other", null]);
 	const unplaced = clusters.at(-1)?.entries ?? [];
 	expect(unplaced.map((entry) => (entry.kind === "tool" ? entry.tool : entry.kind)).sort()).toEqual(
-		["files", "plan", "specs"],
+		["files", "plan"],
 	);
 	expect(unplaced.every(isUnplacedRailEntry)).toBe(true);
 	expect(
@@ -201,18 +203,18 @@ test("an empty bottom entry reveals only a process-free creation surface", () =>
 test("a tool shows only as the selected tab of an expanded pane", () => {
 	const doc = document();
 	const location = { area: "right", groupId: "tools" } as const;
-	const reviewSelected = reconcileAttention(
+	const planSelected = reconcileAttention(
 		doc,
-		selectTab(reconcileAttention(doc), location, toolTab("review").id),
+		selectTab(reconcileAttention(doc), location, toolTab("plan").id),
 	);
-	expect(isToolShowing(doc, reconcileAttention(doc), "review")).toBe(false);
-	expect(isToolShowing(doc, reviewSelected, "review")).toBe(true);
+	expect(isToolShowing(doc, reconcileAttention(doc), "plan")).toBe(false);
+	expect(isToolShowing(doc, planSelected, "plan")).toBe(true);
 	const folded = document();
 	folded.right.groups = folded.right.groups.map((group) =>
 		group.id === "tools" ? { ...group, folded: true } : group,
 	);
-	expect(isToolShowing(folded, reviewSelected, "review")).toBe(false);
-	expect(isToolShowing(doc, reviewSelected, "plan")).toBe(false);
+	expect(isToolShowing(folded, planSelected, "plan")).toBe(false);
+	expect(isToolShowing(doc, planSelected, "files")).toBe(false);
 });
 
 test("the showing auxiliary key changes with the selected tool, not with the center", () => {
@@ -222,16 +224,14 @@ test("the showing auxiliary key changes with the selected tool, not with the cen
 		doc,
 		selectTab(reconcileAttention(doc), location, "custom-files"),
 	);
-	const reviewSelected = reconcileAttention(
+	const planSelected = reconcileAttention(
 		doc,
-		selectTab(filesSelected, location, toolTab("review").id),
+		selectTab(filesSelected, location, toolTab("plan").id),
 	);
 	const centerReselected = reconcileAttention(
 		doc,
 		selectTab(filesSelected, { area: "center", groupId: "center" }, "center-terminal"),
 	);
-	expect(showingAuxiliaryKey(doc, reviewSelected)).not.toBe(
-		showingAuxiliaryKey(doc, filesSelected),
-	);
+	expect(showingAuxiliaryKey(doc, planSelected)).not.toBe(showingAuxiliaryKey(doc, filesSelected));
 	expect(showingAuxiliaryKey(doc, centerReselected)).toBe(showingAuxiliaryKey(doc, filesSelected));
 });

@@ -21,9 +21,9 @@ jobs:
     env:
       BRANCH: pr-${{ github.event.pull_request.number }}
       HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-      MARKER: "<!-- thinkrail-site-preview -->"
+      MARKER: "<!-- realthing-site-preview -->"
       PR: ${{ github.event.pull_request.number }}
-      PROJECT: thinkrail-website
+      PROJECT: realthing-website
     steps:
       - name: Find preview marker
         id: preview

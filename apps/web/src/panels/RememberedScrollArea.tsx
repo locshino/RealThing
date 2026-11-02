@@ -1,4 +1,4 @@
-import { useScrollViewState, viewStateScrollTop } from "@thinkrail/resource-renderers";
+import { useScrollViewState, viewStateScrollTop } from "@realthing/resource-renderers";
 import { type ReactNode, useEffect, useState } from "react";
 import { QuietScrollArea } from "@/components/QuietScrollArea";
 import { type FilesScrollView, selectFilesTreeView, useAppStore } from "../store";

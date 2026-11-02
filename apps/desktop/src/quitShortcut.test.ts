@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { type NativeQuitHint, QUIT_CONFIRMATION } from "@thinkrail/contracts";
+import { type NativeQuitHint, QUIT_CONFIRMATION } from "@realthing/contracts";
 import type { KeyState } from "./keyState";
 import { createQuitShortcut } from "./quitShortcut";
 

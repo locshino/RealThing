@@ -1,6 +1,6 @@
-import type { NativeQuitHint } from "@thinkrail/contracts";
-import { type Translator, useT } from "@thinkrail/locales/react";
-import { cn } from "@thinkrail/ui/utils";
+import type { NativeQuitHint } from "@realthing/contracts";
+import { type Translator, useT } from "@realthing/locales/react";
+import { cn } from "@realthing/ui/utils";
 import { useState } from "react";
 import { platformShortcutLabel } from "../lib";
 

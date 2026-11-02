@@ -25,88 +25,88 @@ afterEach(() => {
 const targets = [
 	{
 		target: "bun-darwin-arm64",
-		stable: "macos-arm64-ThinkRail.dmg",
-		nightly: "canary-macos-arm64-ThinkRail-canary.dmg",
-		published: "thinkrail-desktop-darwin-arm64.dmg",
+		stable: "macos-arm64-RealThing.dmg",
+		nightly: "canary-macos-arm64-RealThing-canary.dmg",
+		published: "realthing-desktop-darwin-arm64.dmg",
 		updates: {
 			stable: {
 				manifest: "stable-macos-arm64-update.json",
-				archive: "stable-macos-arm64-ThinkRail.app.tar.zst",
+				archive: "stable-macos-arm64-RealThing.app.tar.zst",
 			},
 			nightly: {
 				manifest: "canary-macos-arm64-update.json",
-				archive: "canary-macos-arm64-ThinkRail-canary.app.tar.zst",
+				archive: "canary-macos-arm64-RealThing-canary.app.tar.zst",
 			},
 		},
 	},
 	{
 		target: "bun-darwin-x64",
-		stable: "macos-x64-ThinkRail.dmg",
-		nightly: "canary-macos-x64-ThinkRail-canary.dmg",
-		published: "thinkrail-desktop-darwin-x64.dmg",
+		stable: "macos-x64-RealThing.dmg",
+		nightly: "canary-macos-x64-RealThing-canary.dmg",
+		published: "realthing-desktop-darwin-x64.dmg",
 		updates: {
 			stable: {
 				manifest: "stable-macos-x64-update.json",
-				archive: "stable-macos-x64-ThinkRail.app.tar.zst",
+				archive: "stable-macos-x64-RealThing.app.tar.zst",
 			},
 			nightly: {
 				manifest: "canary-macos-x64-update.json",
-				archive: "canary-macos-x64-ThinkRail-canary.app.tar.zst",
+				archive: "canary-macos-x64-RealThing-canary.app.tar.zst",
 			},
 		},
 	},
 	{
 		target: "bun-windows-x64",
-		stable: "win-x64-ThinkRail-Setup.zip",
-		nightly: "canary-win-x64-ThinkRail-Setup-canary.zip",
-		published: "thinkrail-desktop-windows-x64.zip",
+		stable: "win-x64-RealThing-Setup.zip",
+		nightly: "canary-win-x64-RealThing-Setup-canary.zip",
+		published: "realthing-desktop-windows-x64.zip",
 		updates: {
 			stable: {
 				manifest: "stable-win-x64-update.json",
-				archive: "stable-win-x64-ThinkRail.tar.zst",
+				archive: "stable-win-x64-RealThing.tar.zst",
 			},
 			nightly: {
 				manifest: "canary-win-x64-update.json",
-				archive: "canary-win-x64-ThinkRail-canary.tar.zst",
+				archive: "canary-win-x64-RealThing-canary.tar.zst",
 			},
 		},
 	},
 	{
 		target: "bun-linux-x64",
-		stable: "linux-x64-ThinkRail-Setup.tar.gz",
-		nightly: "canary-linux-x64-ThinkRail-canary-Setup.tar.gz",
-		published: "thinkrail-desktop-linux-x64.tar.gz",
+		stable: "linux-x64-RealThing-Setup.tar.gz",
+		nightly: "canary-linux-x64-RealThing-canary-Setup.tar.gz",
+		published: "realthing-desktop-linux-x64.tar.gz",
 		updates: {
 			stable: {
 				manifest: "stable-linux-x64-update.json",
-				archive: "stable-linux-x64-ThinkRail.tar.zst",
+				archive: "stable-linux-x64-RealThing.tar.zst",
 			},
 			nightly: {
 				manifest: "canary-linux-x64-update.json",
-				archive: "canary-linux-x64-ThinkRail-canary.tar.zst",
+				archive: "canary-linux-x64-RealThing-canary.tar.zst",
 			},
 		},
 	},
 	{
 		target: "bun-linux-arm64",
-		stable: "linux-arm64-ThinkRail-Setup.tar.gz",
-		nightly: "canary-linux-arm64-ThinkRail-canary-Setup.tar.gz",
-		published: "thinkrail-desktop-linux-arm64.tar.gz",
+		stable: "linux-arm64-RealThing-Setup.tar.gz",
+		nightly: "canary-linux-arm64-RealThing-canary-Setup.tar.gz",
+		published: "realthing-desktop-linux-arm64.tar.gz",
 		updates: {
 			stable: {
 				manifest: "stable-linux-arm64-update.json",
-				archive: "stable-linux-arm64-ThinkRail.tar.zst",
+				archive: "stable-linux-arm64-RealThing.tar.zst",
 			},
 			nightly: {
 				manifest: "canary-linux-arm64-update.json",
-				archive: "canary-linux-arm64-ThinkRail-canary.tar.zst",
+				archive: "canary-linux-arm64-RealThing-canary.tar.zst",
 			},
 		},
 	},
 ] as const;
 
 function fixture(): string {
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-release-collector-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-release-collector-"));
 	roots.push(root);
 	const artifacts = join(root, "apps/desktop/artifacts");
 	mkdirSync(artifacts, { recursive: true });
@@ -119,7 +119,7 @@ function fixture(): string {
 			writeFileSync(join(artifacts, update.archive), `${channel}:${target.target}:archive`);
 		}
 	}
-	writeFileSync(join(artifacts, "macos-arm64-ThinkRail.app.tar.zst"), "wrong stable prefix");
+	writeFileSync(join(artifacts, "macos-arm64-RealThing.app.tar.zst"), "wrong stable prefix");
 	writeFileSync(join(artifacts, "stable-win-x64-update-old.json"), "stale manifest");
 	writeFileSync(join(artifacts, "old-setup.zip"), "unrelated");
 	return root;
@@ -163,7 +163,7 @@ function stampIdentity(channel: string, key: string, extra: Record<string, strin
 		(step) => step.name === "Stamp shared release identity",
 	)?.run;
 	if (!script) throw new Error("release identity stamp script is missing");
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-release-stamp-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-release-stamp-"));
 	roots.push(root);
 	const bin = join(root, "bin");
 	mkdirSync(bin, { recursive: true });
@@ -321,7 +321,7 @@ for (const target of targets) {
 
 test("refuses a missing requested installer instead of collecting a stale channel", () => {
 	const root = fixture();
-	rmSync(join(root, "apps/desktop/artifacts/macos-arm64-ThinkRail.dmg"));
+	rmSync(join(root, "apps/desktop/artifacts/macos-arm64-RealThing.dmg"));
 	expect(collect(root, "bun-darwin-arm64", "stable").exitCode).not.toBe(0);
 });
 

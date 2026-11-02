@@ -1,9 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import type { HostUpdateNotice, NativeUpdateBridge, NativeUpdateState } from "@thinkrail/contracts";
+import type { NativeUpdateBridge, NativeUpdateState } from "@realthing/contracts";
 import {
 	getNativeUpdateBridge,
 	hasNativeUpdateSurface,
-	runHostUpdateRequest,
 	runNativeUpdateRequest,
 	selectUpdateSource,
 	subscribeToNativeUpdates,
@@ -28,14 +27,6 @@ function nativeState(revision: number, status: NativeUpdateState["status"]): Nat
 		installStep: null,
 		log: [],
 		lastInstall: null,
-	};
-}
-
-function hostNotice(): HostUpdateNotice {
-	return {
-		currentVersion: "0.1.0",
-		channel: "stable",
-		availableVersion: "0.2.0",
 	};
 }
 
@@ -106,18 +97,6 @@ describe("native update shell subscription", () => {
 		expect(errors).toEqual([{ action: "download", message: "Update RPC timed out" }]);
 	});
 
-	test("host request failures collapse without exposing the transport diagnostic", async () => {
-		let failures = 0;
-		runHostUpdateRequest(
-			async () => {
-				throw new Error("private server diagnostic");
-			},
-			() => failures++,
-		);
-		await Promise.resolve();
-		expect(failures).toBe(1);
-	});
-
 	test("bridge validation requires the complete download-capable surface", () => {
 		expect(getNativeUpdateBridge(undefined)).toBeNull();
 		expect(getNativeUpdateBridge({ getState() {} })).toBeNull();
@@ -134,16 +113,15 @@ describe("native update shell subscription", () => {
 });
 
 describe("unified update capability", () => {
-	test("native authority wins while resolving and when disabled instead of falling through to host", () => {
+	test("native authority wins while resolving and when disabled", () => {
 		const bridge = nativeBridge();
-		expect(selectUpdateSource(bridge, hostNotice())).toBe("native");
+		expect(selectUpdateSource(bridge)).toBe("native");
 		expect(hasNativeUpdateSurface(null)).toBe(false);
 		expect(hasNativeUpdateSurface(nativeState(1, "disabled"))).toBe(false);
 		expect(hasNativeUpdateSurface(nativeState(2, "idle"))).toBe(true);
 	});
 
-	test("host authority exists exactly when no native bridge and a host snapshot is present", () => {
-		expect(selectUpdateSource(null, hostNotice())).toBe("host");
-		expect(selectUpdateSource(null, null)).toBeNull();
+	test("returns null when no native bridge is present", () => {
+		expect(selectUpdateSource(null)).toBeNull();
 	});
 });

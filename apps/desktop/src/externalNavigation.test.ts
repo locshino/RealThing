@@ -13,8 +13,8 @@ test("opens reviewed external protocols only", () => {
 	expect(externalNavigationUrl("https://example.com/docs", origin)).toBe(
 		"https://example.com/docs",
 	);
-	expect(externalNavigationUrl({ url: "mailto:hello@thinkrail.ai" }, origin)).toBe(
-		"mailto:hello@thinkrail.ai",
+	expect(externalNavigationUrl({ url: "mailto:hello@realthing.ai" }, origin)).toBe(
+		"mailto:hello@realthing.ai",
 	);
 	expect(externalNavigationUrl("file:///tmp/private", origin)).toBeNull();
 	expect(externalNavigationUrl("javascript:alert(1)", origin)).toBeNull();
@@ -30,8 +30,8 @@ test("opens the serialized will-navigate payload emitted by the native SDK", () 
 	expect(
 		externalNavigationUrl(JSON.stringify({ url: `${origin}/#/v1`, allowed: true }), origin),
 	).toBeNull();
-	expect(externalNavigationUrl(JSON.stringify({ url: "mailto:hello@thinkrail.ai" }), origin)).toBe(
-		"mailto:hello@thinkrail.ai",
+	expect(externalNavigationUrl(JSON.stringify({ url: "mailto:hello@realthing.ai" }), origin)).toBe(
+		"mailto:hello@realthing.ai",
 	);
 });
 

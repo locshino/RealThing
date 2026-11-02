@@ -206,7 +206,7 @@ test("window chrome publishers send state on dom-ready and changed resize", () =
 
 test("preload injection installs initial geometry and policies before bundled source", () => {
 	const preload = injectInitialWindowChrome(
-		"globalThis.seed = globalThis.__THINKRAIL_INITIAL_WINDOW_CHROME__;",
+		"globalThis.seed = globalThis.__REALTHING_INITIAL_WINDOW_CHROME__;",
 		{ insetLeft: 64, insetRight: 0, dragRegion: true, windowControls: true },
 	);
 	const context: { seed?: unknown } = {};

@@ -1,5 +1,5 @@
 import { RiAlertLine } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 
 export function StaleComposerNotice({ visible }: { visible: boolean }) {
 	const t = useT();

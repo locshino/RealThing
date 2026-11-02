@@ -25,9 +25,9 @@ jobs:
     timeout-minutes: 10
     environment:
       name: website
-      url: https://thinkrail.ai/
+      url: https://realthing.ai/
     env:
-      PAGES_URL: https://thinkrail-website.pages.dev
+      PAGES_URL: https://realthing-website.pages.dev
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2
@@ -49,9 +49,9 @@ jobs:
             phc_?*) ;;
             *) echo "::error::website environment secret POSTHOG_PROJECT_KEY must be a phc_ project key"; exit 1 ;;
           esac
-          bun run --filter @thinkrail/website build
+          bun run --filter @realthing/website build
           grep -rqF "$PUBLIC_POSTHOG_PROJECT_KEY" apps/website/dist || { echo "::error::PostHog key missing from the built site"; exit 1; }
-      - run: bun run --filter @thinkrail/website smoke:attribution
+      - run: bun run --filter @realthing/website smoke:attribution
       - name: Apply attribution migrations
         working-directory: apps/website
         env:
@@ -65,7 +65,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: >
           bunx wrangler@4.124.0 pages deploy dist
-          --project-name=thinkrail-website
+          --project-name=realthing-website
           --branch=main
       - name: Verify deployment
         run: |

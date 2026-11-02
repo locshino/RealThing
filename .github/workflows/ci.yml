@@ -123,7 +123,7 @@ jobs:
       matrix:
         shard: [1, 2]
     env:
-      THINKRAIL_E2E_JOB_SHARD: ${{ matrix.shard }}/2
+      REALTHING_E2E_JOB_SHARD: ${{ matrix.shard }}/2
     steps:
       - uses: actions/checkout@v5
       - uses: oven-sh/setup-bun@v2

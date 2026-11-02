@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { currentTranslator } from "@thinkrail/locales/react";
+import { currentTranslator } from "@realthing/locales/react";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { registerResourceRenderer, resolveRenderers } from "../../registry";
@@ -18,7 +18,7 @@ import {
 test("SVG renderer registration outranks raster images and stays sandboxed", () => {
 	expect(currentTranslator()(svgRenderer.labelKey)).toBe("Vector");
 	expect(svgRenderer).toMatchObject({
-		id: "thinkrail/svg",
+		id: "realthing/svg",
 		labelKey: "viewer.renderer.vector",
 		match: { mime: ["image/svg+xml"], text: true },
 		rank: 130,

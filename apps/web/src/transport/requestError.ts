@@ -1,4 +1,4 @@
-import type { WsErrorCode } from "@thinkrail/contracts";
+import type { WsErrorCode } from "@realthing/contracts";
 
 export class RequestError extends Error {
 	readonly code: WsErrorCode;

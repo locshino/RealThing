@@ -1,4 +1,4 @@
-import { cn } from "@thinkrail/ui/utils";
+import { cn } from "@realthing/ui/utils";
 
 export interface SegmentedControlOption<T extends string> {
 	id: T;

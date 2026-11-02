@@ -1,4 +1,4 @@
-import type { GitFileChange, GitStatus } from "@thinkrail/contracts";
+import type { GitFileChange, GitStatus } from "@realthing/contracts";
 import {
 	type RefObject,
 	useCallback,
@@ -15,7 +15,7 @@ const END_NOTE_HEIGHT = 48;
 const HANDOFF_MAX_FRAMES = 30;
 const USER_SCROLL_EVENTS = ["wheel", "touchstart", "pointerdown", "keydown"] as const;
 
-type SettleTarget = { path: string; commentId?: string };
+type SettleTarget = { path: string };
 
 interface ReviewRevealInput {
 	workspaceId: string;
@@ -61,9 +61,7 @@ export function useReviewReveal({
 	const [handoffPath, setHandoffPath] = useState<string | null>(null);
 	const settling = useRef<SettleTarget | null>(null);
 	const releaseSettling = useCallback(() => {
-		const commentId = settling.current?.commentId;
 		settling.current = null;
-		if (commentId) useAppStore.getState().clearReviewFocus(commentId);
 	}, []);
 	const detachScroller = useRef<(() => void) | null>(null);
 	const attachScroller = useCallback(
@@ -92,12 +90,12 @@ export function useReviewReveal({
 	);
 	useEffect(
 		() => () => {
-			tailObserver.current?.disconnect();
 			detachScroller.current?.();
-			releaseSettling();
+			tailObserver.current?.disconnect();
 		},
-		[releaseSettling],
+		[],
 	);
+
 	const activePathRef = useRef(activePath);
 	useInsertionEffect(() => {
 		activePathRef.current = activePath;
@@ -111,25 +109,11 @@ export function useReviewReveal({
 		},
 		[releaseSettling],
 	);
-	const revealComment = useCallback(() => {
-		const commentId = settling.current?.commentId;
-		const scroller = scrollerRef.current;
-		if (!commentId || !scroller) return false;
-		const card = [...scroller.querySelectorAll<HTMLElement>("[data-comment-id]")].find(
-			(element) => element.dataset.commentId === commentId,
-		);
-		if (!card) return false;
-		card.scrollIntoView({ block: "center" });
-		return true;
-	}, []);
 	const spyActiveSection = useCallback(() => {
 		if (!restoredStacked.current) return;
 		cancelAnimationFrame(spyFrame.current);
 		spyFrame.current = requestAnimationFrame(() => {
-			if (settling.current) {
-				revealComment();
-				return;
-			}
+			if (settling.current) return;
 			const scroller = scrollerRef.current;
 			if (!scroller) return;
 			const edge = scroller.getBoundingClientRect().top + SECTION_HEADER_HEIGHT / 2;
@@ -143,7 +127,7 @@ export function useReviewReveal({
 				setActivePath(workspaceId, tabId, active);
 			}
 		});
-	}, [revealComment, setActivePath, tabId, workspaceId]);
+	}, [setActivePath, tabId, workspaceId]);
 	useEffect(() => () => cancelAnimationFrame(spyFrame.current), []);
 
 	useEffect(() => {
@@ -153,10 +137,7 @@ export function useReviewReveal({
 			if (statusSettled) consumeReveal(workspaceId, tabId, null);
 			return;
 		}
-		const target = {
-			path: reveal.path,
-			...(reveal.commentId ? { commentId: reveal.commentId } : {}),
-		};
+		const target = { path: reveal.path };
 		releaseSettling();
 		consumeReveal(workspaceId, tabId, target);
 		if (layout === "stacked") {
@@ -233,7 +214,6 @@ export function useReviewReveal({
 	}, [handoffPath, layout]);
 
 	const onTotalListHeightChanged = useCallback(() => {
-		if (revealComment()) return;
 		const index = files.findIndex((change) => change.path === settling.current?.path);
 		if (index >= 0) {
 			virtuoso.current?.scrollToIndex({ index, align: "start" });
@@ -241,7 +221,7 @@ export function useReviewReveal({
 		}
 		releaseSettling();
 		spyActiveSection();
-	}, [files, releaseSettling, revealComment, spyActiveSection]);
+	}, [files, releaseSettling, spyActiveSection]);
 
 	return {
 		virtuoso,

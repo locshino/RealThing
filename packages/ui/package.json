@@ -1,5 +1,5 @@
 {
-	"name": "@thinkrail/ui",
+	"name": "@realthing/ui",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
@@ -34,7 +34,7 @@
 		"@radix-ui/react-toast": "1.2.19",
 		"@radix-ui/react-tooltip": "1.2.10",
 		"@remixicon/react": "catalog:",
-		"@thinkrail/locales": "workspace:*",
+		"@realthing/locales": "workspace:*",
 		"class-variance-authority": "0.7.1",
 		"clsx": "2.1.1",
 		"cmdk": "1.1.1",

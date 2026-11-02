@@ -15,7 +15,7 @@ function fixture(initialJourney?: string, initialConsent?: boolean) {
 	let currentJourney = initialJourney;
 	let currentConsent = initialConsent;
 	let listener: ((journeyId: string | undefined) => void) | undefined;
-	let href = "https://thinkrail.ai/";
+	let href = "https://realthing.ai/";
 	let referrer = "";
 	let bridgeGenerationCalls = 0;
 	let failWrites = false;
@@ -81,7 +81,7 @@ describe("attribution recording consent timing", () => {
 
 		page.setJourney(journeyId);
 		expect(page.calls).toEqual([]);
-		page.setNavigation("https://thinkrail.ai/?utm_source=acted", "https://example.com/article");
+		page.setNavigation("https://realthing.ai/?utm_source=acted", "https://example.com/article");
 		recordCurrentAttributionTouch(page.dependencies);
 		expect(page.values.get(attributionStorageKey)).toContain('"source":"acted"');
 
@@ -126,7 +126,7 @@ describe("attribution recording consent timing", () => {
 
 	test("records at initialization only when a journey already exists", () => {
 		const page = fixture(journeyId, true);
-		page.setNavigation("https://thinkrail.ai/?utm_campaign=returning", "");
+		page.setNavigation("https://realthing.ai/?utm_campaign=returning", "");
 		initAttributionRecording(page.dependencies);
 
 		expect(page.values.get(attributionStorageKey)).toContain('"campaign":"returning"');
@@ -136,7 +136,7 @@ describe("attribution recording consent timing", () => {
 describe("attribution recording per document", () => {
 	test("records a page's navigation once, so later actions keep its download bridge", () => {
 		const page = fixture(journeyId, true);
-		page.setNavigation("https://thinkrail.ai/?utm_source=newsletter", "https://www.google.com/");
+		page.setNavigation("https://realthing.ai/?utm_source=newsletter", "https://www.google.com/");
 		initAttributionRecording(page.dependencies);
 		const bridgeId = recordCurrentDownloadBridge(page.dependencies);
 		const stored = page.values.get(attributionStorageKey);
@@ -155,7 +155,7 @@ describe("attribution recording per document", () => {
 
 	test("records a later grant's navigation at its first action only", () => {
 		const page = fixture();
-		page.setNavigation("https://thinkrail.ai/?utm_source=newsletter", "");
+		page.setNavigation("https://realthing.ai/?utm_source=newsletter", "");
 		initAttributionRecording(page.dependencies);
 		page.setJourney(journeyId);
 		recordCurrentAttributionTouch(page.dependencies);

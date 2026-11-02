@@ -1,4 +1,4 @@
-import type { ResourceMeta } from "@thinkrail/contracts";
+import type { ResourceMeta } from "@realthing/contracts";
 import { PENDING_TEXT_META, type ResourceContent, resourceContent } from "../registry";
 
 export type LoadedFile =

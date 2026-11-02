@@ -1,6 +1,6 @@
 import { RiCheckLine as Check, RiHome2Line as House, RiAddLine as Plus } from "@remixicon/react";
-import type { Project } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
+import type { Project } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -8,7 +8,7 @@ import {
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
-} from "@thinkrail/ui/dropdown-menu";
+} from "@realthing/ui/dropdown-menu";
 import { useOpenProject } from "../../panels/useOpenProject";
 import { loadProjectWorkspaces } from "../../panels/workspaceActions";
 import { useAppStore } from "../../store";
@@ -23,7 +23,7 @@ function goToProjectHome(projectId: string): void {
 export function ProjectSegment({ project, atHome }: { project: Project; atHome: boolean }) {
 	const t = useT();
 	const projects = useAppStore((s) => s.projects);
-	const { pickAndOpen, dialogs } = useOpenProject((opened) => goToProjectHome(opened.id));
+	const { enterHostPath, dialogs } = useOpenProject((opened) => goToProjectHome(opened.id));
 	return (
 		<Segment
 			caption={t("shell.location.project.caption")}
@@ -71,7 +71,7 @@ export function ProjectSegment({ project, atHome }: { project: Project; atHome: 
 						<House />
 						{t("shell.location.project.home")}
 					</DropdownMenuItem>
-					<DropdownMenuItem data-testid="scope-project-add" onSelect={() => void pickAndOpen()}>
+					<DropdownMenuItem data-testid="scope-project-add" onSelect={enterHostPath}>
 						<Plus />
 						{t("shell.location.project.add")}
 					</DropdownMenuItem>

@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, test } from "bun:test";
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { delimiter, join } from "node:path";
-import type { Workspace } from "@thinkrail/contracts";
+import type { Workspace } from "@realthing/contracts";
 import { changedFileArgs, diffBaseRef, resolveDiffRange } from "./diffScope";
 import {
 	countPushDivergence,
@@ -25,7 +25,7 @@ const posix = test.skipIf(process.platform === "win32");
 
 let dataDir: string;
 let repo: string;
-const savedDataDir = process.env.THINKRAIL_DATA_DIR;
+const savedDataDir = process.env.REALTHING_DATA_DIR;
 const savedPath = process.env.PATH;
 
 function git(cwd: string, ...args: string[]): void {
@@ -35,11 +35,11 @@ function git(cwd: string, ...args: string[]): void {
 
 beforeEach(() => {
 	dataDir = mkdtempSync(join(tmpdir(), "trpi-git-test-"));
-	process.env.THINKRAIL_DATA_DIR = dataDir;
+	process.env.REALTHING_DATA_DIR = dataDir;
 	repo = join(dataDir, "repo");
 	mkdirSync(repo);
 	git(repo, "init", "-b", "main");
-	git(repo, "config", "user.email", "t@thinkrail.test");
+	git(repo, "config", "user.email", "t@realthing.test");
 	git(repo, "config", "user.name", "test");
 	git(repo, "config", "commit.gpgsign", "false");
 	writeFileSync(join(repo, "README.md"), "# repo\n");
@@ -53,8 +53,8 @@ beforeEach(() => {
 
 afterEach(() => {
 	rmSync(dataDir, { recursive: true, force: true });
-	if (savedDataDir === undefined) delete process.env.THINKRAIL_DATA_DIR;
-	else process.env.THINKRAIL_DATA_DIR = savedDataDir;
+	if (savedDataDir === undefined) delete process.env.REALTHING_DATA_DIR;
+	else process.env.REALTHING_DATA_DIR = savedDataDir;
 	if (savedPath === undefined) delete process.env.PATH;
 	else process.env.PATH = savedPath;
 });
@@ -380,7 +380,7 @@ test("prefetchBranch fetches a remote ref and no-ops on a local ref or unknown p
 	const clone = join(dataDir, "clone");
 	git(repo, "clone", remoteRepo, clone);
 	git(clone, "checkout", "-B", "main", "origin/main");
-	git(clone, "config", "user.email", "t@thinkrail.test");
+	git(clone, "config", "user.email", "t@realthing.test");
 	git(clone, "config", "user.name", "test");
 	git(clone, "config", "commit.gpgsign", "false");
 	writeFileSync(join(clone, "remote-only.txt"), "remote\n");
@@ -777,7 +777,7 @@ test("listCommits: a crafted AUTHOR name can't shift the timestamp or truncate i
 		"-c",
 		"user.name=ev\u001fil\u001f1999-01-01T00:00:00+00:00",
 		"-c",
-		"user.email=e@thinkrail.test",
+		"user.email=e@realthing.test",
 		"commit",
 		"-m",
 		"real subject",
@@ -926,8 +926,8 @@ test("gitCommitPaths commits EXACTLY the named paths and returns the sha; commit
 	seedWorkspace();
 	writeFileSync(join(repo, "impl.ts"), "export {};\n");
 	writeFileSync(join(repo, "other.ts"), "export const other = 1;\n");
-	mkdirSync(join(repo, ".thinkrail", "context"), { recursive: true });
-	writeFileSync(join(repo, ".thinkrail", "context", "todos.json"), "{}");
+	mkdirSync(join(repo, ".realthing", "context"), { recursive: true });
+	writeFileSync(join(repo, ".realthing", "context", "todos.json"), "{}");
 
 	const before = gitHeadSha("w1");
 	const committed = gitCommitPaths("w1", "feat: step", ["impl.ts"]);
@@ -938,7 +938,7 @@ test("gitCommitPaths commits EXACTLY the named paths and returns the sha; commit
 	expect(unfolded.changes.map((c) => c.path)).toEqual(["impl.ts"]);
 	const status = await gitStatus("w1", { kind: "uncommitted" });
 	expect(status.changes.map((c) => c.path).sort()).toEqual([
-		".thinkrail/context/todos.json",
+		".realthing/context/todos.json",
 		"other.ts",
 	]);
 	expect(stagedPaths()).toEqual([]);
@@ -980,8 +980,8 @@ test("gitCommitPaths treats paths literally — a pathspec-magic filename never 
 	const magic = ":(top)*";
 	writeFileSync(join(repo, magic), "the item's own work\n");
 	writeFileSync(join(repo, "other.ts"), "export const other = 1;\n");
-	mkdirSync(join(repo, ".thinkrail", "context"), { recursive: true });
-	writeFileSync(join(repo, ".thinkrail", "context", "todos.json"), "{}");
+	mkdirSync(join(repo, ".realthing", "context"), { recursive: true });
+	writeFileSync(join(repo, ".realthing", "context", "todos.json"), "{}");
 
 	const committed = gitCommitPaths("w1", "feat: magic name", [magic]);
 	expect(committed).not.toBeNull();
@@ -992,7 +992,7 @@ test("gitCommitPaths treats paths literally — a pathspec-magic filename never 
 	).toEqual([magic]);
 	expect(
 		(await gitStatus("w1", { kind: "uncommitted" })).changes.map((c) => c.path).sort(),
-	).toEqual([".thinkrail/context/todos.json", "other.ts"]);
+	).toEqual([".realthing/context/todos.json", "other.ts"]);
 	expect(stagedPaths()).toEqual([]);
 });
 

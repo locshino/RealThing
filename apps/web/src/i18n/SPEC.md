@@ -23,11 +23,11 @@ instance ([[module-locales]] `./react`). Components never do this themselves: th
   `Intl.DisplayNames` and its source: `builtin`, `local`, `builtin+local`, or a broken/missing entry),
   the effective-tag derivation (`resolveLocale` over the browser's `navigator.languages`, re-read on
   `languagechange`), and the one apply effect — install overlays, switch language, set `<html lang>`,
-  push the desktop menu and dialog labels through the optional `__THINKRAIL_NATIVE_MENU__` bridge (`pushNativeMenuLabels`).
+  push the desktop menu and dialog labels through the optional `__REALTHING_NATIVE_MENU__` bridge (`pushNativeMenuLabels`).
 - **Public surface (barrel):** `useLocaleSync()` (mounted once by `main.tsx`'s `App`),
   `useSystemLanguages()`, `localeSignature`, and the pure `languageOptions`, `effectiveLocale`,
   `availableLocales`, `localOverlays`.
-- **Allowed deps:** `store`, `@thinkrail/locales`, `@thinkrail/contracts` (types).
+- **Allowed deps:** `store`, `@realthing/locales`, `@realthing/contracts` (types).
 - **Forbidden:** rendering UI (the Language page lives in `panels`), reading files, a second i18next
   instance.
 

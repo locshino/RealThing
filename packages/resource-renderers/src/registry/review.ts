@@ -1,7 +1,12 @@
-import type { ReviewAnchor, ReviewCommentStatus } from "@thinkrail/contracts";
-import type { MessageKey } from "@thinkrail/locales";
-import type { Translator } from "@thinkrail/locales/react";
-import type { ResourceIntent, ResourceRenderer, ReviewThread } from "./types";
+import type { MessageKey } from "@realthing/locales";
+import type { Translator } from "@realthing/locales/react";
+import type {
+	ResourceIntent,
+	ResourceRenderer,
+	ReviewAnchor,
+	ReviewCommentStatus,
+	ReviewThread,
+} from "./types";
 
 export function anchorLabel(
 	anchor: ReviewAnchor,

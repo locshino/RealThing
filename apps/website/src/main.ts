@@ -107,7 +107,7 @@ const TERMINAL_LOGO: readonly string[] = [
 	"           T–––R  ^–––5  :––––:            R––––:  ~–––––^",
 ];
 
-const GITHUB_URL = "https://github.com/JetBrains/thinkrail";
+const GITHUB_URL = "https://github.com/JetBrains/realthing";
 const INSTALL_TARGET: Record<InstallPlatform, string> = {
 	macos: "macos-arm64",
 	linux: "linux",
@@ -180,8 +180,8 @@ if (terminal && termScreen) {
 		if (gen !== generation) return;
 		await drawLines(
 			[
-				`⬇ thinkrail latest (${INSTALL_TARGET[selection.platform]}) · sha256 verified ✓`,
-				"✓ installed — starting ThinkRail …",
+				`⬇ realthing latest (${INSTALL_TARGET[selection.platform]}) · sha256 verified ✓`,
+				"✓ installed — starting RealThing …",
 			],
 			"term-out",
 			420,
@@ -501,7 +501,7 @@ if (navToggle && railRight && backdrop) {
 
 const starBadges = document.querySelectorAll<HTMLElement>(".gh-stars");
 if (starBadges.length > 0) {
-	fetch("https://api.github.com/repos/JetBrains/thinkrail")
+	fetch("https://api.github.com/repos/JetBrains/realthing")
 		.then((response) => (response.ok ? response.json() : null))
 		.then((data: { stargazers_count?: number } | null) => {
 			if (typeof data?.stargazers_count !== "number") return;
@@ -520,8 +520,8 @@ if (starBadges.length > 0) {
 const railNote = document.getElementById("rail-note");
 const railNoteDismiss = document.getElementById("rail-note-dismiss");
 if (railNote && railNoteDismiss) {
-	const SHOWN_KEY = "thinkrail-rail-note-shown";
-	const DISMISSED_KEY = "thinkrail-rail-note-dismissed";
+	const SHOWN_KEY = "realthing-rail-note-shown";
+	const DISMISSED_KEY = "realthing-rail-note-dismissed";
 	const REVEAL_DELAY = 5000;
 
 	const readFlag = (getStore: () => Storage, key: string): boolean => {
@@ -572,7 +572,7 @@ if (mockElements.length > 0) {
 
 	const cta = document.createElement("div");
 	cta.className = "mock-tooltip-cta";
-	cta.innerHTML = `<a class="btn" href="https://github.com/JetBrains/thinkrail" target="_blank" rel="noopener noreferrer">
+	cta.innerHTML = `<a class="btn" href="https://github.com/JetBrains/realthing" target="_blank" rel="noopener noreferrer">
 		<svg class="i i-fill" aria-hidden="true"><use href="#i-github" /></svg>
 		Open on GitHub
 	</a>`;

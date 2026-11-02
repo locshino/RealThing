@@ -1,5 +1,5 @@
 {
-	"name": "@thinkrail/cli",
+	"name": "@realthing/cli",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
@@ -7,7 +7,7 @@
 		"./artifact": "./scripts/artifactName.ts"
 	},
 	"bin": {
-		"thinkrail": "./src/index.ts"
+		"realthing": "./src/index.ts"
 	},
 	"scripts": {
 		"dev": "bun run --watch src/index.ts",
@@ -17,8 +17,8 @@
 		"test": "bun test"
 	},
 	"dependencies": {
-		"@thinkrail/server": "workspace:*",
-		"@thinkrail/shared": "workspace:*"
+		"@realthing/server": "workspace:*",
+		"@realthing/shared": "workspace:*"
 	},
 	"devDependencies": {
 		"@types/bun": "catalog:",

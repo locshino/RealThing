@@ -1,5 +1,5 @@
-import { useT } from "@thinkrail/locales/react";
-import { cn } from "@thinkrail/ui/utils";
+import { useT } from "@realthing/locales/react";
+import { cn } from "@realthing/ui/utils";
 import { useId } from "react";
 import { BRAND_MARK_SEGMENTS } from "../constants/branding";
 

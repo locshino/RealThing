@@ -24,12 +24,6 @@
 			"from": "hint",
 			"publish": true
 		},
-		"text-disabled": {
-			"from": "text",
-			"alpha": "strong",
-			"publish": true,
-			"note": "disabled non-control text = the default text colour at the `strong` (60%) alpha step — a disabled element inherits its enabled semantic colour, dimmed at the token level, never a dedicated disabled palette value"
-		},
 		"text-on-primary": {
 			"from": "onAccent",
 			"publish": true
@@ -251,15 +245,9 @@
 			"alpha": "muted",
 			"publish": true
 		},
-		"bubble-user-bg": {
+		"bubble-accent": {
 			"from": "bubbleAccent",
-			"alpha": "subtle",
-			"publish": true
-		},
-		"bubble-user-border": {
-			"from": "bubbleAccent",
-			"alpha": "muted",
-			"publish": true
+			"publish": false
 		},
 		"selection-text": {
 			"from": "selectionForeground",

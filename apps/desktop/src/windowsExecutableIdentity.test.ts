@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
-import { windowsFileIdentity, windowsIconPath } from "@thinkrail/shared/windowsIdentity";
+import { windowsFileIdentity, windowsIconPath } from "@realthing/shared/windowsIdentity";
 import * as ResEdit from "resedit";
 import { brandWindowsExecutable } from "./windowsExecutableIdentity";
 
@@ -99,8 +99,8 @@ for (const [label, executable] of [
 		const [version] = ResEdit.Resource.VersionInfo.fromEntries(entries);
 		expect(version?.getStringValues({ lang: 1033, codepage: 1200 })).toEqual({
 			CompanyName: "JetBrains s.r.o.",
-			FileDescription: "ThinkRail Nightly",
-			ProductName: "ThinkRail Nightly",
+			FileDescription: "RealThing Nightly",
+			ProductName: "RealThing Nightly",
 			LegalCopyright: "Copyright © 2026 JetBrains s.r.o.",
 			FileVersion: "0.3.0.6",
 			ProductVersion: "0.3.0.6",

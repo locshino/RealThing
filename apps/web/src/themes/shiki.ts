@@ -1,9 +1,9 @@
 import type { ThemeRegistration } from "shiki/core";
 
-export const THINKRAIL_SHIKI_THEME_NAME = "thinkrail-css-variables";
+export const REALTHING_SHIKI_THEME_NAME = "realthing-css-variables";
 
-export const THINKRAIL_SHIKI_THEME: ThemeRegistration = {
-	name: THINKRAIL_SHIKI_THEME_NAME,
+export const REALTHING_SHIKI_THEME: ThemeRegistration = {
+	name: REALTHING_SHIKI_THEME_NAME,
 	type: "dark",
 	settings: [
 		{
@@ -77,7 +77,7 @@ export const THINKRAIL_SHIKI_THEME: ThemeRegistration = {
 	],
 };
 
-export const THINKRAIL_MONACO_COLOR_VARIABLES = {
+export const REALTHING_MONACO_COLOR_VARIABLES = {
 	"editor.background": "--container-workspace-bg",
 	"editor.foreground": "--code-foreground",
 	"editor.lineHighlightBackground": "--control-bg-hovered",
@@ -132,7 +132,7 @@ export const THINKRAIL_MONACO_COLOR_VARIABLES = {
 	"scrollbarSlider.activeBackground": "--text-muted",
 } as const;
 
-interface ResolveThinkrailShikiThemeOptions {
+interface ResolveRealthingShikiThemeOptions {
 	name: string;
 	type: "light" | "dark";
 	readVariable: (name: string) => string;
@@ -141,17 +141,17 @@ interface ResolveThinkrailShikiThemeOptions {
 
 const CSS_VARIABLE = /^var\((--[a-z0-9-]+)\)$/i;
 
-export function resolveThinkrailShikiTheme({
+export function resolveRealthingShikiTheme({
 	name,
 	type,
 	readVariable,
 	toHex,
-}: ResolveThinkrailShikiThemeOptions): ThemeRegistration {
+}: ResolveRealthingShikiThemeOptions): ThemeRegistration {
 	const resolveColor = (color: string): string => {
 		const variable = CSS_VARIABLE.exec(color)?.[1];
 		return toHex(variable ? readVariable(variable) : color);
 	};
-	const settings = (THINKRAIL_SHIKI_THEME.settings ?? []).map((entry) => {
+	const settings = (REALTHING_SHIKI_THEME.settings ?? []).map((entry) => {
 		const next = { ...entry.settings };
 		if (entry.settings?.foreground) {
 			const foreground = resolveColor(entry.settings.foreground);
@@ -166,10 +166,10 @@ export function resolveThinkrailShikiTheme({
 		return { ...entry, settings: next };
 	});
 	const colors = Object.fromEntries(
-		Object.entries(THINKRAIL_MONACO_COLOR_VARIABLES).flatMap(([key, variable]) => {
+		Object.entries(REALTHING_MONACO_COLOR_VARIABLES).flatMap(([key, variable]) => {
 			const color = toHex(readVariable(variable));
 			return color ? [[key, color]] : [];
 		}),
 	);
-	return { ...THINKRAIL_SHIKI_THEME, name, type, settings, colors };
+	return { ...REALTHING_SHIKI_THEME, name, type, settings, colors };
 }

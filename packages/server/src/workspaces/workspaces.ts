@@ -1,17 +1,14 @@
 import { randomUUID } from "node:crypto";
 import { existsSync, lstatSync, mkdirSync, rmSync, statSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve, sep } from "node:path";
 import {
 	DEFAULT_WORKSPACE_NAME,
 	type DiffStats,
 	type ExistingWorktreeCandidate,
-	isSubagentMaxConcurrent,
-	type OpenBranchReview,
 	type Project,
-	type SubagentOverride,
 	type Workspace,
-} from "@thinkrail/contracts";
-import { WORKSPACE_CONTEXT_DIR } from "@thinkrail/shared/paths";
+} from "@realthing/contracts";
+import { WORKSPACE_CONTEXT_DIR } from "@realthing/shared/paths";
 import {
 	assertSafeRef,
 	canonicalPath,
@@ -19,7 +16,6 @@ import {
 	currentBranch,
 	git,
 	gitAsync,
-	headShaAt,
 	listRemotes,
 	remoteNameOf,
 	remoteRefOid,
@@ -30,7 +26,7 @@ import {
 } from "../git";
 import { logger } from "../log";
 import { dataDir, loadProjects, loadWorkspaces, saveWorkspaces } from "../persistence";
-import { getProjects, listProjects } from "../projects";
+import { discoverGitSubfolders, getProjects, listProjects } from "../projects";
 
 const log = logger("workspaces");
 
@@ -129,15 +125,35 @@ async function gitWorktreeEntries(repoPath: string): Promise<GitWorktreeEntry[]>
 	return entries;
 }
 
+function gitSubfolderEntries(projectPath: string): GitWorktreeEntry[] {
+	return discoverGitSubfolders(projectPath).map((sub) => {
+		const branch = tryCurrentBranch(sub.path);
+		return {
+			path: resolve(sub.path),
+			prunable: false,
+			...(branch && branch !== "HEAD" ? { branch } : {}),
+		};
+	});
+}
+
 export async function listExistingWorktrees(
 	projectId: string,
 ): Promise<ExistingWorktreeCandidate[]> {
 	const project = openProjectById(projectId);
-	const entries = await gitWorktreeEntries(project.path);
+	const entries =
+		tryCurrentBranch(project.path) !== null
+			? await gitWorktreeEntries(project.path)
+			: gitSubfolderEntries(project.path);
 	const projectPath = canonicalPath(project.path);
+	const openProjects = loadProjects().filter((knownProject) => knownProject.closed !== true);
+	const openProjectIds = new Set(openProjects.map((knownProject) => knownProject.id));
 	const representedPaths = new Set([
-		...loadProjects().map((knownProject) => canonicalPath(knownProject.path)),
-		...loadWorkspaces().map((workspace) => canonicalPath(workspace.worktreePath)),
+		...openProjects.map((knownProject) => canonicalPath(knownProject.path)),
+		...loadWorkspaces()
+			.filter(
+				(workspace) => workspace.projectId === projectId || openProjectIds.has(workspace.projectId),
+			)
+			.map((workspace) => canonicalPath(workspace.worktreePath)),
 	]);
 	return entries.flatMap((entry): ExistingWorktreeCandidate[] => {
 		const path = canonicalPath(entry.path);
@@ -158,30 +174,61 @@ export async function openExistingWorktree(
 	const projectPath = canonicalPath(project.path);
 	if (wantedPath === projectPath) return ensureDefaultWorkspace(project);
 
-	const entries = await gitWorktreeEntries(project.path);
-	const entry = entries.find(
+	const isRootGit = tryCurrentBranch(project.path) !== null;
+	const entries = isRootGit
+		? await gitWorktreeEntries(project.path)
+		: gitSubfolderEntries(project.path);
+	let entry = entries.find(
 		(candidate) => !candidate.prunable && canonicalPath(candidate.path) === wantedPath,
 	);
+	let isSubfolderRepo = !isRootGit;
+	if (!entry && isRootGit) {
+		const subEntry = gitSubfolderEntries(project.path).find(
+			(candidate) => canonicalPath(candidate.path) === wantedPath,
+		);
+		if (subEntry) {
+			entry = subEntry;
+			isSubfolderRepo = true;
+		}
+	}
 	if (!entry) throw new Error("The selected path is not a registered worktree of this project");
 	if (!entry.branch)
 		throw new Error("Detached HEAD worktrees cannot be opened; create a branch first");
-	const baseBranch = resolveDefaultBranch(project.path);
+	const baseBranch = resolveDefaultBranch(isSubfolderRepo ? entry.path : project.path);
 
-	const projectOwner = loadProjects().find(
+	const openProjects = loadProjects().filter((candidate) => candidate.closed !== true);
+	const openProjectIds = new Set(openProjects.map((candidate) => candidate.id));
+	const projectOwner = openProjects.find(
 		(candidate) => candidate.id !== projectId && canonicalPath(candidate.path) === wantedPath,
 	);
 	if (projectOwner)
-		throw new Error("This worktree is already open under another ThinkRail project");
+		throw new Error("This worktree is already open under another RealThing project");
 
 	const all = loadWorkspaces();
-	const existing = all.find((workspace) => canonicalPath(workspace.worktreePath) === wantedPath);
+	const existing = all.find(
+		(workspace) =>
+			canonicalPath(workspace.worktreePath) === wantedPath &&
+			(workspace.projectId === projectId || openProjectIds.has(workspace.projectId)),
+	);
 	if (existing) {
 		if (existing.projectId === projectId) return existing;
-		throw new Error("This worktree is already open under another ThinkRail project");
+		throw new Error("This worktree is already open under another RealThing project");
+	}
+	for (let i = all.length - 1; i >= 0; i -= 1) {
+		const candidate = all[i];
+		if (candidate && canonicalPath(candidate.worktreePath) === wantedPath) {
+			all.splice(i, 1);
+		}
 	}
 
+	const relSubName = isSubfolderRepo
+		? relative(projectPath, canonicalPath(entry.path)).split(sep).join("/")
+		: null;
 	const displayName =
-		toDisplayName(basename(entry.path)) ?? toDisplayName(entry.branch) ?? "Existing worktree";
+		(relSubName && !relSubName.startsWith("..") ? toDisplayName(relSubName) : null) ??
+		toDisplayName(basename(entry.path)) ??
+		toDisplayName(entry.branch) ??
+		"Existing worktree";
 	const workspace: Workspace = {
 		id: randomUUID(),
 		projectId,
@@ -192,7 +239,6 @@ export async function openExistingWorktree(
 		baseBranch,
 		renamed: true,
 		initialTerminalPending: true,
-		lastActiveAt: Date.now(),
 	};
 	all.push(workspace);
 	saveWorkspaces(all);
@@ -201,18 +247,21 @@ export async function openExistingWorktree(
 }
 
 function folderTruth(repoPath: string): { branch: string; baseBranch: string } {
+	if (tryCurrentBranch(repoPath) === null) {
+		return { branch: DEFAULT_WORKSPACE_NAME, baseBranch: "HEAD" };
+	}
 	return { branch: currentBranch(repoPath), baseBranch: resolveDefaultBranch(repoPath) };
 }
 
 function applyFolderTruth(ws: Workspace, truth: { branch: string; baseBranch: string }): boolean {
 	if (ws.branch === truth.branch && ws.baseBranch === truth.baseBranch) return false;
-	if (ws.branch !== truth.branch) delete ws.review;
 	ws.branch = truth.branch;
 	ws.baseBranch = truth.baseBranch;
 	return true;
 }
 
 async function diffStats(ws: Workspace): Promise<DiffStats | undefined> {
+	if (tryCurrentBranch(ws.worktreePath) === null) return undefined;
 	try {
 		const result = await gitAsync(
 			ws.worktreePath,
@@ -291,7 +340,6 @@ export async function createWorkspace(
 		worktreePath,
 		baseBranch,
 		initialTerminalPending: true,
-		lastActiveAt: Date.now(),
 		...(displayName ? { renamed: true } : {}),
 	};
 	ensureWorkspaceScratchDir(workspace);
@@ -408,7 +456,7 @@ export function renameWorkspace(
 
 	if (ws.kind === "default") throw new Error("The Default workspace cannot be renamed");
 	if (ws.kind === "external")
-		throw new Error("An existing worktree cannot be renamed by ThinkRail");
+		throw new Error("An existing worktree cannot be renamed by RealThing");
 	const displayName = toDisplayName(requestedName);
 	if (!displayName) throw new Error(`Invalid workspace name: ${requestedName}`);
 	const wanted = opts.branch === undefined ? "" : branchSlug(opts.branch);
@@ -435,62 +483,12 @@ export function renameWorkspace(
 		if (target.diffBase === ws.branch) target.diffBase = branch;
 	}
 	target.name = displayName;
-	if (branchChanged) delete target.review;
 	target.branch = branch;
 	target.renamed = true;
 	saveWorkspaces(all);
 	emit({ kind: "updated", workspace: target });
 	for (const w of repointed) emit({ kind: "updated", workspace: w });
 	return target;
-}
-
-export function setWorkspaceSkillOverride(
-	id: string,
-	name: string,
-	override: "on" | "off" | null,
-): Workspace {
-	const all = loadWorkspaces();
-	const ws = all.find((w) => w.id === id);
-	if (!ws) throw new Error(`Unknown workspace: ${id}`);
-	const overrides = { ...(ws.skillOverrides ?? {}) };
-	if (override === null) delete overrides[name];
-	else overrides[name] = override;
-	if (Object.keys(overrides).length > 0) ws.skillOverrides = overrides;
-	else delete ws.skillOverrides;
-	saveWorkspaces(all);
-	emit({ kind: "updated", workspace: ws });
-	return ws;
-}
-
-export function setWorkspaceSubagentsOverride(
-	id: string,
-	override: SubagentOverride | null,
-): Workspace {
-	const all = loadWorkspaces();
-	const ws = all.find((workspace) => workspace.id === id);
-	if (!ws) throw new Error(`Unknown workspace: ${id}`);
-	if (override !== null && override !== "on" && override !== "off") {
-		throw new Error("Invalid subagent override");
-	}
-	if (override === null) delete ws.subagentsOverride;
-	else ws.subagentsOverride = override;
-	saveWorkspaces(all);
-	emit({ kind: "updated", workspace: ws });
-	return ws;
-}
-
-export function setWorkspaceSubagentMaxConcurrent(id: string, value: number | null): Workspace {
-	const all = loadWorkspaces();
-	const ws = all.find((workspace) => workspace.id === id);
-	if (!ws) throw new Error(`Unknown workspace: ${id}`);
-	if (value !== null && !isSubagentMaxConcurrent(value)) {
-		throw new Error("Subagent limit must be a whole number from 1 to 16");
-	}
-	if (value === null) delete ws.subagentMaxConcurrentOverride;
-	else ws.subagentMaxConcurrentOverride = value;
-	saveWorkspaces(all);
-	emit({ kind: "updated", workspace: ws });
-	return ws;
 }
 
 export function setWorkspaceDiffBase(id: string, ref: string | null): Workspace {
@@ -502,120 +500,6 @@ export function setWorkspaceDiffBase(id: string, ref: string | null): Workspace 
 	if (wanted) assertSafeRef(wanted);
 	if (!wanted || wanted === ws.baseBranch) delete ws.diffBase;
 	else ws.diffBase = wanted;
-	saveWorkspaces(all);
-	emit({ kind: "updated", workspace: ws });
-	return ws;
-}
-
-const ACTIVITY_COALESCE_MS = 60_000;
-const observedActivityAt = new Map<string, number>();
-const observedHeadSha = new Map<string, string>();
-
-export function recordWorkspaceActivity(id: string, at: number = Date.now()): Workspace | null {
-	const all = loadWorkspaces();
-	const ws = all.find((workspace) => workspace.id === id);
-	if (!ws) return null;
-	const previous = ws.lastActiveAt ?? 0;
-	const observed = Math.max(observedActivityAt.get(id) ?? 0, at);
-	observedActivityAt.set(id, observed);
-	const overridden = ws.settledOverride !== undefined;
-	const changedAt =
-		ws.review?.state === "merged" || ws.review?.state === "closed"
-			? ws.review.changedAt
-			: undefined;
-	const reviewSettles = changedAt !== undefined && previous <= changedAt;
-	if (!overridden && !reviewSettles && observed - previous < ACTIVITY_COALESCE_MS) return ws;
-	if (observed > previous) ws.lastActiveAt = observed;
-	if (overridden) {
-		delete ws.settledOverride;
-		delete ws.settledAt;
-	}
-	saveWorkspaces(all);
-	emit({ kind: "updated", workspace: ws });
-	return ws;
-}
-
-export function backfillWorkspaceActivity(id: string, at: number): Workspace | null {
-	const all = loadWorkspaces();
-	const ws = all.find((workspace) => workspace.id === id);
-	if (!ws) return null;
-	if (ws.lastActiveAt !== undefined) return ws;
-	ws.lastActiveAt = at;
-	saveWorkspaces(all);
-	emit({ kind: "updated", workspace: ws });
-	return ws;
-}
-
-export function recordWorkspaceHead(id: string): void {
-	const workspace = loadWorkspaces().find((candidate) => candidate.id === id);
-	if (!workspace) return;
-	const sha = headShaAt(workspace.worktreePath);
-	if (!sha) return;
-	const previous = observedHeadSha.get(id);
-	observedHeadSha.set(id, sha);
-	if (previous !== undefined && previous !== sha) recordWorkspaceActivity(id);
-}
-
-export function seedWorkspaceHead(id: string): void {
-	recordWorkspaceHead(id);
-}
-
-function setSettledOverride(id: string, override: "settled" | "active"): Workspace {
-	const all = loadWorkspaces();
-	const ws = all.find((workspace) => workspace.id === id);
-	if (!ws) throw new Error(`Unknown workspace: ${id}`);
-	if (ws.kind === "default") throw new Error("The Default workspace cannot be settled");
-	ws.settledOverride = override;
-	ws.settledAt = Date.now();
-	saveWorkspaces(all);
-	emit({ kind: "updated", workspace: ws });
-	return ws;
-}
-
-export function settleWorkspace(id: string): Workspace {
-	return setSettledOverride(id, "settled");
-}
-
-export function unsettleWorkspace(id: string): Workspace {
-	return setSettledOverride(id, "active");
-}
-
-function reviewSnapshot(review: OpenBranchReview): OpenBranchReview {
-	return {
-		kind: review.kind,
-		number: review.number,
-		...(review.url ? { url: review.url } : {}),
-		...(review.state ? { state: review.state } : {}),
-		...(review.changedAt !== undefined ? { changedAt: review.changedAt } : {}),
-	};
-}
-
-function sameReview(a: OpenBranchReview | undefined, b: OpenBranchReview | undefined): boolean {
-	if (!a || !b) return a === b;
-	return (
-		a.kind === b.kind &&
-		a.number === b.number &&
-		a.url === b.url &&
-		a.state === b.state &&
-		a.changedAt === b.changedAt
-	);
-}
-
-export function setWorkspaceReview(
-	id: string,
-	review: OpenBranchReview | null,
-	branch: string,
-): Workspace | null {
-	const all = loadWorkspaces();
-	const ws = all.find((workspace) => workspace.id === id);
-	if (!ws || ws.branch !== branch) return null;
-	const next = review ? reviewSnapshot(review) : undefined;
-	const observed = observedActivityAt.get(id) ?? 0;
-	const activityChanged = observed > (ws.lastActiveAt ?? 0);
-	if (sameReview(ws.review, next) && !activityChanged) return ws;
-	if (activityChanged) ws.lastActiveAt = observed;
-	if (next) ws.review = next;
-	else delete ws.review;
 	saveWorkspaces(all);
 	emit({ kind: "updated", workspace: ws });
 	return ws;
@@ -669,8 +553,6 @@ export function forgetWorkspace(id: string): Workspace | null {
 	if (!ws) return null;
 	if (ws.kind === "default") throw new Error("The Default workspace cannot be removed");
 	saveWorkspaces(all.filter((w) => w.id !== id));
-	observedActivityAt.delete(id);
-	observedHeadSha.delete(id);
 	emit({ kind: "removed", projectId: ws.projectId, id: ws.id });
 	return ws;
 }

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { ResourceMeta } from "@thinkrail/contracts";
+import type { ResourceMeta } from "@realthing/contracts";
 import {
 	type FileState,
 	type LoadedFile,

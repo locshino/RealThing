@@ -59,18 +59,7 @@ test("every public browser E2E command preloads the idle-sleep assertion", () =>
 	const rootPackage = JSON.parse(
 		readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 	) as { scripts: Record<string, string> };
-	for (const name of [
-		"e2e",
-		"e2e:serial",
-		"e2e:binary",
-		"e2e:desktop",
-		"e2e:full",
-		"e2e:full:headed",
-		"e2e:agent",
-		"e2e:agent:headed",
-		"e2e:headed",
-		"e2e:ui",
-	]) {
+	for (const name of ["e2e", "e2e:serial", "e2e:binary", "e2e:desktop", "e2e:headed", "e2e:ui"]) {
 		expect(rootPackage.scripts[name]).toContain("bun --preload ./e2e/idleSleepPreload.ts");
 	}
 });
@@ -134,7 +123,7 @@ test("job slices subdivide into disjoint global shards that cover the suite", ()
 	expect(parseJobShard("")).toBeUndefined();
 	expect(parseJobShard("2/3")).toEqual({ index: 2, total: 3 });
 	for (const raw of ["0/2", "3/2", "1/0", "2", "a/b", "1/2/3"]) {
-		expect(() => parseJobShard(raw)).toThrow(/THINKRAIL_E2E_JOB_SHARD/);
+		expect(() => parseJobShard(raw)).toThrow(/REALTHING_E2E_JOB_SHARD/);
 	}
 
 	expect(laneShardArgs(undefined, 1, 1)).toEqual([]);
@@ -156,5 +145,5 @@ test("invalid or conflicting shard overrides fail loudly", () => {
 			availableCpuCount: 16,
 			hasPlaywrightArgs: false,
 		}),
-	).toThrow(/THINKRAIL_E2E_SHARDS/);
+	).toThrow(/REALTHING_E2E_SHARDS/);
 });

@@ -1,4 +1,4 @@
-import { removeTree } from "@thinkrail/shared/removeTree";
+import { removeTree } from "@realthing/shared/removeTree";
 import { E2E_BINARY_CACHE, E2E_DATA_DIR, E2E_DESKTOP_CACHE } from "./fixtures/paths";
 
 export default function globalTeardown(): void {

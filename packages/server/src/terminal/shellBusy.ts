@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { spawnSyncCaptured } from "@thinkrail/shared/spawn";
+import { spawnSyncCaptured } from "@realthing/shared/spawn";
 
 export function parseProcChildren(contents: string): number[] {
 	return contents

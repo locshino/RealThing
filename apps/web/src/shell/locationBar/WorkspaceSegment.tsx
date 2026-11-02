@@ -1,20 +1,15 @@
 import {
-	RiArrowGoBackLine as ArrowGoBack,
-	RiCheckLine as Check,
 	RiFileCopyLine as Copy,
 	RiExternalLinkLine as ExternalLink,
 	RiFolderOpenLine as FolderOpen,
 	RiGitBranchLine as GitBranch,
 	RiHome2Line as House,
-	RiMailOpenLine as MailOpen,
-	RiMailUnreadLine as MailUnread,
 	RiPencilLine as Pencil,
 	RiAddLine as Plus,
-	RiCheckboxCircleLine,
 	RiDeleteBin6Line as Trash2,
 } from "@remixicon/react";
-import type { Project, Workspace } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
+import type { Project, Workspace } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -25,90 +20,41 @@ import {
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
-} from "@thinkrail/ui/dropdown-menu";
+} from "@realthing/ui/dropdown-menu";
 import { useEffect, useMemo, useState } from "react";
-import { RunningIcon } from "../../components/RunningIcon";
 import { copyText, platformShortcutLabel } from "../../lib";
 import { RemoveWorkspaceDialog } from "../../panels/RemoveWorkspaceDialog";
 import {
 	canRenameWorkspace,
-	canSettleWorkspace,
 	loadProjectWorkspaces,
-	markWorkspaceRead,
-	markWorkspaceUnread,
 	openWorkspaceIn,
 	renameWorkspace,
 	revealWorkspace,
-	settleWorkspace,
-	unsettleWorkspace,
 	useEditors,
 	useInlineRename,
 } from "../../panels/workspaceActions";
 import {
 	isDefaultWorkspace,
 	isExternalWorkspace,
-	selectWorkspaceIsRunning,
-	selectWorkspaceNeedsAttention,
-	selectWorkspacePartition,
-	selectWorkspaceReadAction,
-	selectWorkspaceSettledReason,
-	settledReasonLabel,
-	supportsWorkspaceReadState,
+	selectProjectWorkspaces,
 	useAppStore,
 	workspaceName,
 } from "../../store";
 import { PillChevron, pillClass, Segment } from "./Segment";
 
-export function useActiveWorkspaceSettled(workspace: Workspace | null, now: number): boolean {
-	return useAppStore((s) =>
-		workspace
-			? selectWorkspaceSettledReason(
-					{
-						workspaceSettlingSupported: s.workspaceSettlingSupported,
-						sessionStateByWorkspace: s.sessionStateByWorkspace,
-						activeWorkspaceId: s.activeWorkspaceId,
-						activeWorkspaceLiveLatch: s.activeWorkspaceLiveLatch,
-						settleIdleDays: s.settleIdleDays,
-					},
-					workspace,
-					now,
-				) !== null
-			: false,
-	);
-}
-
 export function WorkspaceSegment({
 	project,
 	workspace,
-	activeSettled,
-	now,
 	onNewWorkspace,
 }: {
 	project: Project;
 	workspace: Workspace | null;
-	activeSettled: boolean;
-	now: number;
 	onNewWorkspace: () => void;
 }) {
 	const t = useT();
 	const [menuOpen, setMenuOpen] = useState(false);
 	const siblings = useAppStore((s) => s.workspaces[project.id]);
-	const sessionStateByWorkspace = useAppStore((s) => (menuOpen ? s.sessionStateByWorkspace : null));
 	const protocolVersion = useAppStore((s) => s.protocolVersion);
-	const workspaceSettlingSupported = useAppStore((s) => s.workspaceSettlingSupported);
-	const activeWorkspaceLiveLatch = useAppStore((s) => s.activeWorkspaceLiveLatch);
-	const settleIdleDays = useAppStore((s) => s.settleIdleDays);
-	const activeBlocked = useAppStore(
-		(s) =>
-			workspace !== null &&
-			(selectWorkspaceIsRunning(s, workspace.id) || selectWorkspaceNeedsAttention(s, workspace.id)),
-	);
-	const canSettle = workspace !== null && canSettleWorkspace(protocolVersion, workspace);
-	const readAction = useAppStore((s) =>
-		workspace !== null && supportsWorkspaceReadState(protocolVersion)
-			? selectWorkspaceReadAction(s, workspace.id)
-			: null,
-	);
 	const editors = useEditors();
 	const [removing, setRemoving] = useState<Workspace | null>(null);
 	const workspaceId = workspace?.id ?? null;
@@ -133,46 +79,16 @@ export function WorkspaceSegment({
 		onMenuCloseAutoFocus,
 	} = useInlineRename({ target: workspace, canRename, onRename: renameWorkspace });
 
-	const partition = useMemo(() => {
+	const otherWorkspaces = useMemo(() => {
 		if (!menuOpen || siblings === undefined) return null;
-		const projection = {
-			workspaces: { [project.id]: siblings },
-			workspaceSettlingSupported,
-			sessionStateByWorkspace: sessionStateByWorkspace ?? {},
-			activeWorkspaceId: workspace?.id ?? null,
-			activeWorkspaceLiveLatch,
-			settleIdleDays,
-		};
-		const split = selectWorkspacePartition(projection, project.id, now, "recent");
-		return {
-			now,
-			live: split.live.filter((candidate) => candidate.id !== workspace?.id),
-			settled: split.settled.filter((row) => row.workspace.id !== workspace?.id),
-		};
-	}, [
-		menuOpen,
-		siblings,
-		sessionStateByWorkspace,
-		project.id,
-		workspace?.id,
-		activeWorkspaceLiveLatch,
-		settleIdleDays,
-		workspaceSettlingSupported,
-		now,
-	]);
+		return selectProjectWorkspaces({ [project.id]: siblings }, project.id).filter(
+			(candidate) => candidate.id !== workspace?.id,
+		);
+	}, [menuOpen, siblings, project.id, workspace?.id]);
 
 	return (
 		<Segment
-			caption={
-				<>
-					{t("shell.location.workspace.caption")}
-					{activeSettled ? (
-						<span data-testid="scope-workspace-settled" className="text-feedback-warning">
-							{t("shell.location.workspace.settledSuffix")}
-						</span>
-					) : null}
-				</>
-			}
+			caption={t("shell.location.workspace.caption")}
 			testid="scope-workspace-segment"
 			className="min-w-64 max-w-[460px] pl-0 sm:pl-8"
 		>
@@ -249,43 +165,6 @@ export function WorkspaceSegment({
 									<FolderOpen />
 									{t("shell.location.workspace.reveal")}
 								</DropdownMenuItem>
-								{readAction === "markRead" ? (
-									<DropdownMenuItem
-										data-testid="scope-workspace-mark-read"
-										onSelect={() => markWorkspaceRead(workspace.id)}
-									>
-										<MailOpen />
-										{t("shell.location.workspace.markRead")}
-									</DropdownMenuItem>
-								) : readAction === "markUnread" ? (
-									<DropdownMenuItem
-										data-testid="scope-workspace-mark-unread"
-										onSelect={() => markWorkspaceUnread(workspace.id)}
-									>
-										<MailUnread />
-										{t("shell.location.workspace.markUnread")}
-									</DropdownMenuItem>
-								) : null}
-								{canSettle ? (
-									activeSettled ? (
-										<DropdownMenuItem
-											data-testid="scope-workspace-keep-active"
-											onSelect={() => unsettleWorkspace(workspace.id)}
-										>
-											<ArrowGoBack />
-											{t("shell.location.workspace.keepActive")}
-										</DropdownMenuItem>
-									) : (
-										<DropdownMenuItem
-											data-testid="scope-workspace-settle"
-											disabled={activeBlocked}
-											onSelect={() => settleWorkspace(workspace.id)}
-										>
-											<Check />
-											{t("shell.location.workspace.settle")}
-										</DropdownMenuItem>
-									)
-								) : null}
 								{isDefault ? null : (
 									<DropdownMenuItem
 										data-testid="scope-workspace-remove"
@@ -302,15 +181,12 @@ export function WorkspaceSegment({
 							</>
 						) : null}
 						<DropdownMenuLabel>{t("shell.location.workspace.switchTo")}</DropdownMenuLabel>
-						{partition === null ? (
+						{otherWorkspaces === null ? (
 							<DropdownMenuItem disabled>{t("common.loading")}</DropdownMenuItem>
-						) : partition.live.length === 0 && partition.settled.length === 0 ? (
+						) : otherWorkspaces.length === 0 ? (
 							<DropdownMenuItem disabled>{t("shell.location.workspace.noOthers")}</DropdownMenuItem>
 						) : (
-							partition.live.map((candidate) => {
-								const running =
-									sessionStateByWorkspace !== null &&
-									selectWorkspaceIsRunning({ sessionStateByWorkspace }, candidate.id);
+							otherWorkspaces.map((candidate) => {
 								const Icon = isDefaultWorkspace(candidate)
 									? House
 									: isExternalWorkspace(candidate)
@@ -322,7 +198,7 @@ export function WorkspaceSegment({
 										data-testid="scope-workspace-option"
 										onSelect={() => useAppStore.getState().activateWorkspace(candidate)}
 									>
-										{running ? <RunningIcon className="size-14 text-primary" /> : <Icon />}
+										<Icon />
 										<span className="truncate">{workspaceName(t, candidate)}</span>
 										{candidate.branch !== candidate.name ? (
 											<span className="ml-auto truncate pl-8 text-text-subtle tr-code-text-small">
@@ -333,29 +209,6 @@ export function WorkspaceSegment({
 								);
 							})
 						)}
-						{partition !== null && partition.settled.length > 0 ? (
-							<DropdownMenuSub>
-								<DropdownMenuSubTrigger data-testid="scope-workspace-settled-group">
-									<RiCheckboxCircleLine />
-									{t("shell.location.workspace.settledGroup", { count: partition.settled.length })}
-								</DropdownMenuSubTrigger>
-								<DropdownMenuSubContent className="max-h-[60vh] overflow-y-auto">
-									{partition.settled.map(({ workspace: candidate, reason }) => (
-										<DropdownMenuItem
-											key={candidate.id}
-											data-testid="scope-workspace-settled-option"
-											onSelect={() => useAppStore.getState().activateWorkspace(candidate)}
-										>
-											{isExternalWorkspace(candidate) ? <FolderOpen /> : <GitBranch />}
-											<span className="truncate">{workspaceName(t, candidate)}</span>
-											<span className="ml-auto shrink-0 pl-8 text-text-subtle tr-text-caption">
-												{settledReasonLabel(t, reason, partition.now)}
-											</span>
-										</DropdownMenuItem>
-									))}
-								</DropdownMenuSubContent>
-							</DropdownMenuSub>
-						) : null}
 						<DropdownMenuSeparator />
 						<DropdownMenuItem data-testid="scope-workspace-new" onSelect={onNewWorkspace}>
 							<Plus />

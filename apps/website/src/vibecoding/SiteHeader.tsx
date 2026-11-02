@@ -27,7 +27,7 @@ export function SiteHeader() {
 	return (
 		<header className="sticky top-0 z-50 border-b border-border-muted bg-container-overlay-bg backdrop-blur-md">
 			<div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-6">
-				<a href="#top" aria-label="ThinkRail home">
+				<a href="#top" aria-label="RealThing home">
 					<Logo />
 				</a>
 				<nav className="hidden items-center gap-8 md:flex">
@@ -49,7 +49,7 @@ export function SiteHeader() {
 							showGithub ? "opacity-100" : "pointer-events-none opacity-0"
 						}`}
 					>
-						<ActionButton href="https://github.com/JetBrains/thinkrail" variant="secondary">
+						<ActionButton href="https://github.com/JetBrains/realthing" variant="secondary">
 							<GithubIcon className="h-6 w-6 shrink-0" />
 							Star on GitHub
 						</ActionButton>

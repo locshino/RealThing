@@ -1,18 +1,12 @@
-import type { WorkspaceSkillChange } from "@thinkrail/contracts";
-
 export interface CoalescerOptions {
 	quietMs: number;
 	maxWaitMs: number;
 	maxPaths: number;
-	onFlush: (batch: {
-		paths: string[];
-		truncated: boolean;
-		skillChange: WorkspaceSkillChange;
-	}) => void;
+	onFlush: (batch: { paths: string[]; truncated: boolean }) => void;
 }
 
 export interface Coalescer {
-	add(path: string | null, skillChange: WorkspaceSkillChange): void;
+	add(path: string | null): void;
 	dispose(): void;
 }
 
@@ -20,7 +14,6 @@ export function createCoalescer(options: CoalescerOptions): Coalescer {
 	const { quietMs, maxWaitMs, maxPaths, onFlush } = options;
 	let pending = new Set<string>();
 	let truncated = false;
-	let skillChange: WorkspaceSkillChange = "none";
 	let quietTimer: ReturnType<typeof setTimeout> | null = null;
 	let maxTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -33,19 +26,15 @@ export function createCoalescer(options: CoalescerOptions): Coalescer {
 
 	const flush = (): void => {
 		clearTimers();
-		if (pending.size === 0 && !truncated && skillChange === "none") return;
-		const batch = { paths: [...pending], truncated, skillChange };
+		if (pending.size === 0 && !truncated) return;
+		const batch = { paths: [...pending], truncated };
 		pending = new Set();
 		truncated = false;
-		skillChange = "none";
 		onFlush(batch);
 	};
 
 	return {
-		add(path, eventSkillChange) {
-			if (eventSkillChange === "detected" || skillChange === "none") {
-				skillChange = eventSkillChange;
-			}
+		add(path) {
 			if (path === null) truncated = true;
 			else if (pending.has(path)) {
 			} else if (pending.size >= maxPaths) truncated = true;
@@ -58,7 +47,6 @@ export function createCoalescer(options: CoalescerOptions): Coalescer {
 			clearTimers();
 			pending = new Set();
 			truncated = false;
-			skillChange = "none";
 		},
 	};
 }

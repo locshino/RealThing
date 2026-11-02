@@ -3,16 +3,16 @@ import {
 	RiCheckLine as Check,
 	RiCheckboxBlankCircleLine as Pending,
 } from "@remixicon/react";
-import type { NativeUpdateState } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
+import type { NativeUpdateState } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-} from "@thinkrail/ui/dialog";
-import { cn } from "@thinkrail/ui/utils";
+} from "@realthing/ui/dialog";
+import { cn } from "@realthing/ui/utils";
 import { useState } from "react";
 import { InstallLog, InstallLogToggle } from "./InstallLog";
 import { INSTALL_STEPS, installProgress, installStepIndex } from "./installCopy";

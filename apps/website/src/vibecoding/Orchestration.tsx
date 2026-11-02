@@ -12,7 +12,7 @@ type Lane = {
 
 const LANES: Lane[] = [
 	{
-		name: "agent-01",
+		name: "worktree-01",
 		start: 571,
 		activities: ["Read API spec", "Inspect existing routes", "Implement endpoint", "Run tests"],
 		steps: [
@@ -23,7 +23,7 @@ const LANES: Lane[] = [
 		],
 	},
 	{
-		name: "agent-02",
+		name: "worktree-02",
 		start: 857,
 		activities: ["Read UI spec", "Inspect components", "Build share dialog", "Polish states"],
 		steps: [
@@ -34,7 +34,7 @@ const LANES: Lane[] = [
 		],
 	},
 	{
-		name: "agent-03",
+		name: "worktree-03",
 		start: 1143,
 		activities: [
 			"Inspect current copy",
@@ -439,7 +439,7 @@ export function Orchestration() {
 						</div>
 
 						<p className="mt-6 text-xs text-text-subtle">
-							2 agents · 2 isolated worktrees · one repository
+							2 tasks · 2 isolated worktrees · one repository
 						</p>
 					</div>
 				) : (
@@ -544,7 +544,7 @@ export function Orchestration() {
 							</div>
 
 							<p className="relative z-10 mt-6 text-xs text-text-subtle">
-								3 agents · 3 isolated worktrees · one repository
+								3 tasks · 3 isolated worktrees · one repository
 							</p>
 						</div>
 					</div>

@@ -3,9 +3,9 @@ import {
 	RiRefreshLine as Refresh,
 	RiRestartLine as Restart,
 } from "@remixicon/react";
-import type { HostUpdateNotice, NativeUpdateState } from "@thinkrail/contracts";
-import { T, useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+import type { NativeUpdateState } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import { installFailureCopy } from "./installCopy";
 import type { NativeUpdateAction, UpdatesController } from "./useUpdates";
 
@@ -79,75 +79,30 @@ function nativeStatusCopy(
 	}
 }
 
-function hostNoticeCopy(
-	t: Translate,
-	state: HostUpdateNotice,
-	requestFailed: boolean,
-): { title: string; detail: string } {
-	if (requestFailed || state.status === "failed") {
-		return {
-			title: t("updates.host.failed.title"),
-			detail: t("updates.host.failed.detail"),
-		};
-	}
-	switch (state.status) {
-		case "running":
-			return {
-				title: t("updates.host.running.title", { version: state.availableVersion }),
-				detail: t("updates.host.running.detail"),
-			};
-		case "succeeded":
-			return {
-				title: t("updates.host.succeeded.title", { version: state.availableVersion }),
-				detail: t("updates.host.succeeded.detail"),
-			};
-		default:
-			return {
-				title: t("updates.host.available.title", { version: state.availableVersion }),
-				detail:
-					state.status === "available"
-						? t("updates.host.available.detail")
-						: t("updates.host.legacy.detail"),
-			};
-	}
-}
-
 function publicChannel(channel: string | undefined): string | undefined {
 	return channel === "canary" ? "nightly" : channel;
 }
 
 export function UpdateSettings({ updates }: UpdateSettingsProps) {
 	const t = useT();
-	const nativeState = updates.source === "native" ? updates.state : null;
-	const hostNotice = updates.source === "host" ? updates.state : null;
-	const nativeRequestError = updates.source === "native" ? updates.requestError : null;
-	const hostRequestFailed = updates.source === "host" && updates.requestFailed;
-	const nativeStatus = nativeState?.status ?? "loading";
-	const hostStatus = hostNotice?.status;
-	const error = nativeRequestError?.message ?? nativeState?.error ?? null;
-	const lastInstall = nativeState?.lastInstall ?? null;
+	const nativeState = updates.state;
+	const nativeRequestError = updates.requestError;
+	const nativeStatus = nativeState.status ?? "loading";
+	const error = nativeRequestError?.message ?? nativeState.error ?? null;
+	const lastInstall = nativeState.lastInstall ?? null;
 	const installFailure =
 		lastInstall && lastInstall.outcome !== "installed" ? installFailureCopy(t, lastInstall) : null;
 	const failedAction: NativeUpdateAction | null =
-		nativeRequestError?.action ?? nativeState?.failedPhase ?? null;
-	const copy = hostNotice
-		? hostNoticeCopy(t, hostNotice, hostRequestFailed)
-		: nativeStatusCopy(t, nativeState);
-	const ready = nativeState?.status === "ready";
-	const nativeAvailable = nativeState?.status === "available";
-	const hostAvailable =
-		hostNotice !== null && (hostStatus === undefined || hostStatus === "available");
-	const hostRunning = hostStatus === "running";
-	const hostSucceeded = hostStatus === "succeeded";
-	const hostFailed = hostStatus === "failed" || hostRequestFailed;
-	const checking = nativeState?.status === "checking";
-	const downloading = nativeState?.status === "downloading";
-	const preparing = nativeState?.status === "preparing";
-	const installing = nativeState?.status === "installing";
+		nativeRequestError?.action ?? nativeState.failedPhase ?? null;
+	const copy = nativeStatusCopy(t, nativeState);
+	const ready = nativeState.status === "ready";
+	const nativeAvailable = nativeState.status === "available";
+	const checking = nativeState.status === "checking";
+	const downloading = nativeState.status === "downloading";
+	const preparing = nativeState.status === "preparing";
+	const installing = nativeState.status === "installing";
 	const progress =
-		downloading &&
-		typeof nativeState?.progress === "number" &&
-		Number.isFinite(nativeState.progress)
+		downloading && typeof nativeState.progress === "number" && Number.isFinite(nativeState.progress)
 			? Math.min(100, Math.max(0, nativeState.progress))
 			: null;
 	const progressLabel = downloading
@@ -156,47 +111,39 @@ export function UpdateSettings({ updates }: UpdateSettingsProps) {
 			: t("updates.progress.downloadingPercent", { percent: Math.round(progress) })
 		: preparing
 			? t("updates.progress.preparing")
-			: hostRunning
-				? t("updates.progress.running")
-				: null;
-	const toneClass =
-		error || hostFailed
-			? "text-feedback-error"
-			: ready || nativeAvailable || hostAvailable || hostSucceeded
-				? "text-primary"
-				: checking || downloading || preparing || installing || hostRunning
-					? "text-feedback-info"
-					: "text-text-muted";
-	const currentVersion = hostNotice?.currentVersion ?? nativeState?.version;
-	const channel = hostNotice?.channel ?? publicChannel(nativeState?.channel);
-	const availableVersion = hostNotice?.availableVersion ?? nativeState?.availableVersion;
-	const retry =
-		updates.source === "native" && failedAction
-			? failedAction === "check"
-				? updates.checkForUpdates
-				: failedAction === "download"
-					? updates.downloadUpdate
-					: updates.restartToUpdate
 			: null;
-	const showHostManualGuidance =
-		hostNotice !== null &&
-		(hostStatus === undefined || hostStatus === "failed" || hostRequestFailed);
+	const toneClass = error
+		? "text-feedback-error"
+		: ready || nativeAvailable
+			? "text-primary"
+			: checking || downloading || preparing || installing
+				? "text-feedback-info"
+				: "text-text-muted";
+	const currentVersion = nativeState.version;
+	const channel = publicChannel(nativeState.channel);
+	const availableVersion = nativeState.availableVersion;
+	const retry =
+		failedAction === "check"
+			? updates.checkForUpdates
+			: failedAction === "download"
+				? updates.downloadUpdate
+				: failedAction === "install"
+					? updates.restartToUpdate
+					: null;
 
 	return (
 		<section data-testid="settings-updates" className="flex flex-col gap-16">
 			<div className="flex flex-col gap-4">
 				<h3 className="tr-title-section text-text-default">{t("updates.settings.title")}</h3>
 				<p className="text-text-muted tr-text-metadata">
-					{updates.source === "native"
-						? t("updates.settings.nativeDescription")
-						: t("updates.settings.hostDescription")}
+					{t("updates.settings.nativeDescription")}
 				</p>
 			</div>
 
 			<div
 				data-testid="update-status"
-				data-source={updates.source}
-				data-status={updates.source === "native" ? nativeStatus : (hostStatus ?? "legacy")}
+				data-source="native"
+				data-status={nativeStatus}
 				className="flex flex-col gap-12 rounded-sm border border-border-default bg-control-bg p-12"
 			>
 				<div className="flex items-start gap-8">
@@ -241,33 +188,10 @@ export function UpdateSettings({ updates }: UpdateSettingsProps) {
 					</div>
 				) : null}
 
-				{showHostManualGuidance ? (
-					<p
-						data-testid="update-command-guidance"
-						className="rounded-sm border border-border-default bg-container-elevated-bg p-8 text-text-default tr-text-ui"
-					>
-						<T
-							i18nKey="updates.manualGuidance"
-							components={[<code key="command" className="tr-code-text text-primary" />]}
-						/>
-					</p>
-				) : null}
-
-				{hostSucceeded ? (
-					<p
-						data-testid="update-host-restart-guidance"
-						className="rounded-sm border border-border-default bg-container-elevated-bg p-8 text-text-default tr-text-ui"
-					>
-						{t("updates.restartGuidance", { version: availableVersion })}
-					</p>
-				) : null}
-
 				<div className="flex flex-wrap items-center justify-between gap-8 border-border-default border-t pt-8">
 					<span data-testid="update-version" className="text-text-muted tr-text-metadata">
 						{currentVersion && channel
-							? updates.source === "host"
-								? t("updates.version.current", { version: currentVersion, channel })
-								: t("updates.version.native", { version: currentVersion, channel })
+							? t("updates.version.native", { version: currentVersion, channel })
 							: t("updates.version.unavailable")}
 					</span>
 					{availableVersion ? (
@@ -278,67 +202,53 @@ export function UpdateSettings({ updates }: UpdateSettingsProps) {
 				</div>
 			</div>
 
-			{updates.source === "native" ? (
-				<div className="flex flex-wrap justify-end gap-8">
-					{updates.state.status === "idle" || checking ? (
-						<Button
-							variant="outline"
-							size="l"
-							iconLeft={Refresh}
-							data-testid="update-check"
-							disabled={checking}
-							onClick={updates.checkForUpdates}
-						>
-							{checking ? t("updates.action.checking") : t("updates.action.check")}
-						</Button>
-					) : null}
-					{retry ? (
-						<Button
-							variant="outline"
-							size="l"
-							iconLeft={Refresh}
-							data-testid="update-retry"
-							onClick={retry}
-						>
-							{t("common.retry")}
-						</Button>
-					) : null}
-					{nativeAvailable && failedAction !== "download" ? (
-						<Button
-							variant="primary"
-							size="l"
-							iconLeft={DownloadCloud}
-							data-testid="update-download"
-							onClick={updates.downloadUpdate}
-						>
-							{t("updates.action.download")}
-						</Button>
-					) : null}
-					{ready && failedAction !== "install" ? (
-						<Button
-							variant="primary"
-							size="l"
-							iconLeft={Restart}
-							data-testid="update-restart"
-							onClick={updates.restartToUpdate}
-						>
-							{t("updates.action.installRestart")}
-						</Button>
-					) : null}
-				</div>
-			) : updates.canRun && (hostAvailable || hostFailed) ? (
-				<div className="flex flex-wrap justify-end gap-8">
+			<div className="flex flex-wrap justify-end gap-8">
+				{nativeState.status === "idle" || checking ? (
 					<Button
-						variant={hostFailed ? "outline" : "primary"}
+						variant="outline"
 						size="l"
-						iconLeft={hostFailed ? Refresh : DownloadCloud}
-						data-testid={hostFailed ? "update-retry" : "update-run-host"}
-						onClick={updates.runUpdate}
+						iconLeft={Refresh}
+						data-testid="update-check"
+						disabled={checking}
+						onClick={updates.checkForUpdates}
 					>
-						{hostFailed ? t("common.retry") : t("updates.action.run")}
+						{checking ? t("updates.action.checking") : t("updates.action.check")}
 					</Button>
-				</div>
-			) : null}
+				) : null}
+				{retry ? (
+					<Button
+						variant="outline"
+						size="l"
+						iconLeft={Refresh}
+						data-testid="update-retry"
+						onClick={retry}
+					>
+						{t("common.retry")}
+					</Button>
+				) : null}
+				{nativeAvailable && failedAction !== "download" ? (
+					<Button
+						variant="primary"
+						size="l"
+						iconLeft={DownloadCloud}
+						data-testid="update-download"
+						onClick={updates.downloadUpdate}
+					>
+						{t("updates.action.download")}
+					</Button>
+				) : null}
+				{ready && failedAction !== "install" ? (
+					<Button
+						variant="primary"
+						size="l"
+						iconLeft={Restart}
+						data-testid="update-restart"
+						onClick={updates.restartToUpdate}
+					>
+						{t("updates.action.installRestart")}
+					</Button>
+				) : null}
+			</div>
 
 			{ready ? (
 				<p className="text-text-muted tr-text-metadata">{t("updates.settings.deferral")}</p>

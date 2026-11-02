@@ -173,10 +173,10 @@ Legacy names removed: variant `default` → `primary`, `soft` → `soft-primary`
 
 | Site | Before | After | Notes |
 | --- | --- | --- | --- |
-| `thinkrail-extensions/ask-user-question/web/AskUserQuestionCard.tsx:667` | raw <button> ask-skip: transparent, text-text-muted, hover text-default, px-4 tr-text-ui (~18px) | Button ghost l | size l via sizeException (footer pair with Next/Submit); disabled={!canRespond} kept; className shrink-0 |
-| `thinkrail-extensions/ask-user-question/web/AskUserQuestionCard.tsx:678` | raw <button> ask-continue: bg-control-primary-bg px-12 py-8 tr-text-action (~34px) | Button primary l | label 'Next →' kept; className shrink-0 |
-| `thinkrail-extensions/ask-user-question/web/AskUserQuestionCard.tsx:688` | raw <button> ask-submit: bg-control-primary-bg px-12 py-8 + disabled skin (~34px) | Button primary l | disabled={!canSubmit} kept; disabled:cursor-not-allowed skin dropped (component owns disabled) |
-| `thinkrail-extensions/ask-user-question/web/AskUserQuestionCard.tsx:1012` | raw <button> ask-note-toggle: transparent text-text-muted tr-text-metadata, hover text-default, Pencil size-12 (~15px) | Button ghost s iconLeft=Pencil | aria-label kept; audit family link-action but not underlined/not prose — looks like a ghost text button with icon |
+| `realthing-extensions/ask-user-question/web/AskUserQuestionCard.tsx:667` | raw <button> ask-skip: transparent, text-text-muted, hover text-default, px-4 tr-text-ui (~18px) | Button ghost l | size l via sizeException (footer pair with Next/Submit); disabled={!canRespond} kept; className shrink-0 |
+| `realthing-extensions/ask-user-question/web/AskUserQuestionCard.tsx:678` | raw <button> ask-continue: bg-control-primary-bg px-12 py-8 tr-text-action (~34px) | Button primary l | label 'Next →' kept; className shrink-0 |
+| `realthing-extensions/ask-user-question/web/AskUserQuestionCard.tsx:688` | raw <button> ask-submit: bg-control-primary-bg px-12 py-8 + disabled skin (~34px) | Button primary l | disabled={!canSubmit} kept; disabled:cursor-not-allowed skin dropped (component owns disabled) |
+| `realthing-extensions/ask-user-question/web/AskUserQuestionCard.tsx:1012` | raw <button> ask-note-toggle: transparent text-text-muted tr-text-metadata, hover text-default, Pencil size-12 (~15px) | Button ghost s iconLeft=Pencil | aria-label kept; audit family link-action but not underlined/not prose — looks like a ghost text button with icon |
 | `chat/resources/ResourcesButton.tsx:35` | Button ghost sm + h-panel-header-control (24px) gap-4 tr-text-metadata aria-expanded:bg-control-bg-selected, icon child size-14 with motion-safe:animate-working when live | Button ghost m iconLeft={Stack icon} selected={open} | aria-expanded:bg-control-bg-selected replaced by selected={open}; breathing animation kept via module-level icon wrappers (breathing(RiStackFill/RiStackLine)) since iconLeft takes a component; IconTooltip wrapTrigger, aria-*, data-* kept |
 | `chat/resources/CommandLogView.tsx:23` | Button ghost sm (28) | Button ghost m |  |
 | `chat/resources/ResourcesInspector.tsx:298` | raw <button> resources-inspector-close: size-28 ghost-like, RiCloseLine size-16, aria-label 'Close resources', no tooltip | IconButton ghost m icon=RiCloseLine label='Close resources' | now gains a 'Close resources' tooltip (IconButton label = tooltip) |
@@ -236,11 +236,11 @@ Legacy names removed: variant `default` → `primary`, `soft` → `soft-primary`
 | `packages/resource-renderers/src/support/UnplacedReviewStrip.tsx:92` | raw <button> ml-12 px-8 py-4 tr-text-action text-primary hover:bg-control-bg-hovered (≈23.6px) | Button soft-primary m className ml-12 | green ghost |
 | `packages/resource-renderers/src/support/ExpensiveDiffNotice.tsx:18` | Button outline sm | Button outline m |  |
 | `packages/resource-renderers/src/support/PreviewCommenting.tsx:197` | portal raw <button> .review-add-icon .review-add-icon-float (22px, border-default, elevated bg, primary icon, drop shadow, native title) | IconButton outline s className review-add-icon-float | title → IconButton tooltip (same text as label); ref kept; the .closest('.review-add-icon') pointerdown check now uses iconRef.current.contains(target); review-add-icon-float (fixed positioning + imperative data-visible/data-dragging visibility) kept as layout class. Skin differences vs old: icon now text-default instead of primary; the drop shadow is back as `shadow-[var(--shadow-sm)]` |
-| `thinkrail-extensions/visualize/web/MermaidView.tsx:67` | raw <button> absolute p-4 border-default elevated bg text-muted (≈24px), title 'Full screen' | IconButton outline m className 'absolute top-4 right-4', tooltip 'Full screen' | aria-label 'View diagram full screen' → label |
-| `thinkrail-extensions/visualize/web/PanZoomView.tsx:121` | raw <button className={btn}> p-4 ghost, icon 16 (24px) Zoom out | IconButton ghost m | local btn const removed; now has tooltip |
-| `thinkrail-extensions/visualize/web/PanZoomView.tsx:133` | raw btn Zoom in (24px) | IconButton ghost m |  |
-| `thinkrail-extensions/visualize/web/PanZoomView.tsx:139` | raw btn Reset zoom, icon 14 (22px) | IconButton ghost m | see sizeExceptions |
-| `thinkrail-extensions/visualize/web/FileCard.tsx:44` | CardAction: IconTooltip + raw <button> size-24 ghost (children icon element) | IconButton ghost m | CardAction now takes icon: ButtonIcon instead of children; both call sites (tool-visualize-open-tab, tool-visualize-fullscreen) updated |
+| `realthing-extensions/visualize/web/MermaidView.tsx:67` | raw <button> absolute p-4 border-default elevated bg text-muted (≈24px), title 'Full screen' | IconButton outline m className 'absolute top-4 right-4', tooltip 'Full screen' | aria-label 'View diagram full screen' → label |
+| `realthing-extensions/visualize/web/PanZoomView.tsx:121` | raw <button className={btn}> p-4 ghost, icon 16 (24px) Zoom out | IconButton ghost m | local btn const removed; now has tooltip |
+| `realthing-extensions/visualize/web/PanZoomView.tsx:133` | raw btn Zoom in (24px) | IconButton ghost m |  |
+| `realthing-extensions/visualize/web/PanZoomView.tsx:139` | raw btn Reset zoom, icon 14 (22px) | IconButton ghost m | see sizeExceptions |
+| `realthing-extensions/visualize/web/FileCard.tsx:44` | CardAction: IconTooltip + raw <button> size-24 ghost (children icon element) | IconButton ghost m | CardAction now takes icon: ButtonIcon instead of children; both call sites (tool-visualize-open-tab, tool-visualize-fullscreen) updated |
 | `packages/resource-renderers/src/support/reviewWidgets.ts review-add-icon / thread actions (plain DOM)` | .review-add-icon / .review-thread-action CSS skins | buttonVariants({variant:'outline', size:'s', shape:'icon'}) class string + `shadow-[var(--shadow-sm)]` + `buttonDataAttributes` | index.css rules removed; holder/float positioning kept |
 
 ## Green (accent-text) ghost actions → `soft-primary`
@@ -255,8 +255,8 @@ Legacy names removed: variant `default` → `primary`, `soft` → `soft-primary`
 
 ## Size exceptions
 
-- `thinkrail-extensions/ask-user-question/web/AskUserQuestionCard.tsx:667` → `l`: Skip sits in the card footer action pair beside Next/Submit (primary l, 32px); as a ghost it now shows a hover fill, so a 20px Skip next to a 32px primary would misalign the button pair. Nearest-height rule alone would give s (~18px).
-- `thinkrail-extensions/visualize/web/PanZoomView.tsx:139` → `m`: Was 22px (tie → s), but it sits in one zoom toolbar with the 24px zoom-out/zoom-in buttons; m keeps the row uniform
+- `realthing-extensions/ask-user-question/web/AskUserQuestionCard.tsx:667` → `l`: Skip sits in the card footer action pair beside Next/Submit (primary l, 32px); as a ghost it now shows a hover fill, so a 20px Skip next to a 32px primary would misalign the button pair. Nearest-height rule alone would give s (~18px).
+- `realthing-extensions/visualize/web/PanZoomView.tsx:139` → `m`: Was 22px (tie → s), but it sits in one zoom toolbar with the 24px zoom-out/zoom-in buttons; m keeps the row uniform
 
 ## Remaining exceptions (kept as-is, need a variant decision)
 
@@ -273,11 +273,11 @@ Legacy names removed: variant `default` → `primary`, `soft` → `soft-primary`
 ## Spec overrides retired
 
 - `shell/layout/workbenchCenter.tsx:100,115; workbenchSide.tsx:184,258; workbenchBottom.tsx:64; workbenchTabs.tsx:287; AuxiliaryPaneHeader.tsx:71; WorkspaceWorkbench.tsx:740; WorkspaceChatHistory.tsx:36`: full-height 28px (w-panel-header-row) strip/header actions, several with a border-l hairline divider; now 24px centred squares with no divider (apps/web/src/shell/layout/SPEC.md ('Full-height strip actions share that width.' in Layout grammar))
-- `components/ErrorBoundary.tsx:92,101`: components module now imports @thinkrail/ui/button, which is not in its 'Allowed deps' list (React, @remixicon/react, @thinkrail/ui/utils, lib, constants) (apps/web/src/components/SPEC.md (Allowed deps))
+- `components/ErrorBoundary.tsx:92,101`: components module now imports @realthing/ui/button, which is not in its 'Allowed deps' list (React, @remixicon/react, @realthing/ui/utils, lib, constants) (apps/web/src/components/SPEC.md (Allowed deps))
 - `chat/Composer.tsx:661`: rounded-full 28px ghost circle (History: `Button variant="ghost" size="icon"` under IconTooltip) (apps/web/src/chat/SPEC.md (Composer trailing controls))
 - `chat/Composer.tsx:673`: Stop as rounded-full h-28 ghost pill; compact mode collapses to a 28px icon circle (@max-md:w-28 px-0) — now a ghost m button that collapses to a 24px square (@max-md:w-24 px-0) (apps/web/src/chat/SPEC.md (Composer trailing controls / Compact mode))
 - `chat/ExtUiPrompt.tsx:15`: OPTION_BUTTON h-auto min-h-28 whitespace-normal break-words justify-start text-left py-4 — 'Option buttons wrap long labels' (apps/web/src/chat/SPEC.md (Extension dialogs ask inside the chat))
-- `thinkrail-extensions/ask-user-question/web/AskUserQuestionCard.tsx:667,678,688,1012`: focus-visible:ring-2 ring-primary focus ring on Skip/Next/Submit/Add note — SPEC says every focus indicator in the card is the app-wide `focus-visible:ring-2` + `ring-primary` ring; the shared Button uses an offset `outline-primary` focus outline instead (still accent) (apps/web/src/chat/tools/SPEC.md ("Every focus indicator in the card is the app-wide accent focus ring"))
+- `realthing-extensions/ask-user-question/web/AskUserQuestionCard.tsx:667,678,688,1012`: focus-visible:ring-2 ring-primary focus ring on Skip/Next/Submit/Add note — SPEC says every focus indicator in the card is the app-wide `focus-visible:ring-2` + `ring-primary` ring; the shared Button uses an offset `outline-primary` focus outline instead (still accent) (apps/web/src/chat/tools/SPEC.md ("Every focus indicator in the card is the app-wide accent focus ring"))
 - `chat/resources/mcpRow.tsx:164`: SPEC calls the section header's Settings a "link" (`resources-mcp-settings`); it is now a soft-primary s button (wording only) (apps/web/src/chat/resources/SPEC.md (MCP servers paragraph))
 
 ## Specialized buttons not converted
@@ -348,10 +348,10 @@ Legacy names removed: variant `default` → `primary`, `soft` → `soft-primary`
 | chat | `chat/TodoList.tsx:342` | text link-action path (CHAT-170) |
 | chat | `prompt/SlashCommandCompletion.tsx:152` | template slot-hint chip (CHAT-086) |
 | chat | `prompt/SlashCommandCompletion.tsx:188` | slash command menu item (CHAT-084) |
-| tools | `thinkrail-extensions/ask-user-question/web/AskUserQuestionCard.tsx:779` | TabChip (ask-tab) — tab strip |
-| tools | `thinkrail-extensions/ask-user-question/web/AskUserQuestionCard.tsx:1093` | OptionRow (ask-option) — radio/checkbox option card |
-| tools | `thinkrail-extensions/ask-user-question/web/AskUserQuestionCard.tsx:1174` | OtherOptionRow ask-custom-toggle — checkbox/radio indicator |
-| tools | `thinkrail-extensions/ask-user-question/web/AskUserQuestionCard.tsx:1299` | ask-unanswered — warning-coloured underlined text link |
+| tools | `realthing-extensions/ask-user-question/web/AskUserQuestionCard.tsx:779` | TabChip (ask-tab) — tab strip |
+| tools | `realthing-extensions/ask-user-question/web/AskUserQuestionCard.tsx:1093` | OptionRow (ask-option) — radio/checkbox option card |
+| tools | `realthing-extensions/ask-user-question/web/AskUserQuestionCard.tsx:1174` | OtherOptionRow ask-custom-toggle — checkbox/radio indicator |
+| tools | `realthing-extensions/ask-user-question/web/AskUserQuestionCard.tsx:1299` | ask-unanswered — warning-coloured underlined text link |
 | tools | `chat/tools/mcp/McpActions.tsx:33` | CliActionButton (ACTION_CLASS) — accent text link with hover:underline |
 | tools | `chat/tools/mcp/McpActions.tsx:86` | mcp-full-output-retry (ACTION_CLASS) — underlined text link inside an error paragraph |
 | tools | `chat/tools/mcp/McpActions.tsx:163` | mcp-full-output trigger (ACTION_CLASS) — accent text link with hover:underline |
@@ -384,7 +384,7 @@ Legacy names removed: variant `default` → `primary`, `soft` → `soft-primary`
 | renderers | `packages/resource-renderers/src/support/ReviewThreadCard.tsx:83` | thread anchor label link-action (eyebrow text, activates the anchor) |
 | renderers | `packages/resource-renderers/src/support/markdownLinks.tsx:142` | document file link styled as underlined link text (SPEC: 'a button styled as document-link text') |
 | renderers | `packages/resource-renderers/src/support/RenderedDiff.tsx:186` | full-width disclosure for a collapsed hidden run (rendered-diff-collapsed) |
-| renderers | `thinkrail-extensions/visualize/web/FileCard.tsx:22` | FileLink: inline path text link (hover underline) |
+| renderers | `realthing-extensions/visualize/web/FileCard.tsx:22` | FileLink: inline path text link (hover underline) |
 
 ## Second pass — button-like controls moved onto the system
 
@@ -407,7 +407,7 @@ Not moved, by design: model / thinking selector triggers (select family, `data-[
 
 ## Review follow-ups (after the rebase onto main)
 
-The ask-user-question card moved into `thinkrail-extensions/ask-user-question` on main (#869); its rows below carry the new path, and its migration came along with it.
+The ask-user-question card moved into `realthing-extensions/ask-user-question` on main (#869); its rows below carry the new path, and its migration came along with it.
 
 System-level changes made while addressing the PR review; per-site rows above are updated where they changed.
 
@@ -427,7 +427,7 @@ System-level changes made while addressing the PR review; per-site rows above ar
 
 ## Remaining raw `<button>` elements (current code)
 
-Generated from the working copy (raw `<button>` outside `packages/ui`; `web/` = apps/web/src, `rr/` = packages/resource-renderers/src, `ext/` = thinkrail-extensions): 123 elements, grouped by why they are not `Button` / `IconButton`.
+Generated from the working copy (raw `<button>` outside `packages/ui`; `web/` = apps/web/src, `rr/` = packages/resource-renderers/src, `ext/` = realthing-extensions): 123 elements, grouped by why they are not `Button` / `IconButton`.
 
 ### Panel tool rails — on the button system (ghost M skin via `buttonVariants`), raw element kept (3)
 

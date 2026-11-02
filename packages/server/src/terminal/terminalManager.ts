@@ -4,8 +4,8 @@ import type {
 	TerminalDetachedPush,
 	TerminalExitPush,
 	TerminalTabInfo,
-} from "@thinkrail/contracts";
-import { TERMINAL_REPLAY_KB, WS_CHANNELS } from "@thinkrail/contracts";
+} from "@realthing/contracts";
+import { TERMINAL_REPLAY_KB, WS_CHANNELS } from "@realthing/contracts";
 import { type IPty, spawn } from "bun-pty";
 import {
 	loadConfig,
@@ -21,6 +21,7 @@ import {
 	type TerminalDeliveryResult,
 } from "./outputBatcher";
 import { createOutputRecorder, type OutputRecorder } from "./outputRecorder";
+import { terminalPtyEnv } from "./ptyEnv";
 import { nudgePtyRedraw, type PtyGrid, resizePtyIfChanged } from "./ptyGrid";
 import { terminalShell, terminalShellArgs, terminalShellStartFailure } from "./shellArgs";
 import { hasChildProcesses } from "./shellBusy";
@@ -82,16 +83,6 @@ function membershipChanged(workspaceId: string): void {
 const completions = createTerminalCompletionQueue((clientKey, channel, data) =>
 	pushToClient(clientKey, channel, data),
 );
-
-function ptyEnv(): Record<string, string> {
-	const env: Record<string, string> = {};
-	for (const [key, value] of Object.entries(process.env)) {
-		if (typeof value === "string") env[key] = value;
-	}
-	env.TERM = "xterm-256color";
-	env.COLORTERM = "truecolor";
-	return env;
-}
 
 const DEFAULT_PTY_SIZE = { cols: 80, rows: 24 } as const;
 
@@ -165,19 +156,26 @@ function spawnForTab(
 	const ws = loadWorkspaces().find((w) => w.id === workspaceId);
 	if (!ws) throw new Error(`Unknown workspace: ${workspaceId}`);
 
-	const preference = loadConfig().terminalWindowsShell;
-	const shell = terminalShell(process.platform, process.env, preference);
+	const config = loadConfig();
+	const preference = config.terminalWindowsShell;
+	const shell = terminalShell(
+		process.platform,
+		process.env,
+		preference,
+		undefined,
+		config.terminalShellPath,
+	);
 	const grid = {
 		cols: size.cols ?? DEFAULT_PTY_SIZE.cols,
 		rows: size.rows ?? DEFAULT_PTY_SIZE.rows,
 	};
 	let pty: IPty;
 	try {
-		pty = spawn(shell, terminalShellArgs(process.platform), {
+		pty = spawn(shell, terminalShellArgs(process.platform, config.terminalShellArgs), {
 			name: "xterm-256color",
 			cwd: ws.worktreePath,
 			...grid,
-			env: ptyEnv(),
+			env: terminalPtyEnv(process.platform, process.env),
 		});
 	} catch (cause) {
 		throw new Error(terminalShellStartFailure(process.platform, process.env, preference), {

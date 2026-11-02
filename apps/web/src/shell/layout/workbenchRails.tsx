@@ -4,10 +4,10 @@ import {
 	RiTerminalBoxFill,
 	RiTerminalBoxLine as SquareTerminal,
 } from "@remixicon/react";
-import type { MessageKey } from "@thinkrail/locales";
-import { useT } from "@thinkrail/locales/react";
-import { IconTooltip } from "@thinkrail/ui/tooltip";
-import { cn } from "@thinkrail/ui/utils";
+import type { MessageKey } from "@realthing/locales";
+import { useT } from "@realthing/locales/react";
+import { IconTooltip } from "@realthing/ui/tooltip";
+import { cn } from "@realthing/ui/utils";
 import type { ReactNode } from "react";
 import { type LayoutAttention, tupleKey } from "../../lib";
 import {
@@ -325,7 +325,6 @@ export function AuxiliaryRegionRail({
 									onFocusAdjacentGroup={shared.onFocusAdjacentGroup}
 									onHideSide={shared.onHideSide}
 									onRevealTool={shared.onRevealTool}
-									onRenameChat={shared.onRenameChat}
 									canFocusAdjacentGroup={shared.canFocusAdjacentGroup}
 									renderTabAdornment={shared.renderTabAdornment}
 									draggingTab={shared.draggingTab}

@@ -1,6 +1,6 @@
 import type { RemixiconComponentType } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { cn } from "@thinkrail/ui/utils";
+import { useT } from "@realthing/locales/react";
+import { cn } from "@realthing/ui/utils";
 import { type ComponentPropsWithoutRef, forwardRef } from "react";
 
 export function CardSkeleton() {

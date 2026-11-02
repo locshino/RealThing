@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { currentTranslator } from "@thinkrail/locales/react";
+import { currentTranslator } from "@realthing/locales/react";
 import {
 	ancestorPaths,
 	compactAge,

@@ -2,129 +2,88 @@
 id: goal-and-requirements
 type: goal-and-requirements
 status: active
-title: ThinkRail — product goal and scope
-covers: [product-goal, product-audience, product-principles, product-capabilities, product-non-goals, engine-decision]
+title: RealThing — product goal and scope
+covers: [product-goal, product-audience, product-principles, product-capabilities, product-non-goals]
 tags: [product, scope]
 ---
 
 ## Goal
 
-ThinkRail is the agentic IDE that gets better every time you use it. It is a thin host that runs `pi`
-and bridges it to a rich UI, isolates work into separate workspaces, and gives the agent durable
-project knowledge through living specs and reusable skills — so agent work is approachable without a
-terminal and stays isolated, reviewable, and grounded in specs: building with agents without losing
-control.
+RealThing is a workspace-first developer IDE built around Git worktrees, rich file viewing and diffing,
+integrated PTY terminals, and manual workspace plans. It isolates parallel tasks into separate git
+worktrees and brings files, multi-scope diffs, terminals, and checklists into one cohesive workbench.
 
 This document describes the product as it is and why it exists, and changes with it: a capability that
 lands is added here, a decision that changes is rewritten here. It holds no versions or roadmap.
 
 ## Problem
 
-`pi` is a deliberately minimal, extensible harness. That flexibility costs time: newcomers spend long
-learning to drive it, and experienced users still find the terminal clumsy for the work around the agent.
+Working on multiple tasks in a single repository checkout creates friction:
 
-- **Parallel agents collide** in one working tree — with each other and with the user's own edits.
-- **Agent changes are hard to review** from a CLI: reading diffs, commenting on exact lines, and
-  handing that feedback back to the agent.
-- **Intent evaporates.** Decisions made in a chat end with the session; the next one re-derives or
-  contradicts them.
+- **Parallel tasks collide** in one working tree — switching branches requires stashing or committing
+  unfinished work, and running builds or tests in one checkout disrupts another.
+- **Changes are hard to inspect and revert selectively** across branch, uncommitted, and commit scopes
+  from a terminal alone.
+- **Task checklists drift away from the workspace** when tracked outside the checkout.
 
 ## Who it's for
 
-People who build with `pi` on real git repositories — newcomers who want a visual on-ramp, experienced
-users who want an IDE around the agent without giving up pi's depth, and agent-first builders who want
-to move fast without losing control of what the agent did.
+Developers working on git repositories who want isolated worktree workspaces by default, fast file and
+diff inspection across multiple scopes, integrated terminals, and lightweight per-workspace task planning
+in a native desktop app or browser workbench.
 
 ## Value
 
-- **Isolation by default.** A workspace ThinkRail creates is a git worktree with its own branch and cwd:
-  agents run in parallel and the main branch stays clean until the user merges. Working directly in the
-  project folder (the Default workspace) is an explicit choice, never the default — except the setup chat of
-  a project ThinkRail just created empty, which has nothing to isolate yet.
-- **A real IDE around the agent.** Editor, diffs, terminals, and review in one workbench, so the user
-  sees and steers the agent's work instead of reconstructing it from a scrollback.
-- **Specs as ground truth.** The project's intent lives in a spec graph beside the code that the agent
-  reads, searches, and maintains, so intent survives the session.
-- **All of pi, nothing hidden.** Models, skills, extensions, and session state stay pi's; ThinkRail adds
-  a surface, not a second agent.
+- **Isolation by default.** A workspace RealThing creates is a git worktree with its own branch and cwd:
+  tasks progress in parallel and the main branch stays clean until merged. Working directly in the
+  project folder (the Default workspace) is an explicit choice, never the default.
+- **A focused workbench.** Editor, multi-scope diffs, file and hunk revert/undo, terminals, and task
+  plans in one splittable workbench.
+- **Specs beside the code.** RealThing is built spec-first, with `SPEC.md` documents living alongside
+  every module.
 
 ## Principles
 
 Durable decisions every feature follows; [[architecture]] carries the structure that enforces them.
 
-- **pi is the only engine**, run in-process — no second runtime (no `claude-agent-sdk`). `pi` owns the
-  model registry, system prompt, skills/extensions, compaction, cost, and session state.
-- **Influence by feeding, never by assembling.** Features shape the agent only through what they feed
-  `pi` — prompt context, files, pi's own skills/extensions — and the flags a session starts with.
-- **Expose, don't recompute.** The host shows what `pi` reports rather than deriving its own copy.
-- **The user's own tools and credentials.** Git, GitHub, and model access go through the user's `git`,
-  `gh`, `central` CLI, and pi's provider auth; ThinkRail keeps no accounts or tokens of its own.
-- **Trust is explicit.** What a cloned repository could inject into the agent — its committed skill
-  aliases, pi's own project resources (`.pi/` settings, extensions, skills, prompts, subagent definitions),
-  and MCP servers it defines — loads only after a per-project trust grant; a repo-defined MCP server also
-  needs a per-entry approval that lapses when the entry changes.
-- **Spec-first.** ThinkRail is built spec-first and helps the projects it opens work the same way.
+- **Expose host truth, don't recompute.** The host owns domain state (projects, workspaces, git, files,
+  terminals, plans) and serves it over the typed wire; the UI hydrates from reads and streams deltas.
+- **The user's own tools and credentials.** Git operations run through the user's `git` and SSH/HTTPS
+  configuration; RealThing keeps no accounts or tokens of its own.
+- **Spec-first.** RealThing is built spec-first with clear module boundaries and public surfaces.
 
 ## Capabilities
 
-What ThinkRail does, at product level; the linked spec owns the detail.
+What RealThing does, at product level; the linked spec owns the detail.
 
-- **Two launchers, one app** — a native desktop app and the `thinkrail` CLI that opens the same UI in a
-  browser, both embedding the same host; state lives under `~/.thinkrail` ([[module-desktop]],
+- **Two launchers, one app** — a native desktop app and the `realthing` CLI that opens the same UI in a
+  browser, both embedding the same host; state lives under `~/.realthing` ([[module-desktop]],
   [[module-cli]]).
 - **Projects → workspaces** — a git repo is a project; a workspace is a git worktree, plus the built-in
   Default workspace (the project folder itself) and existing worktrees attached in place
   ([[submodule-server-workspaces]]).
-- **Workbench** — a splittable layout of files, diffs, documents, chats, and terminals with movable side
+- **Workbench** — a splittable layout of files, diffs, documents, plans, and terminals with movable side
   and bottom tool panels, kept local to each window ([[submodule-web-shell-layout]]).
-- **Chats** — concurrent `pi` sessions per workspace, each with its own model, pi-reported token/cost,
-  steering and follow-ups mid-run, skill and prompt-template autocomplete, and history search
-  ([[submodule-web-chat]], [[submodule-server-agent]]).
-- **Existing skills reused** — portable Agent Skills kept for other coding agents are read in place;
-  `pi` stays the parser and runtime ([[submodule-server-agent]]).
-- **Plans with per-step review** — a shared TODO plan the agent works and the user edits; a completed step
-  is committed on its own when its changes are provably its own, and can be reviewed by an independent
-  reviewer ([[module-pi-todos]], [[submodule-server-todos]],
-  [[submodule-server-host-plan-review]]).
-- **Subagents** — delegation to isolated child sessions, in the foreground, in parallel, or in the
-  background ([[module-pi-subagents]]).
-- **Review** — anchored comments on files and diffs, collected without starting the agent and sent as
-  structured context to chats that can resolve them; local review, not a forge integration
-  ([[submodule-server-reviews]]).
-- **Open PR** — push the workspace branch and open or update its GitHub PR through the user's `gh`,
-  falling back to a prefilled compare URL (GitLab: the prefilled new-MR page), from the plan or straight
-  from the topbar, whose Remote and Pull request segments always show the branch's next step — publish,
-  push, sync, open a PR described from the plan, commits, a template, or an agent draft — and, for an open
-  GitHub PR, its checks and review decision with mark ready, merge, fix failing checks or integrate a
-  diverged branch with the agent, reopen, and delete the remote branch
-  ([[submodule-server-pr]], [[submodule-web-shell-location-bar]]).
-- **Specs** — the agent searches, navigates, and maintains the spec graph through `spec_*` tools; the
-  read-only Specs tool renders it as a tree ([[module-spec-graph]], [[submodule-server-spec]]).
-- **Workflows** — bundled workflow skills for project setup, design brainstorming, and shipping a PR
-  ([[module-thinkrail-workflow]]).
-- **Providers** — in-app sign-in and API keys through pi's auth, and JetBrains AI through the user's
-  `central` CLI ([[submodule-server-auth]], [[central-integration]]).
-- **Pi configuration** — the user's own pi config folder, or another one (a personal vs a work setup), plus
-  extra environment variables, chosen in Settings and applied to the whole host at the next start; one setup
-  per host, not per project ([[submodule-server-environment]]).
-- **Agent tools** — web research, structured multiple-choice questions the agent asks in chat instead of
-  guessing, and inline diagrams, comparisons and file previews in chat; a proposed UI change is shown as
-  a rendered before/after mockup through the same renderers and review comments as diff review
-  ([[submodule-web-chat-tools-web]], [[module-ext-ask-user-question]], [[module-ext-visualize]]).
-- **MCP servers** — pi's built-in MCP, read from the user's `mcp.json`, managed from Settings and visible
-  per chat next to background commands and subagents; a confirm in the chat, on the call, before calls
-  that may change data, with a per-project "Always allow" for tools the user trusts
-  ([[submodule-server-agent]], [[submodule-web-panels]]).
-- **Around the workspace** — open a worktree in an installed editor or IDE, and keep the app itself up
-  to date ([[submodule-server-editors]], [[submodule-web-updates]]).
+- **Files & multi-scope Changes** — browse the worktree file tree with live git status marks, inspect
+  rich resources (Monaco code, Markdown, JSON, CSV, notebooks, images, SVGs, PDFs, HTML), compare diffs
+  across branch, uncommitted, and individual commit scopes, and revert/undo whole files or individual
+  hunks with compare-and-swap safety ([[module-resource-renderers]], [[submodule-server-changes]],
+  [[submodule-server-git]]).
+- **Workspace plans** — a workspace-scoped checklist of groups and items edited from the Plan side tool
+  or center Plan page ([[submodule-server-todos]], [[submodule-web-panels]]).
+- **Terminals** — real PTY terminals (`bun-pty` + `@xterm/xterm`) keyed by workspace and tab, surviving
+  browser reloads and reconnections ([[submodule-server-terminal]]).
+- **Around the workspace** — view branch ahead/behind status against `origin`, open a worktree in an
+  installed editor or IDE, and keep the app itself up to date ([[submodule-server-editors]],
+  [[submodule-web-updates]], [[submodule-web-shell-location-bar]]).
 - **Interface language** — the UI follows the system language or the user's choice; English and
   a set of translations ship built-in (an untranslated string shows in English), and a user adds or
-  overrides a language with a flat JSON file in `~/.thinkrail/locales`, live on save. Agent and tool
-  output is never translated ([[module-locales]], [[submodule-web-i18n]]).
-- **Themes** — light, dark, minimal and high-contrast themes ship built-in, following the system
+  overrides a language with a flat JSON file in `~/.realthing/locales`, live on save
+  ([[module-locales]], [[submodule-web-i18n]]).
+- **Themes** — light, dark, minimal, and high-contrast themes ship built-in, following the system
   appearance or a fixed choice; a user adds a theme by saving a copy of a bundled theme file with new
-  colours in `~/.thinkrail/themes`, live on save ([[submodule-web-themes]]).
-- **Brand** — ThinkRail green accent (bright on dark themes, deepened on light ones so it clears AA on
+  colours in `~/.realthing/themes`, live on save ([[submodule-web-themes]]).
+- **Brand** — RealThing green accent (bright on dark themes, deepened on light ones so it clears AA on
   both), a Darcula-family dark background, Orbitron for the brand display role, Geist and JetBrains Mono
   for UI and code ([[submodule-web-themes]], [[web-typography]]).
 
@@ -133,6 +92,5 @@ What ThinkRail does, at product level; the linked spec owns the detail.
 Only these are excluded by decision. Anything neither listed above nor excluded here is open, not
 forbidden.
 
-- **A second agent runtime**, or any host-side agent loop or prompt assembly (see Principles).
-- **ThinkRail accounts or a login UI.** Who may reach a host is decided by the network — Tailscale ACLs
+- **RealThing accounts or a login UI.** Who may reach a host is decided by the network — Tailscale ACLs
   and device identity ([[architecture]]).

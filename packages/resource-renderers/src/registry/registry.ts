@@ -1,4 +1,4 @@
-import type { GitDiffScope } from "@thinkrail/contracts";
+import type { GitDiffScope } from "@realthing/contracts";
 import { PENDING_TEXT_META } from "./content";
 import { describeResource, inferredMime } from "./describe";
 import { selectResourceRenderer } from "./selection";
@@ -77,7 +77,7 @@ export function resolveRenderers(
 	intent: ResourceIntent,
 	environment: ResourceEnvironment,
 ): ResourceRenderer[] {
-	const fallbackId = descriptor.text ? "thinkrail/code" : "thinkrail/binary";
+	const fallbackId = descriptor.text ? "realthing/code" : "realthing/binary";
 	const fallback = registry.get(fallbackId);
 	if (!fallback || !supports(fallback, intent, environment)) {
 		throw new Error(`Resource renderer fallback is unavailable: ${fallbackId} (${intent})`);

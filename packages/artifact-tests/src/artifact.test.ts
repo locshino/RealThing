@@ -2,8 +2,8 @@ import { afterEach, expect, test } from "bun:test";
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
-import { binaryArtifactName } from "@thinkrail/cli/artifact";
-import { removeTree } from "@thinkrail/shared/removeTree";
+import { binaryArtifactName } from "@realthing/cli/artifact";
+import { removeTree } from "@realthing/shared/removeTree";
 import {
 	binaryArtifactPath,
 	locateDesktopLauncher,
@@ -15,7 +15,7 @@ import * as artifactTests from "./index";
 const roots: string[] = [];
 
 function packageDir(...files: string[]): string {
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-artifact-test-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-artifact-test-"));
 	roots.push(root);
 	for (const file of files) {
 		const path = join(root, file);
@@ -34,25 +34,25 @@ const desktopTargets: {
 	{
 		platform: "darwin",
 		arch: "arm64",
-		launcher: "build/dev-macos-arm64/ThinkRail-dev.app/Contents/MacOS/launcher",
+		launcher: "build/dev-macos-arm64/RealThing-dev.app/Contents/MacOS/launcher",
 		decoy: "build/dev-macos-arm64/Another.app/Contents/MacOS/launcher",
 	},
 	{
 		platform: "win32",
 		arch: "x64",
-		launcher: "build/dev-win-x64/ThinkRail-dev/bin/launcher.exe",
+		launcher: "build/dev-win-x64/RealThing-dev/bin/launcher.exe",
 		decoy: "build/dev-win-x64/Another/bin/launcher.exe",
 	},
 	{
 		platform: "linux",
 		arch: "x64",
-		launcher: "build/dev-linux-x64/ThinkRail-dev/bin/launcher",
+		launcher: "build/dev-linux-x64/RealThing-dev/bin/launcher",
 		decoy: "build/dev-linux-x64/Another/bin/launcher",
 	},
 	{
 		platform: "linux",
 		arch: "arm64",
-		launcher: "build/dev-linux-arm64/ThinkRail-dev/bin/launcher",
+		launcher: "build/dev-linux-arm64/RealThing-dev/bin/launcher",
 		decoy: "build/dev-linux-arm64/Another/bin/launcher",
 	},
 ];
@@ -125,8 +125,8 @@ test("default artifact paths stay rooted at the repository from every invocation
 		"build",
 		`dev-${os}-${process.arch}`,
 		...(process.platform === "darwin"
-			? ["ThinkRail-dev.app", "Contents", "MacOS", "launcher"]
-			: ["ThinkRail-dev", "bin", process.platform === "win32" ? "launcher.exe" : "launcher"]),
+			? ["RealThing-dev.app", "Contents", "MacOS", "launcher"]
+			: ["RealThing-dev", "bin", process.platform === "win32" ? "launcher.exe" : "launcher"]),
 	);
 	const source = `
 		import { binaryArtifactPath, locateDesktopLauncher } from ${JSON.stringify(join(import.meta.dir, "artifact.ts"))};
@@ -155,35 +155,35 @@ test("names the Windows setup executable per channel", () => {
 
 test("locates the channel-suffixed setup executable inside an expanded ZIP", () => {
 	const root = packageDir(
-		"ThinkRail-Setup-canary.exe",
-		join(".installer", "ThinkRail-Setup-canary.tar.zst"),
+		"RealThing-Setup-canary.exe",
+		join(".installer", "RealThing-Setup-canary.tar.zst"),
 	);
 	expect(locateWindowsSetupExecutable(root, "canary")).toBe(
-		join(root, "ThinkRail-Setup-canary.exe"),
+		join(root, "RealThing-Setup-canary.exe"),
 	);
 });
 
 test("locates the unsuffixed setup executable for the stable channel", () => {
-	const root = packageDir("ThinkRail-Setup.exe");
-	expect(locateWindowsSetupExecutable(root, "stable")).toBe(join(root, "ThinkRail-Setup.exe"));
+	const root = packageDir("RealThing-Setup.exe");
+	expect(locateWindowsSetupExecutable(root, "stable")).toBe(join(root, "RealThing-Setup.exe"));
 });
 
 test("refuses a ZIP whose setup executable belongs to another channel", () => {
-	const root = packageDir("ThinkRail-Setup-canary.exe");
+	const root = packageDir("RealThing-Setup-canary.exe");
 	expect(() => locateWindowsSetupExecutable(root, "stable")).toThrow(
-		"desktop ZIP does not contain ThinkRail-Setup.exe",
+		"desktop ZIP does not contain RealThing-Setup.exe",
 	);
 });
 
-test.each(["stable", "canary"])("selects only ThinkRail's exact %s setup name", (channel) => {
+test.each(["stable", "canary"])("selects only RealThing's exact %s setup name", (channel) => {
 	const root = packageDir(
 		"Another-Setup.exe",
 		"Another-Setup-canary.exe",
-		"ThinkRail-Setup.exe",
-		"ThinkRail-Setup-canary.exe",
+		"RealThing-Setup.exe",
+		"RealThing-Setup-canary.exe",
 	);
 	expect(locateWindowsSetupExecutable(root, channel)).toBe(
-		join(root, `ThinkRail${windowsSetupExecutableSuffix(channel)}`),
+		join(root, `RealThing${windowsSetupExecutableSuffix(channel)}`),
 	);
 });
 
@@ -191,7 +191,7 @@ test.each([
 	"stable",
 	"canary",
 ])("refuses similarly named or nested %s setup executables", (channel) => {
-	const name = `ThinkRail${windowsSetupExecutableSuffix(channel)}`;
+	const name = `RealThing${windowsSetupExecutableSuffix(channel)}`;
 	const root = packageDir(`Another${windowsSetupExecutableSuffix(channel)}`, join("other", name));
 	expect(() => locateWindowsSetupExecutable(root, channel)).toThrow(
 		`desktop ZIP does not contain ${name}`,

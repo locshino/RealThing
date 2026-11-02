@@ -1,5 +1,5 @@
-import type { GitDiffScope, Workspace } from "@thinkrail/contracts";
-import { CodedError } from "@thinkrail/shared/codedError";
+import type { GitDiffScope, Workspace } from "@realthing/contracts";
+import { CodedError } from "@realthing/shared/codedError";
 import { type GitResult, git, gitAsync } from "./gitExec";
 
 export function diffBaseRef(ws: Pick<Workspace, "baseBranch" | "diffBase">): string {
@@ -65,32 +65,6 @@ export async function resolveDiffRange(
 			originalRef: resolved.out,
 			modifiedRef: null,
 			resolvedOriginalOid: resolved.out,
-		};
-	}
-	if (scope.kind === "turn") {
-		if (!OID.test(scope.baseTree) || !OID.test(scope.headTree))
-			throw new Error(`Not a tree id: ${scope.baseTree}..${scope.headTree}`);
-		for (const tree of [scope.baseTree, scope.headTree]) {
-			const resolved = await gitAsync(ws.worktreePath, [
-				"rev-parse",
-				"--verify",
-				"--quiet",
-				`${tree}^{tree}`,
-			]);
-			throwExecutionFailure(resolved);
-			if (!resolved.ok || !resolved.out)
-				throw new CodedError(
-					"UNKNOWN_COMMIT",
-					"That turn's snapshot is no longer in this repository",
-				);
-		}
-		return {
-			listPrefix: ["diff"],
-			listRevs: [scope.baseTree, scope.headTree],
-			untracked: false,
-			originalRef: scope.baseTree,
-			modifiedRef: scope.headTree,
-			resolvedOriginalOid: scope.baseTree,
 		};
 	}
 	if (scope.kind === "commit") {

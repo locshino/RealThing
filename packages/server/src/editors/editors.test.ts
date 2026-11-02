@@ -40,6 +40,24 @@ describe("listAvailableEditors", () => {
 			{ id: "jetbrains", label: "IntelliJ IDEA", kind: "gui" },
 		]);
 	});
+
+	test("detects Cursor, Zed, Windsurf, Sublime Text, Neovim, Helix, Nano, and configured Custom Editor", () => {
+		expect(
+			listAvailableEditors(
+				whichOnly("my-ide", "cursor", "zed", "windsurf", "subl", "nvim", "hx", "nano"),
+				"my-ide",
+			),
+		).toEqual([
+			{ id: "custom", label: "Custom Editor", kind: "gui" },
+			{ id: "cursor", label: "Cursor", kind: "gui" },
+			{ id: "zed", label: "Zed", kind: "gui" },
+			{ id: "windsurf", label: "Windsurf", kind: "gui" },
+			{ id: "sublime", label: "Sublime Text", kind: "gui" },
+			{ id: "nvim", label: "Neovim", kind: "terminal" },
+			{ id: "hx", label: "Helix", kind: "terminal" },
+			{ id: "nano", label: "Nano", kind: "terminal" },
+		]);
+	});
 });
 
 describe("openEditor", () => {
@@ -59,6 +77,12 @@ describe("openEditor", () => {
 		spawnCalls.length = 0;
 		openEditor("jetbrains", "/tmp/wt", whichOnly("clion"), recordingSpawn);
 		expect(spawnCalls).toEqual([["/usr/bin/clion", "/tmp/wt"]]);
+	});
+
+	test("launches custom editor when configured and available", () => {
+		spawnCalls.length = 0;
+		openEditor("custom", "/tmp/wt", whichOnly("my-ide"), recordingSpawn, "my-ide");
+		expect(spawnCalls).toEqual([["/usr/bin/my-ide", "/tmp/wt"]]);
 	});
 });
 

@@ -1,5 +1,5 @@
 {
-	"name": "@thinkrail/shared",
+	"name": "@realthing/shared",
 	"version": "0.0.0",
 	"private": true,
 	"type": "module",
@@ -9,7 +9,6 @@
 		"./startupMark": "./src/startupMark.ts",
 		"./version": "./src/version.ts",
 		"./windowsIdentity": "./src/windowsIdentity.ts",
-		"./jbcentral": "./src/jbcentral.ts",
 		"./paths": "./src/paths.ts",
 		"./codedError": "./src/codedError.ts",
 		"./removeTree": "./src/removeTree.ts",
@@ -22,7 +21,7 @@
 		"generate-icons": "bun scripts/generate-icons.ts"
 	},
 	"dependencies": {
-		"@thinkrail/contracts": "workspace:*"
+		"@realthing/contracts": "workspace:*"
 	},
 	"devDependencies": {
 		"@resvg/resvg-js": "2.6.2",

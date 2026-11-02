@@ -3,13 +3,10 @@ import {
 	RiCircleFill,
 	RiSettings3Line as Settings,
 } from "@remixicon/react";
-import type { MessageKey } from "@thinkrail/locales";
-import { useT } from "@thinkrail/locales/react";
-import { IconButton } from "@thinkrail/ui/button";
+import type { MessageKey } from "@realthing/locales";
+import { useT } from "@realthing/locales/react";
+import { IconButton } from "@realthing/ui/button";
 import { useEffect, useState } from "react";
-import { NotificationPermissionPrompt, useAttentionNotifications } from "../notifications";
-import { AnalyticsConsentDialog } from "../panels/AnalyticsConsentDialog";
-import { InterviewPromptDialog } from "../panels/InterviewPromptDialog";
 import { NewWorkspaceDialog } from "../panels/NewWorkspaceDialog";
 import { SettingsDialog } from "../panels/SettingsDialog";
 import { Toaster } from "../panels/Toaster";
@@ -17,9 +14,7 @@ import { useBranchStatus } from "../panels/useBranchStatus";
 import {
 	SettingsSection,
 	selectActiveWorkspace,
-	selectAnalyticsConsentPromptOpen,
 	selectContextProject,
-	selectOnboardingActive,
 	useAppStore,
 } from "../store";
 import {
@@ -30,22 +25,15 @@ import {
 	readThemeHint,
 	writeThemeHint,
 } from "../themes";
-import {
-	type ConnectionStatus,
-	runHostUpdate,
-	supportsHostUpdateRun,
-	supportsUserThemes,
-} from "../transport";
+import { type ConnectionStatus, supportsUserThemes } from "../transport";
 import { UpdateInstallSurfaces, UpdateReadyButton, UpdateSettings, useUpdates } from "../updates";
 import { AppShortcuts } from "./AppShortcuts";
 import { BrandLogo } from "./BrandLogo";
-import { JbcentralQuotaTopbar } from "./JbcentralQuotaTopbar";
 import { LayoutSettings } from "./LayoutSettings";
 import { useLocalLayoutState } from "./layoutState";
 import { LocationBar } from "./locationBar";
 import { NativeWindowControls } from "./NativeWindowControls";
 import { PROJECT_HOME_PROJECTS_REGION_ID, ProjectHome } from "./ProjectHome";
-import { SessionSwitcher } from "./SessionSwitcher";
 import { readSettingsShortcutLabel } from "./useAppShortcuts";
 import { useCollapsibleRegion } from "./useCollapsibleRegion";
 import { useGlobalHotkeys } from "./useGlobalHotkeys";
@@ -67,34 +55,22 @@ const STATUS_DOT: Record<ConnectionStatus, string> = {
 export function Shell() {
 	const t = useT();
 	useLocalLayoutState();
-	useAttentionNotifications();
 	const status = useAppStore((s) => s.status);
-	const analyticsConsentOpen = useAppStore(selectAnalyticsConsentPromptOpen);
-	const onboardingActive = useAppStore(selectOnboardingActive);
 	const StatusDot = status === "connected" ? RiCircleFill : Circle;
 	const activeWorkspaceId = useAppStore((s) => s.activeWorkspaceId);
 	const activeWorkspace = useAppStore(selectActiveWorkspace);
 	const contextProject = useAppStore(selectContextProject);
-	const {
-		review: openReview,
-		url: openReviewUrl,
-		status: branchStatus,
-		noteOpenReview,
-		refreshBranchStatus,
-	} = useBranchStatus(activeWorkspace, status, { pollChecks: true });
-	const locationReview =
-		openReview && openReviewUrl ? { ...openReview, url: openReviewUrl } : openReview;
+	const { status: branchStatus } = useBranchStatus(activeWorkspace, status);
 	const hasActiveWorkspace = activeWorkspaceId != null;
-	const protocolVersion = useAppStore((s) => s.protocolVersion);
-	const updates = useUpdates(supportsHostUpdateRun(protocolVersion) ? runHostUpdate : null);
+	const updates = useUpdates();
 	const windowControls = useNativeWindowControls();
 	const [newWorkspaceProjectId, setNewWorkspaceProjectId] = useState<string | null>(null);
-	const sessionSwitcherOpen = useAppStore((s) => s.sessionSwitcherOpen);
 
 	const homeProjects = useCollapsibleRegion<HTMLDivElement>(PROJECT_HOME_PROJECTS_REGION_ID);
 
 	const [themeHint] = useState(readThemeHint);
 	const [settingsShortcut] = useState(readSettingsShortcutLabel);
+	const protocolVersion = useAppStore((s) => s.protocolVersion);
 	const welcomeGeneration = useAppStore((s) => s.welcomeGeneration);
 	const theme = useAppStore((s) => s.theme);
 	const themeMode = useAppStore((s) => s.themeMode);
@@ -154,7 +130,6 @@ export function Shell() {
 		...(contextProject
 			? { onNewWorkspace: () => setNewWorkspaceProjectId(contextProject.id) }
 			: {}),
-		onSessionSwitcher: () => useAppStore.getState().toggleSessionSwitcher(),
 	});
 	return (
 		<div data-testid="shell" className="grid h-full grid-cols-[minmax(0,1fr)] grid-rows-[auto_1fr]">
@@ -173,10 +148,7 @@ export function Shell() {
 						<LocationBar
 							project={contextProject}
 							workspace={activeWorkspace}
-							review={activeWorkspace ? locationReview : null}
 							branchStatus={branchStatus}
-							noteOpenReview={noteOpenReview}
-							refreshBranchStatus={refreshBranchStatus}
 							onNewWorkspace={() => setNewWorkspaceProjectId(contextProject.id)}
 						/>
 					) : null}
@@ -191,7 +163,6 @@ export function Shell() {
 							onOpen={() => useAppStore.getState().openSettings(SettingsSection.Updates)}
 						/>
 					) : null}
-					<JbcentralQuotaTopbar />
 					<span
 						data-testid="connection-status"
 						data-status={status}
@@ -218,7 +189,7 @@ export function Shell() {
 								: t("shell.topbar.settings")
 						}
 						data-testid="open-settings"
-						onClick={() => useAppStore.getState().openSettings()}
+						onClick={() => useAppStore.getState().openSettings(SettingsSection.Appearance)}
 					/>
 				</div>
 				<div
@@ -255,20 +226,6 @@ export function Shell() {
 			) : (
 				<ProjectHome projects={homeProjects} />
 			)}
-			{onboardingActive ? null : analyticsConsentOpen ? (
-				<AnalyticsConsentDialog />
-			) : (
-				<InterviewPromptDialog />
-			)}
-			<SessionSwitcher
-				open={sessionSwitcherOpen}
-				onOpenChange={(open) => {
-					const store = useAppStore.getState();
-					if (open) store.openSessionSwitcher();
-					else store.closeSessionSwitcher();
-				}}
-			/>
-			<NotificationPermissionPrompt />
 			<Toaster />
 			<UpdateInstallSurfaces updates={updates} />
 			<AppShortcuts />

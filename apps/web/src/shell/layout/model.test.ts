@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { applyLocale, currentTranslator } from "@thinkrail/locales/react";
+import { applyLocale, currentTranslator } from "@realthing/locales/react";
 import type { LayoutAttention } from "../../lib";
 import {
 	adoptToolSelections,
@@ -22,7 +22,6 @@ import {
 	openCenterTab,
 	reconcileAttention,
 	removeLayoutGroup,
-	removeSessionLayoutTabs,
 	resizeAuxiliaryGroups,
 	resizeBottomRegion,
 	resizeSideGroups,
@@ -118,8 +117,8 @@ describe("workspace layout model", () => {
 			name: `Terminal ${n}`,
 		});
 		expect(describeLayoutGroup(currentTranslator(), [])).toBe("(empty)");
-		expect(describeLayoutGroup(currentTranslator(), [toolTab("plan"), toolTab("review")])).toBe(
-			"(TODO List, Review)",
+		expect(describeLayoutGroup(currentTranslator(), [toolTab("plan"), toolTab("files")])).toBe(
+			"(TODO List, Files)",
 		);
 		expect(
 			describeLayoutGroup(currentTranslator(), [
@@ -158,41 +157,25 @@ describe("workspace layout model", () => {
 		expect(layoutTabName(currentTranslator(), file("one"))).toBe("one.ts");
 	});
 
-	test("default chat, terminal, Changes, diff and plan names follow the current language", () => {
+	test("default terminal, Changes, diff and plan names follow the current language", () => {
 		applyLocale("de", {
 			de: {
-				"store.chatTab.defaultName": "Unterhaltung",
 				"store.terminal.defaultTitle": "Konsole {{index}}",
 				"changes.tab.name": "Änderungen",
-				"chat.todo.planDocName": "Plan: {{title}}",
+				"workbench.tool.plan": "Aufgabenliste",
 			},
 		});
 		try {
 			const t = currentTranslator();
-			const chat = (name: string) => ({ kind: "chat", id: "c", name, sessionId: "s" }) as const;
-			expect(layoutTabName(t, chat(""))).toBe("Unterhaltung");
-			expect(layoutTabName(t, chat("Fix login"))).toBe("Fix login");
-			const prompts = { s: "Please refactor the authentication module so that tokens refresh" };
-			expect(layoutTabName(t, chat(""), prompts)).toBe(
-				"Please refactor the authentication module so\u2026",
-			);
-			expect(layoutTabName(t, chat("Fix login"), prompts)).toBe("Fix login");
-			expect(layoutTabName(t, chat(""), { other: "x" })).toBe("Unterhaltung");
-			expect(describeLayoutGroup(t, [chat(""), toolTab("plan")], prompts)).toContain(
-				"Please refactor the authentication module so\u2026",
-			);
 			const plan = {
 				kind: "document",
 				id: "d",
 				name: "",
 				documentKind: "todo-plan",
-				sourceId: "s",
+				sourceId: "w1",
 				docPath: "TODO.md",
 			} as const;
-			expect(layoutTabName(t, plan)).toBe("Plan: Unterhaltung");
-			expect(layoutTabName(t, plan, prompts)).toBe(
-				"Plan: Please refactor the authentication module so\u2026",
-			);
+			expect(layoutTabName(t, plan)).toBe("Aufgabenliste");
 			expect(layoutTabName(t, { kind: "terminal", id: "t", name: "Terminal 2", tabKey: "k" })).toBe(
 				"Konsole 2",
 			);
@@ -208,16 +191,6 @@ describe("workspace layout model", () => {
 					scope: { kind: "branch" },
 				}),
 			).toBe("a.ts");
-			expect(
-				layoutTabName(t, {
-					kind: "document",
-					id: "p",
-					name: "",
-					documentKind: "todo-plan",
-					sourceId: "s",
-					docPath: "TODO.md",
-				}),
-			).toBe("Plan: Unterhaltung");
 		} finally {
 			applyLocale("en", {});
 		}
@@ -250,23 +223,25 @@ describe("workspace layout model", () => {
 		);
 		expect(identityMutation).toEqual({ reason: "That tab id belongs to another resource." });
 
-		const chat: LayoutCenterTab = {
-			kind: "chat",
-			id: "chat:one",
-			name: "Chat",
-			sessionId: "one",
+		const docTab: LayoutCenterTab = {
+			kind: "document",
+			id: "doc:one",
+			name: "TODO",
+			documentKind: "todo-plan",
+			sourceId: "one",
+			docPath: "TODO.md",
 		};
-		document = mutation(openCenterTab(document, chat, "center-a", "preview")).document;
+		document = mutation(openCenterTab(document, docTab, "center-a", "preview")).document;
 		if (document.center.kind !== "group") throw new Error("expected one center group");
 		expect(document.center.previewTabId).toBeUndefined();
-		expect(openCenterTab(document, { ...chat, id: "two" }, "center-a", "keep")).toEqual({
+		expect(openCenterTab(document, { ...docTab, id: "two" }, "center-a", "keep")).toEqual({
 			reason: "That tab id belongs to another resource.",
 		});
 		const renamed = mutation(
-			openCenterTab(document, { ...chat, name: "Plan the migration" }, "center-a", "keep"),
+			openCenterTab(document, { ...docTab, name: "Plan the migration" }, "center-a", "keep"),
 		);
 		const placed = collectCenterGroups(renamed.document.center).flatMap((group) => group.tabs);
-		expect(placed).toContainEqual({ ...chat, name: "Plan the migration" });
+		expect(placed).toContainEqual({ ...docTab, name: "Plan the migration" });
 		expect(placed).toHaveLength(2);
 	});
 
@@ -583,7 +558,7 @@ describe("workspace layout model", () => {
 		expect(
 			findTabLocation(
 				mutation(showSide(missingRestoreMetadata, "right", 6)).document,
-				"tool:specs",
+				"tool:files",
 			),
 		).not.toBeNull();
 
@@ -621,16 +596,16 @@ describe("workspace layout model", () => {
 
 		const collidingTerminal: LayoutTerminalTab = {
 			kind: "terminal",
-			id: "tool:review",
+			id: "tool:plan",
 			name: "Terminal",
 			tabKey: "collision",
 		};
 		const collision = baseDocument([collidingTerminal]);
-		const collisionReveal = mutation(revealTool(collision, "review", 6));
+		const collisionReveal = mutation(revealTool(collision, "plan", 6));
 		const collisionTabs = collectAllGroups(collisionReveal.document).flatMap((group) => group.tabs);
 		expect(collisionTabs).toContainEqual(collidingTerminal);
-		expect(collisionTabs.find((tab) => tab.kind === "tool" && tab.tool === "review")?.id).not.toBe(
-			"tool:review",
+		expect(collisionTabs.find((tab) => tab.kind === "tool" && tab.tool === "plan")?.id).not.toBe(
+			"tool:plan",
 		);
 		expect(validateLayoutDocument(collisionReveal.document, 6)).toEqual([]);
 	});
@@ -675,14 +650,14 @@ describe("workspace layout model", () => {
 	test("inserts side groups at boundaries while retaining the source frame slot", () => {
 		let document = baseDocument();
 		document = mutation(createSideGroup(document, "right", toolTab("plan"), 1, 6)).document;
-		document = mutation(createSideGroup(document, "right", toolTab("review"), 2, 6)).document;
+		document = mutation(createSideGroup(document, "right", toolTab("projects"), 2, 6)).document;
 
 		document = mutation(createSideGroup(document, "right", toolTab("files"), 2, 6)).document;
 		expect(document.right.groups.map((group) => group.tabs[0]?.id)).toEqual([
 			undefined,
 			"tool:plan",
 			"tool:files",
-			"tool:review",
+			"tool:projects",
 		]);
 
 		document = mutation(createSideGroup(document, "right", toolTab("files"), 3, 6)).document;
@@ -691,7 +666,7 @@ describe("workspace layout model", () => {
 			"tool:plan",
 			undefined,
 			"tool:files",
-			"tool:review",
+			"tool:projects",
 		]);
 
 		let joined = baseDocument();
@@ -744,11 +719,11 @@ describe("workspace layout model", () => {
 		const document = baseDocument();
 		const right = document.right.groups[0];
 		if (!right) throw new Error("missing right group");
-		right.tabs = [toolTab("specs"), toolTab("files")];
+		right.tabs = [toolTab("plan"), toolTab("files")];
 		const source = reconcileAttention(document, undefined);
 		const target = {
 			...source,
-			selectedByGroup: { ...source.selectedByGroup, "right-a": "tool:specs" },
+			selectedByGroup: { ...source.selectedByGroup, "right-a": "tool:plan" },
 		};
 		const sourceSelection = {
 			...source,
@@ -782,14 +757,14 @@ describe("workspace layout model", () => {
 		const right = document.right.groups[0];
 		const left = document.left.groups[0];
 		if (!right || !left) throw new Error("missing side group");
-		right.tabs = [toolTab("specs"), toolTab("files")];
-		left.tabs = [toolTab("projects"), toolTab("plan")];
+		right.tabs = [toolTab("plan"), toolTab("files")];
+		left.tabs = [toolTab("projects")];
 		const source = reconcileAttention(document, undefined);
 		const target = {
 			...source,
 			selectedByGroup: {
 				...source.selectedByGroup,
-				"right-a": "tool:specs",
+				"right-a": "tool:plan",
 				"left-a": "tool:projects",
 			},
 		};
@@ -798,18 +773,18 @@ describe("workspace layout model", () => {
 			selectedByGroup: {
 				...source.selectedByGroup,
 				"right-a": "tool:files",
-				"left-a": "tool:plan",
+				"left-a": "tool:projects",
 			},
 		};
 		const targetWithoutFiles = structuredClone(document);
 		const targetRight = targetWithoutFiles.right.groups[0];
 		if (!targetRight) throw new Error("missing right group");
-		targetRight.tabs = [toolTab("specs")];
+		targetRight.tabs = [toolTab("plan")];
 		expect(
 			adoptToolSelections(target, targetWithoutFiles, sourceSelection, document).selectedByGroup[
 				"right-a"
 			],
-		).toBe("tool:specs");
+		).toBe("tool:plan");
 
 		const selected = adoptToolSelections(
 			target,
@@ -832,7 +807,7 @@ describe("workspace layout model", () => {
 		const document = baseDocument();
 		const right = document.right.groups[0];
 		if (!right) throw new Error("missing right group");
-		right.tabs = [toolTab("specs"), toolTab("files")];
+		right.tabs = [toolTab("plan"), toolTab("files")];
 		document.bottom = {
 			visible: true,
 			height: 0.3,
@@ -860,7 +835,7 @@ describe("workspace layout model", () => {
 			],
 		};
 		const previous: LayoutAttention = {
-			selectedByGroup: { "right-a": "tool:specs", "bottom-a": "terminal:bottom" },
+			selectedByGroup: { "right-a": "tool:plan", "bottom-a": "terminal:bottom" },
 			lastFocusedCenterGroupId: "center-a",
 			lastFocusedSideGroupId: {},
 			navigationClockByGroup: {},
@@ -921,25 +896,6 @@ describe("workspace layout model", () => {
 		expect(fromUntrustedPlainObjects.navigationClockByGroup.constructor).toBe(0);
 	});
 
-	test("session pruning removes both chat and registered TODO references without touching neighbors", () => {
-		const document = baseDocument([
-			file("one"),
-			{ kind: "chat", id: "chat", name: "Chat", sessionId: "session" },
-			{
-				kind: "document",
-				id: "todo",
-				name: "TODO",
-				documentKind: "todo-plan",
-				sourceId: "session",
-				docPath: "TODO.md",
-			},
-		]);
-		const pruned = removeSessionLayoutTabs(document, "session");
-		expect(collectCenterGroups(pruned.center).flatMap((group) => group.tabs)).toEqual([
-			file("one"),
-		]);
-	});
-
 	test("built-in presets carry the approved bottom topology", () => {
 		const balanced = BUILTIN_LAYOUT_PRESETS.find((preset) => preset.id === "balanced");
 		const focus = BUILTIN_LAYOUT_PRESETS.find((preset) => preset.id === "focus");
@@ -958,7 +914,7 @@ describe("workspace layout model", () => {
 
 	test("successful generated mutation sequences preserve every layout invariant", () => {
 		const directions = ["left", "right", "up", "down"] as const;
-		const tools = ["projects", "specs", "files", "plan", "review"] as const;
+		const tools = ["projects", "files", "plan"] as const;
 		for (const initialSeed of [1, 7, 29, 97, 313]) {
 			let seed = initialSeed;
 			const random = () => {

@@ -1,5 +1,4 @@
-import type { ReviewAnchor } from "@thinkrail/contracts";
-import type { AnchorDraft, ReviewThread } from "../../registry";
+import type { AnchorDraft, ReviewAnchor, ReviewThread } from "../../registry";
 
 export type JsonNodeType = "object" | "array" | "string" | "number" | "boolean" | "null";
 

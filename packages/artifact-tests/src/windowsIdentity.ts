@@ -1,4 +1,4 @@
-import type { WindowsFileIdentity } from "@thinkrail/shared/windowsIdentity";
+import type { WindowsFileIdentity } from "@realthing/shared/windowsIdentity";
 import * as ResEdit from "resedit";
 
 type ResourceEntry = Parameters<typeof ResEdit.Resource.IconGroupEntry.fromEntries>[0][number];
@@ -112,7 +112,7 @@ export function windowsIdentityMismatches(
 	if (
 		!actual.defaultIconFrames.every((frame) => frames.some((own) => sameBytes(frame, own.bytes)))
 	) {
-		mismatches.push("the shell's default icon group holds frames that are not ThinkRail's");
+		mismatches.push("the shell's default icon group holds frames that are not RealThing's");
 	}
 	const strings: Record<string, string> = {
 		FileDescription: expected.productName,

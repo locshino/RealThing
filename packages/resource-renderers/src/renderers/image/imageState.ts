@@ -1,4 +1,4 @@
-import type { Translator } from "@thinkrail/locales/react";
+import type { Translator } from "@realthing/locales/react";
 
 export const MIN_IMAGE_ZOOM = 0.1;
 export const MAX_IMAGE_ZOOM = 8;

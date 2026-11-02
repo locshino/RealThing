@@ -1,16 +1,16 @@
 const STARTUP_MARK_LINES = [
-	"THINKRAIL·THINKRAIL·THIN RAIL·THINK",
-	"INKRAIL·THINKRAIL·THINKR IL·THINKRAI",
+	"REALTHING·REALTHING·THIN RAIL·THINK",
+	"INKRAIL·REALTHING·THINKR IL·THINKRAI",
 	"                                 IL·T",
-	"AIL·THINKRAI ·THINKRAIL·THINKRAI  THIN",
-	"L·THINKRAIL· HINKRAIL·THINKRAIL·T INKR",
+	"AIL·THINKRAI ·REALTHING·THINKRAI  THIN",
+	"L·REALTHING· HINKRAIL·REALTHING·T INKR",
 	"        L·TH                 ·THI  RAI",
 	"        THIN RAIL            HINK  IL·",
 	"        INKR IL·T            NKRA  ·TH",
 	"        KRAI ·THI            RAIL  HIN",
-	"        AIL· HINK AIL·THINKRAIL·  INKR",
-	"        L·TH NKRAIL·THINKRAIL·TH  KRAI",
-	"        THIN RAIL·THINKRAIL·T   KRAIL",
+	"        AIL· HINK AIL·REALTHING·  INKR",
+	"        L·TH NKRAIL·REALTHING·TH  KRAI",
+	"        THIN RAIL·REALTHING·T   KRAIL",
 	"        INKR IL·TH  KRAIL·TH  KRAIL·",
 	"        KRAI ·THI  RAIL·THINK  IL·TH",
 	"        AIL· HINK  IL·THINKRAI  THINK",
@@ -117,7 +117,7 @@ interface IdentityLines {
 
 function identityLines(status: StartupMarkStatus, endpoint: string): IdentityLines {
 	return {
-		product: [{ text: "THINKRAIL", tone: "brightGreen" }],
+		product: [{ text: "REALTHING", tone: "brightGreen" }],
 		description: [{ text: "agentic IDE for pi", tone: "muted" }],
 		status: [
 			{ text: "● ", tone: "brightGreen" },

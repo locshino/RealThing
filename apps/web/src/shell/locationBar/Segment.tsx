@@ -1,5 +1,5 @@
 import { RiArrowDownSLine as ChevronDown } from "@remixicon/react";
-import { cn } from "@thinkrail/ui/utils";
+import { cn } from "@realthing/ui/utils";
 import type { ReactNode } from "react";
 
 export function Segment({

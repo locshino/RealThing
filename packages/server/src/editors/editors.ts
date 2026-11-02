@@ -1,14 +1,19 @@
-import type { EditorInfo } from "@thinkrail/contracts";
-import { spawnDetached } from "@thinkrail/shared/spawn";
+import type { EditorInfo } from "@realthing/contracts";
+import { spawnDetached } from "@realthing/shared/spawn";
+import { loadConfig } from "../persistence";
 
-interface GuiCandidate {
+interface EditorCandidate {
 	id: string;
 	label: string;
 	bin: string;
 }
 
-const GUI_CANDIDATES: GuiCandidate[] = [
+const GUI_CANDIDATES: EditorCandidate[] = [
 	{ id: "vscode", label: "VS Code", bin: "code" },
+	{ id: "cursor", label: "Cursor", bin: "cursor" },
+	{ id: "zed", label: "Zed", bin: "zed" },
+	{ id: "windsurf", label: "Windsurf", bin: "windsurf" },
+	{ id: "sublime", label: "Sublime Text", bin: "subl" },
 	{ id: "emacs", label: "Emacs", bin: "emacs" },
 ];
 
@@ -24,8 +29,14 @@ const JETBRAINS_CANDIDATES: { label: string; bin: string }[] = [
 ];
 
 const JETBRAINS_ID = "jetbrains";
+const CUSTOM_EDITOR_ID = "custom";
 
-const TERMINAL_CANDIDATE = { id: "vim", label: "Vim", bin: "vim" };
+const TERMINAL_CANDIDATES: EditorCandidate[] = [
+	{ id: "nvim", label: "Neovim", bin: "nvim" },
+	{ id: "hx", label: "Helix", bin: "hx" },
+	{ id: "vim", label: "Vim", bin: "vim" },
+	{ id: "nano", label: "Nano", bin: "nano" },
+];
 
 export type WhichFn = (bin: string) => string | null;
 
@@ -38,20 +49,37 @@ export const defaultSpawn: SpawnFn = (cmd) => {
 	if (!spawnDetached(cmd)) throw new Error("Failed to launch the requested application");
 };
 
-export function listAvailableEditors(which: WhichFn = defaultWhich): EditorInfo[] {
+export function listAvailableEditors(
+	which: WhichFn = defaultWhich,
+	customBinOverride?: string,
+): EditorInfo[] {
 	const editors: EditorInfo[] = [];
+	const customBin = (customBinOverride ?? loadConfig().externalEditorCustomBin).trim();
+	if (customBin && which(customBin)) {
+		editors.push({ id: CUSTOM_EDITOR_ID, label: "Custom Editor", kind: "gui" });
+	}
 	for (const c of GUI_CANDIDATES) {
 		if (which(c.bin)) editors.push({ id: c.id, label: c.label, kind: "gui" });
 	}
 	const jetbrains = JETBRAINS_CANDIDATES.find((c) => which(c.bin));
 	if (jetbrains) editors.push({ id: JETBRAINS_ID, label: jetbrains.label, kind: "gui" });
-	if (which(TERMINAL_CANDIDATE.bin)) {
-		editors.push({ id: TERMINAL_CANDIDATE.id, label: TERMINAL_CANDIDATE.label, kind: "terminal" });
+	for (const c of TERMINAL_CANDIDATES) {
+		if (which(c.bin)) {
+			editors.push({ id: c.id, label: c.label, kind: "terminal" });
+		}
 	}
 	return editors;
 }
 
-function resolveGuiBin(editorId: string, which: WhichFn): string | null {
+function resolveGuiBin(
+	editorId: string,
+	which: WhichFn,
+	customBinOverride?: string,
+): string | null {
+	if (editorId === CUSTOM_EDITOR_ID) {
+		const customBin = (customBinOverride ?? loadConfig().externalEditorCustomBin).trim();
+		return customBin ? which(customBin) : null;
+	}
 	const simple = GUI_CANDIDATES.find((c) => c.id === editorId);
 	if (simple) return which(simple.bin);
 	if (editorId === JETBRAINS_ID) {
@@ -69,8 +97,9 @@ export function openEditor(
 	worktreePath: string,
 	which: WhichFn = defaultWhich,
 	spawn: SpawnFn = defaultSpawn,
+	customBinOverride?: string,
 ): void {
-	const bin = resolveGuiBin(editorId, which);
+	const bin = resolveGuiBin(editorId, which, customBinOverride);
 	if (!bin) throw new Error(`"${editorId}" isn't installed on this host`);
 	spawn([bin, worktreePath]);
 }

@@ -2,7 +2,7 @@
 
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { locateDesktopLauncher } from "@thinkrail/artifact-tests";
+import { locateDesktopLauncher } from "@realthing/artifact-tests";
 import { artifactHostEnvironment } from "./artifactPlaywright";
 import {
 	E2E_DESKTOP_CACHE,
@@ -16,7 +16,7 @@ import { holdE2eIdleSleep } from "./idleSleep";
 
 const repoRoot = fileURLToPath(new URL("..", import.meta.url));
 const desktopDir = fileURLToPath(new URL("../apps/desktop", import.meta.url));
-const launcher = locateDesktopLauncher(desktopDir, process.env.THINKRAIL_E2E_DESKTOP);
+const launcher = locateDesktopLauncher(desktopDir, process.env.REALTHING_E2E_DESKTOP);
 
 function within<T>(promise: Promise<T>, ms: number, what: string): Promise<T> {
 	return Promise.race([
@@ -57,11 +57,11 @@ const desktop = Bun.spawn([launcher], {
 	env: {
 		...process.env,
 		...artifactHostEnvironment(E2E_DESKTOP_CACHE),
-		THINKRAIL_DESKTOP_READY_FILE: E2E_DESKTOP_READY_FILE,
-		THINKRAIL_DESKTOP_CONTROL_FILE: E2E_DESKTOP_CONTROL_FILE,
-		THINKRAIL_DESKTOP_USER_DATA: E2E_DESKTOP_USER_DATA,
-		THINKRAIL_DESKTOP_E2E_HOST: "1",
-		THINKRAIL_DESKTOP_HIDDEN: "1",
+		REALTHING_DESKTOP_READY_FILE: E2E_DESKTOP_READY_FILE,
+		REALTHING_DESKTOP_CONTROL_FILE: E2E_DESKTOP_CONTROL_FILE,
+		REALTHING_DESKTOP_USER_DATA: E2E_DESKTOP_USER_DATA,
+		REALTHING_DESKTOP_E2E_HOST: "1",
+		REALTHING_DESKTOP_HIDDEN: "1",
 	},
 	stdout: "inherit",
 	stderr: "inherit",
@@ -81,7 +81,7 @@ try {
 		],
 		{
 			cwd: repoRoot,
-			env: { ...process.env, THINKRAIL_E2E_DESKTOP_ORIGIN: origin },
+			env: { ...process.env, REALTHING_E2E_DESKTOP_ORIGIN: origin },
 			stdout: "inherit",
 			stderr: "inherit",
 		},

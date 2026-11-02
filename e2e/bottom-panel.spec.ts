@@ -155,7 +155,7 @@ async function requestOverWire<T>(
 async function readPersistedSideWidths(page: Page): Promise<{ left: number; right: number }> {
 	return page.evaluate(() => {
 		const key = Object.keys(localStorage).find((candidate) =>
-			candidate.startsWith("thinkrail:workbench:"),
+			candidate.startsWith("realthing:workbench:"),
 		);
 		if (!key) throw new Error("local workbench state is missing");
 		const value = JSON.parse(localStorage.getItem(key) ?? "null") as {
@@ -227,7 +227,6 @@ test("panel-header actions are square IconButton m controls", async ({ page }) =
 	};
 
 	const controls = [
-		page.getByTestId("new-chat").first(),
 		page.getByTestId("new-terminal").first(),
 		page.getByTestId("side-group-fold").first(),
 		page.getByTestId("side-group-menu").first(),
@@ -296,7 +295,7 @@ test("a hidden local frame keeps the host terminal reserved without attaching un
 		"terminal.list",
 		{ workspaceId: workspace.id },
 	);
-	expect(catalog.tabs).toEqual([{ tabKey: "thinkrail-initial", title: "Terminal 1" }]);
+	expect(catalog.tabs).toEqual([{ tabKey: "realthing-initial", title: "Terminal 1" }]);
 
 	const peer = await context.newPage();
 	await peer.goto("/");
@@ -324,7 +323,7 @@ test("a completed initial-terminal handshake never recreates a terminal after ex
 	const workspace = await createWorkspaceWithoutOpening(page);
 	await requestOverWire(page, "terminal.close", {
 		workspaceId: workspace.id,
-		tabKey: "thinkrail-initial",
+		tabKey: "realthing-initial",
 		force: true,
 	});
 
@@ -656,7 +655,7 @@ test("bottom groups arrange left-to-right, resize, fold to the edge rail, restor
 	await expect(page.getByTestId("terminal-rail-group")).toHaveCount(1);
 	await bottomGroups(page).nth(1).getByTestId("remove-layout-group").click();
 	await expect(bottomGroups(page)).toHaveCount(1);
-	await page.getByTestId("tab-review").click({ button: "right" });
+	await page.getByTestId("tab-plan").click({ button: "right" });
 	await page.getByRole("menuitem", { name: "New bottom group at right", exact: true }).click();
 	await expect(bottomGroups(page)).toHaveCount(2);
 
@@ -679,7 +678,7 @@ test("bottom groups arrange left-to-right, resize, fold to the edge rail, restor
 	await expect(terminalRail).toBeFocused();
 	await expect(page.getByTestId("terminal-instance")).toHaveCount(0);
 	await expect(second).toBeVisible();
-	await page.getByTestId("tab-review").getByRole("button").first().focus();
+	await page.getByTestId("tab-plan").getByRole("button").first().focus();
 	await page.keyboard.press("Control+Shift+F6");
 	await expect(terminalRail).toBeFocused();
 	await page.keyboard.press("Space");
@@ -691,7 +690,8 @@ test("bottom groups arrange left-to-right, resize, fold to the edge rail, restor
 	await page.getByRole("menuitem", { name: "New bottom group at left", exact: true }).click();
 	await expect(bottomGroups(page)).toHaveCount(3);
 	await expect(bottomGroups(page).nth(0)).toContainText("Files");
-	await page.getByTestId("tab-specs").click({ button: "right" });
+	await page.getByTestId("tool-rail-projects").click();
+	await page.getByTestId("tab-projects").click({ button: "right" });
 	await expect(
 		page.getByRole("menuitem", { name: /New bottom group at left — limited to 3/ }),
 	).toBeDisabled();
@@ -704,7 +704,7 @@ test("a narrow viewport locally compresses bottom groups without rewriting their
 	page,
 }) => {
 	await openDefaultWorkbench(page);
-	await page.getByTestId("tab-review").click({ button: "right" });
+	await page.getByTestId("tab-plan").click({ button: "right" });
 	await page.getByRole("menuitem", { name: "New bottom group at right", exact: true }).click();
 	await waitForLayoutSettled(page);
 	await page.getByTestId("tab-files").click({ button: "right" });
@@ -787,7 +787,7 @@ test("an old host layout stays inert while a pristine surface starts Balanced", 
 	const workspace = await createWorkspaceWithoutOpening(page);
 	await requestOverWire(page, "terminal.close", {
 		workspaceId: workspace.id,
-		tabKey: "thinkrail-initial",
+		tabKey: "realthing-initial",
 		force: true,
 	});
 	const fileId = /^[A-Za-z0-9_-]+$/.test(workspace.id)
@@ -818,10 +818,10 @@ test("an old host layout stays inert while a pristine surface starts Balanced", 
 	await page.getByTestId("workspace-item").filter({ hasText: workspace.name }).click();
 
 	await expect(page.getByTestId("left-nav")).toBeVisible();
-	await expect(page.getByTestId("right-stack")).toContainText("Specs");
+	await expect(page.getByTestId("right-stack")).toContainText("Files");
 	await expect(page.getByTestId("tool-rail-files")).toHaveAccessibleName("Files");
 	await expect(page.getByTestId("right-stack")).toContainText("TODO List");
-	await expect(page.getByTestId("tool-rail-review")).toHaveAccessibleName("Review");
+	await expect(page.getByTestId("tool-rail-plan")).toHaveAccessibleName("TODO List");
 	await expect(page.getByTestId("bottom-panel")).toBeVisible();
 	await expect(page.getByTestId("bottom-new-terminal")).toBeVisible();
 	await expect(page.getByTestId("center-group")).toHaveCount(1);

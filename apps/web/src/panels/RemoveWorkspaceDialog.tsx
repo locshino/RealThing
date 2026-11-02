@@ -1,5 +1,5 @@
-import type { Workspace } from "@thinkrail/contracts";
-import { T, useT } from "@thinkrail/locales/react";
+import type { Workspace } from "@realthing/contracts";
+import { T, useT } from "@realthing/locales/react";
 import { isExternalWorkspace, workspaceName } from "../store";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { removeWorkspace } from "./workspaceActions";

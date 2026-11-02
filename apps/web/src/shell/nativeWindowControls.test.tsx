@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { NativeWindowControlsBridge, NativeWindowState } from "@thinkrail/contracts";
+import type { NativeWindowControlsBridge, NativeWindowState } from "@realthing/contracts";
 import { renderToStaticMarkup } from "react-dom/server";
 import { NativeWindowControls } from "./NativeWindowControls";
 import {

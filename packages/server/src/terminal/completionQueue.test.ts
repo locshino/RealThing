@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { WS_CHANNELS } from "@thinkrail/contracts";
+import { WS_CHANNELS } from "@realthing/contracts";
 import { createTerminalCompletionQueue } from "./completionQueue";
 import type { TerminalDeliveryResult } from "./outputBatcher";
 

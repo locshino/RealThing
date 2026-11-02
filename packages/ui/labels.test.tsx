@@ -1,5 +1,5 @@
 import { afterEach, expect, test } from "bun:test";
-import { applyLocale } from "@thinkrail/locales/react";
+import { applyLocale } from "@realthing/locales/react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Command, CommandList } from "./command";
 import { ToastProvider, ToastViewport } from "./toast";

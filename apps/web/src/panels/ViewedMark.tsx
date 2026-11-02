@@ -1,5 +1,5 @@
 import { RiCheckLine as Check } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 
 export function ViewedMark() {
 	const t = useT();

@@ -1,5 +1,4 @@
-import type { UserMessage } from "@thinkrail/contracts";
-import type { Translator } from "@thinkrail/locales/react";
+import type { Translator } from "@realthing/locales/react";
 
 export const DOUBLE_CLICK_SETTLE_MS = 250;
 
@@ -27,15 +26,13 @@ export function tupleKey(namespace: string, ...parts: string[]): string {
 type LayoutDiffScopeInput =
 	| { kind: "branch" | "uncommitted" }
 	| { kind: "commit"; sha: string }
-	| { kind: "pinned"; baseRef: string }
-	| { kind: "turn"; id: string };
+	| { kind: "pinned"; baseRef: string };
 
 type LayoutResourceIdentityInput =
 	| { kind: "file"; path: string }
 	| { kind: "diff"; path: string; before?: undefined; scope: LayoutDiffScopeInput }
 	| { kind: "diff"; path: string; before: string }
 	| { kind: "changes"; scope: LayoutDiffScopeInput }
-	| { kind: "chat"; sessionId: string }
 	| { kind: "document"; documentKind: string; sourceId: string }
 	| { kind: "terminal"; tabKey: string }
 	| { kind: "tool"; tool: string };
@@ -46,8 +43,6 @@ function layoutScopeReference(scope: LayoutDiffScopeInput): string {
 			return scope.sha;
 		case "pinned":
 			return scope.baseRef;
-		case "turn":
-			return scope.id;
 		default:
 			return "";
 	}
@@ -78,8 +73,6 @@ export function layoutResourceIdentity<T extends LayoutResourceIdentityInput>(ta
 				tab.scope.kind,
 				layoutScopeReference(tab.scope),
 			);
-		case "chat":
-			return tupleKey("layout-resource", "chat", tab.sessionId);
 		case "document":
 			return tupleKey("layout-resource", "document", tab.documentKind, tab.sourceId);
 		case "terminal":
@@ -114,14 +107,6 @@ export function randomId(prefix = "id"): string {
 	const bytes = crypto.getRandomValues(new Uint8Array(16));
 	const value = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
 	return `${prefix}-${value}`;
-}
-
-export function userText(content: UserMessage["content"]): string {
-	if (typeof content === "string") return content;
-	return content
-		.filter((c) => c.type === "text")
-		.map((c) => c.text)
-		.join("");
 }
 
 export function firstNonBlankLine(text: string): string | undefined {

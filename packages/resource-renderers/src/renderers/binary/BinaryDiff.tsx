@@ -1,4 +1,4 @@
-import { localeOf, type Translator, useT } from "@thinkrail/locales/react";
+import { localeOf, type Translator, useT } from "@realthing/locales/react";
 import type { ResourceContent, ResourceDiffProps } from "../../registry";
 
 function sideSize(t: Translator, content: ResourceContent): string {

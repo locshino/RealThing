@@ -1,4 +1,4 @@
-import type { GitDiffScope, LayoutPreset } from "@thinkrail/contracts";
+import type { GitDiffScope, LayoutPreset } from "@realthing/contracts";
 
 export type LayoutBottomAlignment = LayoutPreset["bottom"]["alignment"];
 export type LayoutToolId = LayoutPreset["left"]["groups"][number]["tools"][number];
@@ -28,13 +28,6 @@ export interface LayoutChangesTab {
 	scope: GitDiffScope;
 }
 
-export interface LayoutChatTab {
-	kind: "chat";
-	id: string;
-	name: string;
-	sessionId: string;
-}
-
 export interface LayoutDocumentTab {
 	kind: "document";
 	id: string;
@@ -62,7 +55,6 @@ export type LayoutCenterTab =
 	| LayoutFileTab
 	| LayoutDiffTab
 	| LayoutChangesTab
-	| LayoutChatTab
 	| LayoutDocumentTab
 	| LayoutTerminalTab;
 export type LayoutAuxiliaryTab = LayoutToolTab | LayoutTerminalTab;

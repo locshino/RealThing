@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef } from "react";
-import { selectWorkspaceTick, useAppStore } from "../store";
+import { fsChangedPaths, selectWorkspaceTick, useAppStore } from "../store";
+import { whenFilesTreeReady } from "./editorWarm";
 
 interface WorkspaceReadHandlers<T> {
 	onResult: (value: T, workspaceId: string) => void;
 	onFailure?: (workspaceId: string, error: unknown) => void;
 	onSwitch?: (workspaceId: string) => void;
+	shouldReload?: (changedPaths: readonly string[]) => boolean;
+	deferAfterTreeMs?: number;
 }
 
 export function useWorkspaceRead<T>(
@@ -37,15 +40,31 @@ export function useWorkspaceRead<T>(
 
 	useEffect(() => {
 		if (!workspaceId) return;
-		runRead(workspaceId, readKey);
+		const deferMs = latest.current.handlers.deferAfterTreeMs;
+		let cancelInitial: (() => void) | undefined;
+		if (deferMs !== undefined && deferMs > 0) {
+			cancelInitial = whenFilesTreeReady(() => runRead(workspaceId, readKey), deferMs);
+		} else {
+			runRead(workspaceId, readKey);
+		}
 		let tick = selectWorkspaceTick(useAppStore.getState(), workspaceId);
 		const unsubscribe = useAppStore.subscribe((state) => {
 			const next = selectWorkspaceTick(state, workspaceId);
 			if (next === tick) return;
+			const sequential = next === tick + 1;
 			tick = next;
+			const filter = latest.current.handlers.shouldReload;
+			const change = state.fsChangesByWorkspace[workspaceId];
+			if (sequential && filter && change) {
+				const paths = fsChangedPaths(change);
+				if (paths !== null && !filter(paths)) return;
+			}
+			cancelInitial?.();
+			cancelInitial = undefined;
 			runRead(workspaceId, readKey);
 		});
 		return () => {
+			cancelInitial?.();
 			unsubscribe();
 			generation.current += 1;
 			latest.current.handlers.onSwitch?.(workspaceId);

@@ -1,7 +1,7 @@
 import type { ResourceRenderer } from "../../registry";
 
 export const binaryRenderer: ResourceRenderer = {
-	id: "thinkrail/binary",
+	id: "realthing/binary",
 	labelKey: "viewer.renderer.file",
 	match: { text: false },
 	rank: 0,

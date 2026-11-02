@@ -129,16 +129,6 @@ interface Exception {
 
 const SPECIALIZED: Exception[] = [
 	{
-		file: "auth/LoginDialog.tsx",
-		contains: 'data-testid="login-option"',
-		reason: "sign-in method choice rows: multi-line, left-aligned option cards, not actions",
-	},
-	{
-		file: "thinkrail-extensions/ask-user-question/web/AskUserQuestionCard.tsx",
-		contains: 'data-testid="ask-tab"',
-		reason: "question pager tabs (role=tab) of the ask-user-question card",
-	},
-	{
 		file: "panels/SettingsDialog.tsx",
 		contains: "data-testid={`settings-nav-",
 		reason: "Settings section navigation tabs with a persistent selected state",
@@ -148,11 +138,6 @@ const SPECIALIZED: Exception[] = [
 		contains: 'role="switch"',
 		reason:
 			"a switch (role=switch), not a button; consolidation with packages/ui Switch is tracked separately (audit F-04)",
-	},
-	{
-		file: "panels/TemplatesSettings.tsx",
-		contains: 'data-testid="template-delete"',
-		reason: "red-on-hover icon action: no button variant matches a transparent red-text action yet",
 	},
 	{
 		file: "packages/resource-renderers/src/renderers/RegionReviewSurface.tsx",
@@ -181,17 +166,4 @@ const SPECIALIZED: Exception[] = [
 	},
 ];
 
-const OVERRIDES: Exception[] = [
-	{
-		file: "chat/ExtUiPrompt.tsx",
-		contains: 'data-testid="ext-ui-option"',
-		reason:
-			"extension select options must wrap long labels (chat/SPEC.md); the only multi-line button",
-	},
-	{
-		file: "chat/Composer.tsx",
-		contains: 'data-testid="chat-abort"',
-		reason:
-			"container-query collapse: below @md its label hides and Stop becomes the 24px icon-only square beside the history IconButton",
-	},
-];
+const OVERRIDES: Exception[] = [];

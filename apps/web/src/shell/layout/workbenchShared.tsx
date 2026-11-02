@@ -1,10 +1,10 @@
 import { type CollisionDetection, pointerWithin, useDroppable } from "@dnd-kit/core";
-import type { Translator } from "@thinkrail/locales/react";
+import type { Translator } from "@realthing/locales/react";
 import {
 	type ImperativePanelGroupHandle,
 	ResizableHandle,
 	ResizablePanel,
-} from "@thinkrail/ui/resizable";
+} from "@realthing/ui/resizable";
 import {
 	memo,
 	type ReactNode,
@@ -19,7 +19,6 @@ import { type LayoutAttention, readLayoutNavigationClock, tupleKey } from "../..
 import type { AuxiliaryRailEntry } from "./auxiliaryPresentation";
 import {
 	type CenterSplitDirection,
-	type ChatFirstPrompts,
 	canJoinAuxiliaryGroup,
 	canPlaceLayoutTab,
 	collectCenterGroups,
@@ -75,9 +74,6 @@ export interface WorkbenchProps {
 		tab: LayoutTab,
 		prepare: (latestDocument?: WorkspaceLayoutDocument) => PreparedLayoutClose,
 	) => void;
-	onRenameChat?: (sessionId: string, titleInput: string, currentTitle: string) => void;
-	chatFirstPrompts?: ChatFirstPrompts;
-	onNewChat: (groupId: string) => void;
 	onNewTerminal: (
 		groupId: string,
 		area: "center" | LayoutAuxiliaryRegion,
@@ -361,20 +357,14 @@ export function useHorizontalOverflow(
 	return overflow;
 }
 
-export function tabSearchKeywords(
-	t: Translator,
-	tab: LayoutTab,
-	chatFirstPrompts: ChatFirstPrompts | undefined,
-): string[] {
-	const name = layoutTabName(t, tab, chatFirstPrompts);
+export function tabSearchKeywords(t: Translator, tab: LayoutTab): string[] {
+	const name = layoutTabName(t, tab);
 	switch (tab.kind) {
 		case "file":
 		case "diff":
 			return [name, tab.kind, tab.path];
 		case "changes":
 			return [name, tab.kind, tab.scope.kind];
-		case "chat":
-			return [name, tab.kind, tab.sessionId];
 		case "document":
 			return [name, tab.kind, tab.sourceId, tab.docPath];
 		case "terminal":
@@ -607,8 +597,6 @@ export interface SharedGroupProps {
 	onFocusAdjacentGroup: (delta: -1 | 1, fromGroupId?: string) => void;
 	onHideSide: (region: LayoutAuxiliaryRegion) => void;
 	onRevealTool: (tool: LayoutToolId) => void;
-	onRenameChat: WorkbenchProps["onRenameChat"];
-	chatFirstPrompts: WorkbenchProps["chatFirstPrompts"];
 	canFocusAdjacentGroup: boolean;
 }
 

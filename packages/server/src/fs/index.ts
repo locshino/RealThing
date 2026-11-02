@@ -6,4 +6,10 @@ export {
 	mimeFromPath,
 	resourceMeta,
 } from "./content";
-export * from "./files";
+export {
+	readDir,
+	readFile,
+	resolveWorktreeFile,
+	workspaceRelativePath,
+	writeFile,
+} from "./files";

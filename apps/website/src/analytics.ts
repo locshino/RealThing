@@ -1,4 +1,4 @@
-import { createWebsiteAnalytics, type MarketingConsentAdapter } from "@thinkrail/website-analytics";
+import { createWebsiteAnalytics, type MarketingConsentAdapter } from "@realthing/website-analytics";
 
 declare global {
 	interface Window {
@@ -32,7 +32,7 @@ const marketingConsent: MarketingConsentAdapter = {
 };
 
 const websiteAnalytics = createWebsiteAnalytics({
-	productionHostname: "thinkrail.ai",
+	productionHostname: "realthing.ai",
 	postHogProjectKey: import.meta.env.PUBLIC_POSTHOG_PROJECT_KEY ?? "",
 	marketingConsent,
 });

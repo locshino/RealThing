@@ -1,8 +1,8 @@
-import type { MessageKey } from "@thinkrail/locales";
-import { useT } from "@thinkrail/locales/react";
-import { buttonDataAttributes, buttonVariants } from "@thinkrail/ui/button";
-import { IconTooltip } from "@thinkrail/ui/tooltip";
-import { cn } from "@thinkrail/ui/utils";
+import type { MessageKey } from "@realthing/locales";
+import { useT } from "@realthing/locales/react";
+import { buttonDataAttributes, buttonVariants } from "@realthing/ui/button";
+import { IconTooltip } from "@realthing/ui/tooltip";
+import { cn } from "@realthing/ui/utils";
 import { Fragment, forwardRef, type ReactNode, useRef, useState } from "react";
 import {
 	type AuxiliaryRailEntry,

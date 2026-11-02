@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { LocalLocalesSnapshot } from "@thinkrail/contracts";
+import type { LocalLocalesSnapshot } from "@realthing/contracts";
 import { localeSignature } from "./useLocaleSync";
 
 const snapshot = (files: LocalLocalesSnapshot["files"]): LocalLocalesSnapshot => ({

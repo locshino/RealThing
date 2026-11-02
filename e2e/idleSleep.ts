@@ -1,4 +1,4 @@
-export const E2E_IDLE_SLEEP_OWNER_ENV = "THINKRAIL_E2E_IDLE_SLEEP_OWNER";
+export const E2E_IDLE_SLEEP_OWNER_ENV = "REALTHING_E2E_IDLE_SLEEP_OWNER";
 
 interface IdleSleepProcess {
 	exited: Promise<number>;

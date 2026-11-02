@@ -1,5 +1,5 @@
-const apexOrigin = "https://thinkrail.ai";
-const legacyOrigin = "https://vibecoding.thinkrail.ai";
+const apexOrigin = "https://realthing.ai";
+const legacyOrigin = "https://vibecoding.realthing.ai";
 const directPaths = [
 	"/",
 	"/blog/",

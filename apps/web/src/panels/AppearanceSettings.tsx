@@ -8,22 +8,23 @@ import {
 } from "@remixicon/react";
 import {
 	type AppConfigUpdate,
+	type ExplorerFileIconsMode,
 	type SystemThemePair,
 	THEME_SYSTEM_PROTOCOL_VERSION,
 	type ThemeId,
-} from "@thinkrail/contracts";
-import type { MessageKey } from "@thinkrail/locales";
-import { type Translator, useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+} from "@realthing/contracts";
+import type { MessageKey } from "@realthing/locales";
+import { type Translator, useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
 	DropdownMenuTrigger,
-} from "@thinkrail/ui/dropdown-menu";
-import { cn } from "@thinkrail/ui/utils";
-import { type ReactNode, useState, useSyncExternalStore } from "react";
+} from "@realthing/ui/dropdown-menu";
+import { cn } from "@realthing/ui/utils";
+import { type ReactNode, useEffect, useState, useSyncExternalStore } from "react";
 import { copyText } from "@/lib";
 import { toast, useAppStore } from "@/store";
 import {
@@ -234,17 +235,162 @@ function Disclosure({
 	);
 }
 
+function FontFamilyInput({
+	value,
+	label,
+	placeholder,
+	testId,
+	disabled,
+	onCommit,
+}: {
+	value: string;
+	label: string;
+	placeholder: string;
+	testId: string;
+	disabled: boolean;
+	onCommit: (next: string) => void;
+}) {
+	const t = useT();
+	const [draft, setDraft] = useState(value);
+	useEffect(() => {
+		setDraft(value);
+	}, [value]);
+
+	const commit = () => {
+		const trimmed = draft.trim();
+		if (trimmed === value) return;
+		onCommit(trimmed);
+	};
+
+	return (
+		<div className="flex items-center gap-8">
+			<input
+				type="text"
+				value={draft}
+				placeholder={placeholder}
+				aria-label={label}
+				disabled={disabled}
+				data-testid={testId}
+				data-settings-draft-input
+				onChange={(event) => setDraft(event.currentTarget.value)}
+				onBlur={commit}
+				onKeyDown={(event) => {
+					if (event.key === "Enter") {
+						event.preventDefault();
+						commit();
+					} else if (event.key === "Escape") {
+						setDraft(value);
+					}
+				}}
+				className="h-32 w-192 rounded-sm border border-control-border-default bg-control-bg px-8 tr-text-ui text-text-default outline-none focus:border-control-border-active focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50"
+			/>
+			{draft.trim() !== value ? (
+				<Button variant="outline" size="l" disabled={disabled} onClick={commit}>
+					{t("common.done")}
+				</Button>
+			) : null}
+		</div>
+	);
+}
+
+export function TypographyAndIconsGroup({
+	uiFontFamily,
+	codeFontFamily,
+	explorerFileIcons,
+	disabled = false,
+	onUpdate,
+}: {
+	uiFontFamily: string;
+	codeFontFamily: string;
+	explorerFileIcons: ExplorerFileIconsMode;
+	disabled?: boolean;
+	onUpdate: (config: AppConfigUpdate) => void;
+}) {
+	const t = useT();
+	return (
+		<SettingsGroup title={t("settings.appearance.typographyGroup")}>
+			<SettingsRow
+				label={t("settings.appearance.uiFontFamily")}
+				description={t("settings.appearance.uiFontFamilyDescription")}
+				control={
+					<FontFamilyInput
+						value={uiFontFamily}
+						label={t("settings.appearance.uiFontFamily")}
+						placeholder={t("settings.appearance.uiFontFamilyPlaceholder")}
+						testId="ui-font-family-input"
+						disabled={disabled}
+						onCommit={(next) => onUpdate({ uiFontFamily: next })}
+					/>
+				}
+			/>
+			<SettingsRow
+				label={t("settings.appearance.codeFontFamily")}
+				description={t("settings.appearance.codeFontFamilyDescription")}
+				control={
+					<FontFamilyInput
+						value={codeFontFamily}
+						label={t("settings.appearance.codeFontFamily")}
+						placeholder={t("settings.appearance.codeFontFamilyPlaceholder")}
+						testId="code-font-family-input"
+						disabled={disabled}
+						onCommit={(next) => onUpdate({ codeFontFamily: next })}
+					/>
+				}
+			/>
+			<SettingsRow
+				label={t("settings.appearance.fileIcons")}
+				description={t("settings.appearance.fileIconsDescription")}
+				control={
+					<SegmentedControl<ExplorerFileIconsMode>
+						name="explorer-file-icons"
+						label={t("settings.appearance.fileIcons")}
+						options={[
+							{
+								id: "filetype",
+								label: t("settings.appearance.fileIcons.filetype"),
+								testId: "explorer-file-icons-filetype",
+							},
+							{
+								id: "minimal",
+								label: t("settings.appearance.fileIcons.minimal"),
+								testId: "explorer-file-icons-minimal",
+							},
+						]}
+						value={explorerFileIcons}
+						disabled={disabled}
+						onSelect={(next) => {
+							if (next !== explorerFileIcons) onUpdate({ explorerFileIcons: next });
+						}}
+						testId="explorer-file-icons-control"
+					/>
+				}
+			/>
+		</SettingsGroup>
+	);
+}
+
 export function AppearanceSettings() {
 	const t = useT();
 	const protocolVersion = useAppStore((state) => state.protocolVersion);
 	const theme = useAppStore((state) => state.theme);
 	const themeMode = useAppStore((state) => state.themeMode);
 	const systemThemePair = useAppStore((state) => state.systemThemePair);
+	const uiFontFamily = useAppStore((state) => state.uiFontFamily);
+	const codeFontFamily = useAppStore((state) => state.codeFontFamily);
+	const explorerFileIcons = useAppStore((state) => state.explorerFileIcons);
 	const [pending, setPending] = useState(false);
 	const [expanded, setExpanded] = useState(false);
-	const systemAppearance = useSyncExternalStore(onSystemAppearanceChange, readSystemAppearance);
-	const themes = useSyncExternalStore(onThemesChange, getThemes);
-	const userThemeIssues = useSyncExternalStore(onThemesChange, getUserThemeIssues);
+	const systemAppearance = useSyncExternalStore(
+		onSystemAppearanceChange,
+		readSystemAppearance,
+		readSystemAppearance,
+	);
+	const themes = useSyncExternalStore(onThemesChange, getThemes, getThemes);
+	const userThemeIssues = useSyncExternalStore(
+		onThemesChange,
+		getUserThemeIssues,
+		getUserThemeIssues,
+	);
 	const userThemes = useAppStore((state) => state.userThemes);
 	const appVersion = useAppStore((state) => state.hostAppVersion);
 
@@ -509,6 +655,13 @@ export function AppearanceSettings() {
 				appVersion={appVersion}
 				onCopyFolder={(folder) => void copyThemesFolder(folder)}
 				onRevealFolder={revealThemesFolder}
+			/>
+			<TypographyAndIconsGroup
+				uiFontFamily={uiFontFamily}
+				codeFontFamily={codeFontFamily}
+				explorerFileIcons={explorerFileIcons}
+				disabled={pending}
+				onUpdate={update}
 			/>
 			<SettingsGroup title={t("settings.appearance.editorGroup")}>
 				<LineWidthControl kind="file" />

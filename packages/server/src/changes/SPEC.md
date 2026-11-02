@@ -10,7 +10,7 @@ tags: [review, git, public-surface-checked]
 
 ## Responsibility
 
-The review surface's write path: **revert one hunk or one file's whole change in the worktree**, and undo
+The diff review surface's write path: **revert one hunk or one file's whole change in the worktree**, and undo
 that revert. Git and the worktree are the authority — a mutation names *what the user saw* (the scope, a
 line span per side, a sha-256 per side) and this module re-derives the change from its own reads.
 The platform decision behind it is [[architecture]] decision #19; the rules below are this module's own.
@@ -18,16 +18,15 @@ The platform decision behind it is [[architecture]] decision #19; the rules belo
 ## Boundary
 
 - **Owns:** `revertChange(params)` and `undoChange(params)` — load awaits (scope resolution plus the
-  bounded historical-byte read) followed by a **synchronous verify→write/claim pass**, like the
-  `reviews` module's snapshot passes; the per-workspace **receipt ring**; the whole-file semantics table
-  below.
+  bounded historical-byte read) followed by a **synchronous verify→write/claim pass**; the per-workspace
+  **receipt ring**; the whole-file semantics table below.
 - **Public surface (barrel):** `revertChange`, `undoChange`, `RevertChangeParams`, `UndoChangeParams`,
   `forgetWorkspaceChanges`, `retainReceipts`.
 - **Allowed deps:** `contracts` (`ChangeReceipt`/`RevertTarget`/`LineSpan`/`GitDiffScope`), `git`
   (`resolveDiffRange`, bounded `readBlobBytesAtAsync` + `readPathModeAtAsync`), `fs` (`resolveWorktreeFile` for containment, `classifyBytes`/
   `hashBytes`/`decodeText` for identity and textness), `persistence` (workspace lookup), `trash`,
-  `@thinkrail/shared/codedError`, Node `fs`/`crypto`/`path`.
-- **Forbidden:** `host`, `agent`, `reviews`; any write outside `fs`'s contained path; `unlink`.
+  `@realthing/shared/codedError`, Node `fs`/`crypto`/`path`.
+- **Forbidden:** `host`; any write outside `fs`'s contained path; `unlink`.
 
 ## What a revert means
 
@@ -39,7 +38,7 @@ The platform decision behind it is [[architecture]] decision #19; the rules belo
 - **Compare-and-swap on both sides, inside the lock.** `expect.originalHash` and `expect.modifiedHash`
   must equal the sha-256 of the two sides as *this* pass reads them (`null` = the path is absent, which
   is how "added" and "deleted" are expressed). Either mismatch is `STALE_VIEW` and nothing is written:
-  the agent is not paused for a mutation, so CAS is the whole protection. An `uncommitted` scope's
+  concurrent editors or terminal processes are not paused for a mutation, so CAS is the whole protection. An `uncommitted` scope's
   original side is `HEAD`, which a commit moves, so it is checked exactly like the modified one.
 - **Hunk identity is engine-neutral.** A `range` target carries line spans on both sides, never a patch,
   because two client diff engines split hunks differently. The revert replaces modified lines
@@ -63,12 +62,12 @@ The platform decision behind it is [[architecture]] decision #19; the rules belo
   the original** (added or untracked) → rename the CAS-verified worktree file to a hidden same-directory
   claim, then move that claim to the OS trash; **absent in the worktree** (deleted) → restore the original
   bytes, creating missing parent directories. Undo uses the same claim before an inverse removes a file.
-  The rename occurs in the synchronous verify pass, so a later agent write recreates the real path and
+  The rename occurs in the synchronous verify pass, so a later concurrent write recreates the real path and
   cannot become the object an awaited trash helper removes. If trash fails, the claim is restored only
   while the destination is absent; a concurrent recreation wins, and the original claim is preserved as
-  `.thinkrail-recovery-<ulid>` beside it with that absolute recovery path in the thrown error.
+  `.realthing-recovery-<ulid>` beside it with that absolute recovery path in the thrown error.
   `receipt.trashed` is the helper's absolute input path, so the file appears in the OS trash under its
-  `.thinkrail-revert-<ulid>` temporary name. Absent on both sides is not a change and is refused. A
+  `.realthing-revert-<ulid>` temporary name. Absent on both sides is not a change and is refused. A
   *renamed* file reverts as its two halves — the new path trashes, the old path restores — because that
   is what the two sides of each path actually say.
 - **Symlinks and mode-only changes are refused as `UNSUPPORTED_CHANGE`.** Worktree identity is read with
@@ -114,12 +113,11 @@ The platform decision behind it is [[architecture]] decision #19; the rules belo
 ## Get right
 
 - **The client never sends content.** Params carry a scope, spans and hashes; every byte written comes
-  from this module's own reads. That is what keeps a stale tab from clobbering the agent's work, and it
+  from this module's own reads. That is what keeps a stale tab from clobbering concurrent work, and it
   is why the expectation hashes are mandatory rather than advisory.
 - **A failed original read is never absence.** `git.readBlobBytesAtAsync` returns `null` only for Git's
   explicit path-absent diagnostic and throws every other failure, matching `git.diffFile`. That
   distinction is load-bearing because an absent original is exactly the input that makes a whole-file
   revert trash the worktree file.
-- **Serialization is the host's job** (`withChangeLock`, a chain per workspace, separate from the review
-  lock — see [[submodule-server-host]]). This module assumes it is not re-entered for one workspace; it
-  does not assume the agent is idle.
+- **Serialization is the host's job** (`withChangeLock`, a chain per workspace — see
+  [[submodule-server-host]]). This module assumes it is not re-entered for one workspace.

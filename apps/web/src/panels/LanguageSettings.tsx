@@ -3,10 +3,10 @@ import {
 	RiExternalLinkLine as ExternalLink,
 	RiFolderOpenLine as FolderOpen,
 } from "@remixicon/react";
-import type { LocalLocaleFileErrorCode, LocalLocalesSnapshot } from "@thinkrail/contracts";
-import { languageName, SYSTEM_LOCALE } from "@thinkrail/locales";
-import { T, useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+import type { LocalLocaleFileErrorCode, LocalLocalesSnapshot } from "@realthing/contracts";
+import { languageName, SYSTEM_LOCALE } from "@realthing/locales";
+import { T, useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import { type ReactNode, useMemo } from "react";
 import {
 	effectiveLocale,
@@ -22,7 +22,7 @@ import { SettingsGroup, SettingsPageContainer } from "./SettingsGroup";
 import { SettingsRadioCards, type SettingsRadioChoice } from "./SettingsRadioCards";
 import { SettingsRow } from "./SettingsRow";
 
-const REPO_URL = "https://github.com/JetBrains/thinkrail";
+const REPO_URL = "https://github.com/JetBrains/realthing";
 export const CONTRIBUTE_TRANSLATIONS_URL = `${REPO_URL}/blob/main/CONTRIBUTING.md#translations`;
 
 export function repoSourceUrl(appVersion: string | null, path: string): string {

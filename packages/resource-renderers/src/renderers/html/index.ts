@@ -1,7 +1,7 @@
 import type { ResourceRenderer } from "../../registry";
 
 export const htmlRenderer: ResourceRenderer = {
-	id: "thinkrail/html",
+	id: "realthing/html",
 	labelKey: "viewer.renderer.preview",
 	match: { glob: ["*.html", "*.htm"], text: true },
 	rank: 120,

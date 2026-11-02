@@ -1,31 +1,19 @@
-import { copyFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { Locator, Page } from "@playwright/test";
 import { expect } from "@playwright/test";
-import type { SessionSummary, Workspace } from "@thinkrail/contracts";
-import { removeTree } from "@thinkrail/shared/removeTree";
-import {
-	isRealCentralE2e,
-	preserveStagedCentralArtifact,
-	removeCentralModeLocalSeeds,
-	writeE2eAgentSettings,
-} from "./centralAgent";
+import type { Workspace } from "@realthing/contracts";
+import { removeTree } from "@realthing/shared/removeTree";
 import { git, gitQuiet, gitText } from "./git";
 import {
-	E2E_CENTRAL_ARTIFACT,
-	E2E_CENTRAL_LOG,
-	E2E_CENTRAL_STATE,
 	E2E_DATA_DIR,
 	E2E_FIXTURE_REPO,
 	E2E_GH_LOG,
 	E2E_GH_SCENARIO,
-	E2E_PI_AGENT_DIR,
-	E2E_PI_MODELS_SEED,
 	E2E_PICK_DIR_POINTER,
 	E2E_PLAIN_DIR,
 } from "./paths";
 import { fixtureRepoHealthy, seedFixtureRepo } from "./repo";
-import { E2eWire } from "./wire";
 
 export const PHONE_VIEWPORT = { width: 390, height: 780 } as const;
 
@@ -49,23 +37,7 @@ export async function hideAuxiliaryWorkbench(page: Page): Promise<void> {
 
 function resetState(): void {
 	rmSync(join(E2E_DATA_DIR, "projects.json"), { force: true });
-	rmSync(join(E2E_DATA_DIR, "turns.json"), { force: true });
-	removeTree(join(E2E_DATA_DIR, "reviews"));
 	removeTree(join(E2E_DATA_DIR, "worktrees"));
-	removeTree(join(E2E_PI_AGENT_DIR, "sessions"));
-	if (isRealCentralE2e()) {
-		preserveStagedCentralArtifact();
-		writeE2eAgentSettings();
-		removeCentralModeLocalSeeds();
-	} else {
-		rmSync(E2E_CENTRAL_ARTIFACT, { force: true });
-		const modelsPath = join(E2E_PI_AGENT_DIR, "models.json");
-		if (existsSync(E2E_PI_MODELS_SEED)) copyFileSync(E2E_PI_MODELS_SEED, modelsPath);
-		else rmSync(modelsPath, { force: true });
-		rmSync(`${modelsPath}.bak`, { force: true });
-	}
-	writeFileSync(E2E_CENTRAL_STATE, "");
-	rmSync(E2E_CENTRAL_LOG, { force: true });
 
 	if (!fixtureRepoHealthy()) seedFixtureRepo();
 
@@ -111,8 +83,7 @@ function resetState(): void {
 	writeFileSync(E2E_PICK_DIR_POINTER, E2E_FIXTURE_REPO);
 }
 
-export async function stagePlainFolder(page: Page): Promise<string> {
-	await disposeLiveSessions(page);
+export async function stagePlainFolder(_page: Page): Promise<string> {
 	resetState();
 	rmSync(E2E_PLAIN_DIR, { recursive: true, force: true });
 	mkdirSync(E2E_PLAIN_DIR, { recursive: true });
@@ -129,32 +100,6 @@ function loadPersistedWorkspaces(): Workspace[] {
 	}
 }
 
-async function disposeLiveSessions(page: Page): Promise<void> {
-	const workspaces = loadPersistedWorkspaces();
-	if (workspaces.length === 0) return;
-	const health = await page.request.get("/health");
-	const hostUrl = new URL(health.url());
-	health.dispose();
-	const port = Number(hostUrl.port) || (hostUrl.protocol === "https:" ? 443 : 80);
-	const wire = await E2eWire.connect(port);
-	try {
-		for (const workspace of workspaces) {
-			const sessions: SessionSummary[] = await wire.request(
-				"session.list",
-				{ workspaceId: workspace.id },
-				30_000,
-			);
-			for (const session of sessions) {
-				if (session.live) {
-					await wire.request("session.dispose", { sessionId: session.sessionId }, 30_000);
-				}
-			}
-		}
-	} finally {
-		wire.close();
-	}
-}
-
 export async function createWorkspaceViaDialog(page: Page): Promise<Workspace> {
 	const before = new Set(loadPersistedWorkspaces().map((w) => w.id));
 	const dialog = page.getByTestId("new-workspace-dialog");
@@ -164,14 +109,13 @@ export async function createWorkspaceViaDialog(page: Page): Promise<Workspace> {
 	}).toPass({ timeout: 30_000 });
 	await page.getByTestId("create-workspace").click();
 	await expect(dialog).toBeHidden();
-	await expect(page.locator('[data-testid="editor-tab"][data-kind="chat"]').first()).toBeVisible();
+	await expect(activeWorktreeRow(page)).toHaveCount(1);
 	const created = loadPersistedWorkspaces().find((w) => !before.has(w.id) && w.kind !== "default");
 	if (!created) throw new Error("Workspace was not persisted after creation");
 	return created;
 }
 
-export async function resetApp(page: Page): Promise<void> {
-	await disposeLiveSessions(page);
+export async function resetApp(_page: Page): Promise<void> {
 	resetState();
 }
 
@@ -199,7 +143,7 @@ export async function enterDefaultWorkspace(page: Page): Promise<void> {
 // Use this helper when a pane must be visible; rail controls toggle on each click. "files" means Files in All mode, "changes" Files in Changed mode.
 export async function revealWorkbenchTool(
 	page: Page,
-	tool: "projects" | "specs" | "files" | "changes" | "review" | "plan",
+	tool: "projects" | "files" | "changes" | "plan",
 ): Promise<void> {
 	const railTool = tool === "changes" ? "files" : tool;
 	const control = page.getByTestId(`tool-rail-${railTool}`);
@@ -210,40 +154,6 @@ export async function revealWorkbenchTool(
 	const mode = page.getByTestId(tool === "changes" ? "files-mode-changed" : "files-mode-all");
 	if ((await mode.getAttribute("aria-pressed")) !== "true") await mode.click();
 	await expect(mode).toHaveAttribute("aria-pressed", "true");
-}
-
-export async function openPersistedChat(page: Page, title: string): Promise<void> {
-	const chatTab = page
-		.locator('[data-testid="editor-tab"][data-kind="chat"]')
-		.filter({ hasText: title });
-	const historyButton = page.getByTestId("chat-history").first();
-	const historyItem = page.getByTestId("closed-chat-item").filter({ hasText: title });
-	const clickUnlessOpened = async (target: Locator) => {
-		try {
-			await target.click({ timeout: 5_000 });
-		} catch (error) {
-			if (!(await chatTab.isVisible())) throw error;
-		}
-	};
-
-	await expect
-		.poll(async () => (await chatTab.isVisible()) || (await historyButton.isVisible()), {
-			timeout: 30_000,
-		})
-		.toBe(true);
-	if (await chatTab.isVisible()) return;
-
-	await clickUnlessOpened(historyButton);
-	if (await chatTab.isVisible()) return;
-	await expect
-		.poll(async () => (await chatTab.isVisible()) || (await historyItem.isVisible()), {
-			timeout: 30_000,
-		})
-		.toBe(true);
-	if (await chatTab.isVisible()) return;
-
-	await clickUnlessOpened(historyItem);
-	await expect(chatTab).toBeVisible({ timeout: 30_000 });
 }
 
 export async function revealFirstProjectWorkspaces(page: Page): Promise<void> {
@@ -287,98 +197,11 @@ export async function goProjectHome(page: Page): Promise<void> {
 	await expect(page.getByTestId("welcome")).toBeVisible();
 }
 
-export async function openWorkspaceChat(page: Page): Promise<Workspace> {
-	await openFixtureProject(page);
-	let workspace: Workspace | undefined;
-	await expect(async () => {
-		if ((await worktreeRows(page).count()) === 0) {
-			workspace = await createWorkspaceViaDialog(page);
-		}
-		await worktreeRows(page).first().getByRole("button").first().click();
-		await expect(activeWorktreeRow(page)).toHaveCount(1, {
-			timeout: 5_000,
-		});
-	}).toPass({ timeout: 30_000 });
-	await expect(page.locator('[data-testid="editor-tab"][data-kind="chat"]')).toHaveCount(1);
-	await expect(page.getByTestId("chat-input")).toBeVisible();
-	workspace ??= loadPersistedWorkspaces().find((candidate) => candidate.kind !== "default");
-	if (!workspace) throw new Error("Workspace chat opened without a persisted worktree");
-	return workspace;
-}
-
-export async function waitForAgentSettled(page: Page, timeout = 90_000): Promise<void> {
-	const chatScroll = page.getByTestId("chat-scroll");
-	const responseSurface = page.locator(
-		'[data-testid="chat-message"][data-role="assistant"], [data-testid="activity-group"], [data-testid="activity-step"], [data-testid="review-package-summary"]',
-	);
-	await expect
-		.poll(
-			async () =>
-				(await chatScroll.getAttribute("data-streaming")) === "true" ||
-				(await responseSurface.count()) > 0,
-			{ timeout },
-		)
-		.toBe(true);
-	await expect(chatScroll).toHaveAttribute("data-streaming", "false", { timeout });
-}
-
-export function routineActivityRows(page: Page): Locator {
-	return page.locator(
-		'[data-testid="thinking-group"], [data-testid="activity-group"], [data-testid="activity-step"]',
-	);
-}
-
-export async function expandAllRoutineGroups(page: Page): Promise<void> {
-	const collapsed = page.locator(
-		'[data-testid="thinking-group"][data-expanded="false"], [data-testid="activity-group"][data-expanded="false"]',
-	);
-	while ((await collapsed.count()) > 0) {
-		await collapsed.first().getByRole("button").first().click();
-	}
-}
-
-export async function expandActivityStep(page: Page, tool: string): Promise<Locator> {
-	await expandAllRoutineGroups(page);
-	const step = page.locator(`[data-testid="activity-step"][data-tool="${tool}"]`).first();
-	await expect(step).toBeVisible();
-	if ((await step.getAttribute("data-expanded")) !== "true") {
-		await step.getByTestId("activity-step-toggle").click();
-		await expect(step).toHaveAttribute("data-expanded", "true");
-	}
-	return step;
-}
-
 /** Opens an `aria-expanded` disclosure (a Settings theme list, layout Advanced, …) unless it is already open. */
 export async function expandDisclosure(toggle: Locator): Promise<void> {
 	await expect(toggle).toBeVisible();
 	if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
 	await expect(toggle).toHaveAttribute("aria-expanded", "true");
-}
-
-export function modelGroupToggle(page: Page, provider: string): Locator {
-	return page.locator(`[data-testid="model-group-toggle"][data-provider="${provider}"]`);
-}
-
-/**
- * Model pickers collapse every provider group except the current model's, so an option of another
- * provider renders only once its group is expanded.
- */
-export async function expandModelGroup(page: Page, provider: string): Promise<void> {
-	await expandDisclosure(modelGroupToggle(page, provider));
-}
-
-/**
- * Waits until an open picker has rendered its catalog — its provider groups, or the empty-catalog
- * hint — first unfolding a composer picker's pinned/recent shortlist. An absent group is then
- * evidence, not a not-yet-rendered list.
- */
-export async function revealModelGroups(page: Page): Promise<void> {
-	const showAll = page.getByTestId("model-show-all");
-	const groups = page.getByTestId("model-group-toggle");
-	const empty = page.getByText("No models to show.", { exact: false });
-	await expect(showAll.or(groups).or(empty).first()).toBeVisible();
-	if (await showAll.isVisible()) await showAll.click();
-	await expect(groups.or(empty).first()).toBeVisible();
 }
 
 export function visibleTerminal(page: Page): Locator {

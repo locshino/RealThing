@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { spawnDetached } from "@thinkrail/shared/spawn";
+import { spawnDetached } from "@realthing/shared/spawn";
 
 const HOSTS = ["powershell.exe", "pwsh.exe"];
 
@@ -29,7 +29,7 @@ export async function runPowerShellScript(
 	args: readonly string[] = [],
 	options: RunPowerShellOptions = {},
 ): Promise<PowerShellResult | undefined> {
-	const path = join(tmpdir(), `thinkrail-${randomUUID()}.ps1`);
+	const path = join(tmpdir(), `realthing-${randomUUID()}.ps1`);
 	await Bun.write(path, script.startsWith(BOM) ? script : `${BOM}${script}`);
 	try {
 		for (const host of HOSTS) {

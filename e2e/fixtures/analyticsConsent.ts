@@ -1,4 +1,4 @@
-import type { AppConfig } from "@thinkrail/contracts";
+import type { AppConfig } from "@realthing/contracts";
 import { E2eWire } from "./wire";
 
 export const CONFIRMED_ANALYTICS_CONFIG = {

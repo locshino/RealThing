@@ -4,9 +4,9 @@ import {
 	RiLoader4Line as Loader2,
 	RiRefreshLine as RefreshCw,
 } from "@remixicon/react";
-import type { ExistingWorktreeCandidate, Workspace } from "@thinkrail/contracts";
-import { i18n, useT } from "@thinkrail/locales/react";
-import { Button } from "@thinkrail/ui/button";
+import type { ExistingWorktreeCandidate, Workspace } from "@realthing/contracts";
+import { i18n, useT } from "@realthing/locales/react";
+import { Button } from "@realthing/ui/button";
 import {
 	Dialog,
 	DialogContent,
@@ -14,8 +14,8 @@ import {
 	DialogFooter,
 	DialogHeader,
 	DialogTitle,
-} from "@thinkrail/ui/dialog";
-import { LoadingRegion } from "@thinkrail/ui/skeleton";
+} from "@realthing/ui/dialog";
+import { LoadingRegion } from "@realthing/ui/skeleton";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { errorText, getTransport } from "../transport";
 

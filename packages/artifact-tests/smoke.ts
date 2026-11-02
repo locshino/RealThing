@@ -3,9 +3,9 @@
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, relative } from "node:path";
-import { removeTree } from "@thinkrail/shared/removeTree";
-import { channel, version } from "@thinkrail/shared/version";
-import { windowsFileIdentity } from "@thinkrail/shared/windowsIdentity";
+import { removeTree } from "@realthing/shared/removeTree";
+import { channel, version } from "@realthing/shared/version";
+import { windowsFileIdentity } from "@realthing/shared/windowsIdentity";
 import { runDesktopAnalyticsProbe } from "./src/analyticsProbe";
 import { locateDesktopLauncher, repoRoot } from "./src/artifact";
 import {
@@ -17,7 +17,7 @@ import {
 import { pollUntil, terminateProcess, within } from "./src/lifecycle";
 import { windowsIdentityMismatches } from "./src/windowsIdentity";
 
-const root = mkdtempSync(join(tmpdir(), "thinkrail-desktop-smoke-"));
+const root = mkdtempSync(join(tmpdir(), "realthing-desktop-smoke-"));
 let sequence = 0;
 
 function readSettledJson(path: string): unknown {
@@ -205,27 +205,27 @@ async function launchDesktop(
 	}
 	const appEnv = hostEnvironment(
 		{
-			THINKRAIL_DESKTOP_READY_FILE: readyPath,
-			THINKRAIL_DESKTOP_CONTROL_FILE: controlPath,
-			THINKRAIL_DESKTOP_USER_DATA: userDataPath,
-			THINKRAIL_DESKTOP_HIDDEN: "1",
+			REALTHING_DESKTOP_READY_FILE: readyPath,
+			REALTHING_DESKTOP_CONTROL_FILE: controlPath,
+			REALTHING_DESKTOP_USER_DATA: userDataPath,
+			REALTHING_DESKTOP_HIDDEN: "1",
 			...(mode === "host"
-				? { THINKRAIL_DESKTOP_E2E_HOST: "1" }
+				? { REALTHING_DESKTOP_E2E_HOST: "1" }
 				: {
-						THINKRAIL_DESKTOP_NAVIGATION_PROBE_FILE: navigationProbePath,
+						REALTHING_DESKTOP_NAVIGATION_PROBE_FILE: navigationProbePath,
 						...(process.platform === "darwin"
-							? { THINKRAIL_DESKTOP_TITLE_BAR_PROBE_FILE: titleBarProbePath }
+							? { REALTHING_DESKTOP_TITLE_BAR_PROBE_FILE: titleBarProbePath }
 							: {}),
 						...(process.platform === "win32"
-							? { THINKRAIL_DESKTOP_WINDOW_CONTROLS_PROBE_FILE: windowControlsProbePath }
+							? { REALTHING_DESKTOP_WINDOW_CONTROLS_PROBE_FILE: windowControlsProbePath }
 							: {}),
 					}),
 		},
 		[
-			"THINKRAIL_DESKTOP_E2E_HOST",
-			"THINKRAIL_DESKTOP_NAVIGATION_PROBE_FILE",
-			"THINKRAIL_DESKTOP_TITLE_BAR_PROBE_FILE",
-			"THINKRAIL_DESKTOP_WINDOW_CONTROLS_PROBE_FILE",
+			"REALTHING_DESKTOP_E2E_HOST",
+			"REALTHING_DESKTOP_NAVIGATION_PROBE_FILE",
+			"REALTHING_DESKTOP_TITLE_BAR_PROBE_FILE",
+			"REALTHING_DESKTOP_WINDOW_CONTROLS_PROBE_FILE",
 		],
 		env,
 	);
@@ -302,7 +302,7 @@ async function launchDesktop(
 					exitError: exitedEarly,
 				},
 			);
-			if (navigation?.url !== "https://example.invalid/thinkrail-navigation-probe") {
+			if (navigation?.url !== "https://example.invalid/realthing-navigation-probe") {
 				throw new Error(
 					`native external navigation reported an unexpected URL: ${navigation?.url}`,
 				);
@@ -315,7 +315,6 @@ async function launchDesktop(
 			mode: ready.mode,
 			applicationMenuInstalled: ready.applicationMenuInstalled,
 			resources: {
-				skillsDir: join(ready.runtimeDir, "skills"),
 				trashHelpers: {
 					macos: join(ready.runtimeDir, "macos-trash"),
 					windows: join(ready.runtimeDir, "windows-trash.exe"),
@@ -375,12 +374,10 @@ async function runMutedSmoke(): Promise<void> {
 			hostEnvironment({
 				HOME: join(isolated, "home"),
 				USERPROFILE: join(isolated, "home"),
-				THINKRAIL_DATA_DIR: join(isolated, "data"),
-				PI_CODING_AGENT_DIR: join(isolated, "agent"),
+				REALTHING_DATA_DIR: join(isolated, "data"),
 				XDG_CACHE_HOME: join(isolated, "cache"),
-				THINKRAIL_NO_ANALYTICS: "1",
+				REALTHING_NO_ANALYTICS: "1",
 				CI: "1",
-				PI_OFFLINE: "1",
 			}),
 			"native-ui",
 			"ui",

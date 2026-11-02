@@ -16,15 +16,15 @@ test("editor tabs are scoped to the active workspace", async ({ page }) => {
 
 	await createWorkspaceViaDialog(page);
 	await expect(workspaces).toHaveCount(1);
-	await expect(tabs).toHaveCount(1);
+	await expect(tabs).toHaveCount(0);
 	await revealWorkbenchTool(page, "files");
 	await page.getByTestId("file-node").filter({ hasText: "README.md" }).dblclick();
-	await expect(tabs).toHaveCount(2);
+	await expect(tabs).toHaveCount(1);
 
 	await createWorkspaceViaDialog(page);
 	await expect(workspaces).toHaveCount(2);
 	await expect(worktreeRow(page, "workspace-2")).toHaveAttribute("data-active", "true");
-	await expect(tabs).toHaveCount(1);
+	await expect(tabs).toHaveCount(0);
 	await expect(tabs.filter({ hasText: "README.md" })).toHaveCount(0);
 	await expect(page.getByTestId("scope-name")).toHaveText("workspace-2");
 	await expect(page.getByTestId("scope-branch")).toHaveText("workspace-2");
@@ -33,7 +33,7 @@ test("editor tabs are scoped to the active workspace", async ({ page }) => {
 	await expect(worktreeRow(page, "workspace-1")).toHaveAttribute("data-active", "true");
 	await expect(page.getByTestId("scope-name")).toHaveText("workspace-1");
 	await expect(page.getByTestId("scope-branch")).toHaveText("workspace-1");
-	await expect(tabs).toHaveCount(2);
+	await expect(tabs).toHaveCount(1);
 	await expect(tabs.filter({ hasText: "README.md" })).toBeVisible();
 });
 
@@ -46,16 +46,16 @@ test("the selected side tool follows workspace switches", async ({ page }) => {
 	await worktreeRow(page, "workspace-1").getByRole("button").first().click();
 	await expect(page.getByTestId("scope-name")).toHaveText("workspace-1");
 
-	const groupInfo = await page.locator('[data-side][data-tools~="specs"]').evaluate((group) => ({
+	const groupInfo = await page.locator('[data-side][data-tools~="files"]').evaluate((group) => ({
 		side: group.getAttribute("data-side"),
 		groupId: group.getAttribute("data-group-id"),
 	}));
-	if (!groupInfo.side || !groupInfo.groupId) throw new Error("missing Specs side group");
+	if (!groupInfo.side || !groupInfo.groupId) throw new Error("missing Files side group");
 	const projects = page.getByTestId("tool-rail-projects");
 
 	await page.getByTestId("tab-projects").click({ button: "right" });
 	await page
-		.getByRole("menuitem", { name: `Move to ${groupInfo.side} pane (Specs, Files)`, exact: true })
+		.getByRole("menuitem", { name: `Move to ${groupInfo.side} pane (Files)`, exact: true })
 		.click();
 	await revealWorkbenchTool(page, "projects");
 	await expect(projects).toHaveAttribute("aria-pressed", "true");
@@ -70,12 +70,12 @@ test("the selected side tool follows workspace switches", async ({ page }) => {
 	await expect(defaultWorkspaceRow(page)).toHaveAttribute("data-active", "true");
 	await expect(projects).toHaveAttribute("aria-pressed", "true");
 
-	const review = page.getByTestId("tool-rail-review");
-	await revealWorkbenchTool(page, "review");
-	await expect(review).toHaveAttribute("aria-pressed", "true");
+	const plan = page.getByTestId("tool-rail-plan");
+	await revealWorkbenchTool(page, "plan");
+	await expect(plan).toHaveAttribute("aria-pressed", "true");
 	await worktreeRow(page, "workspace-1").getByRole("button").first().click();
 	await expect(page.getByTestId("scope-name")).toHaveText("workspace-1");
-	await expect(review).toHaveAttribute("aria-pressed", "true");
+	await expect(plan).toHaveAttribute("aria-pressed", "true");
 	await expect(projects).toHaveAttribute("aria-pressed", "true");
 });
 
@@ -144,7 +144,7 @@ test("a same-id terminal body remounts instead of carrying across workspaces", a
 	await createWorkspaceViaDialog(page);
 	await expect(page.getByTestId("scope-name")).toHaveText("workspace-2");
 	const terminal = page.locator(
-		'[data-testid="terminal-instance"][data-tab-key="thinkrail-initial"]',
+		'[data-testid="terminal-instance"][data-tab-key="realthing-initial"]',
 	);
 	await expect(terminal).toHaveAttribute("data-ready", "true");
 	await terminal.evaluate((node) => node.setAttribute("data-switch-probe", "workspace-2"));

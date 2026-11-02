@@ -1,4 +1,4 @@
-import { useT } from "@thinkrail/locales/react";
+import { useT } from "@realthing/locales/react";
 import { type CSSProperties, useEffect, useMemo } from "react";
 import type { ResourceViewProps } from "../../registry";
 import { useElementSize } from "../../support/useElementSize";

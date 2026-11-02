@@ -1,4 +1,4 @@
-import type { ImperativePanelHandle } from "@thinkrail/ui/resizable";
+import type { ImperativePanelHandle } from "@realthing/ui/resizable";
 import { type RefObject, useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { STORAGE_PREFIX } from "../constants/branding";
 

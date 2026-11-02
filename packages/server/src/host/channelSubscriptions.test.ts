@@ -26,6 +26,6 @@ test("every channel the host broadcasts is one every socket subscribes to at ope
 			),
 		].map((match) => match[1] ?? ""),
 	);
-	expect(published.size).toBeGreaterThan(10);
+	expect(published.size).toBeGreaterThan(5);
 	expect([...published].filter((channel) => !subscribed.has(channel))).toEqual([]);
 });

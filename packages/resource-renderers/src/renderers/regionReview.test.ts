@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import type { ReviewAnchor } from "@thinkrail/contracts";
+import type { ReviewAnchor } from "../registry";
 import {
 	clampRegion,
 	containedMediaRect,

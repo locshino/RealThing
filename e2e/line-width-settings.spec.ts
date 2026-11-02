@@ -1,42 +1,27 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect, type Locator, type Page, test } from "@playwright/test";
-import {
-	createWorkspaceViaDialog,
-	hideAuxiliaryWorkbench,
-	openFixtureProject,
-	openWorkspaceChat,
-	PHONE_VIEWPORT,
-	revealWorkbenchTool,
-} from "./fixtures/app";
+import { createWorkspaceViaDialog, openFixtureProject, revealWorkbenchTool } from "./fixtures/app";
 import { installChannelHold } from "./fixtures/channelHold";
 import { pierreDeletionsSide } from "./fixtures/pierre";
 import { LONG_LINE } from "./fixtures/repo";
 
-type LineWidthKind = "chat" | "file";
-
-// Chat line width lives on the Chat page, the file line width in Appearance → Editor.
-const LINE_WIDTH_NAV: Record<LineWidthKind, string> = {
-	chat: "settings-nav-chat",
-	file: "settings-nav-appearance",
-};
-
-function widthControls(page: Page, kind: LineWidthKind) {
+function widthControls(page: Page) {
 	return {
-		input: page.getByTestId(`${kind}-line-width-input`),
-		bounded: page.getByTestId(`${kind}-line-width-bounded`),
+		input: page.getByTestId("file-line-width-input"),
+		bounded: page.getByTestId("file-line-width-bounded"),
 	};
 }
 
-async function openLineWidthSettings(page: Page, kind: LineWidthKind) {
+async function openFileLineWidthSettings(page: Page) {
 	if (!(await page.getByTestId("settings-dialog").isVisible())) {
 		await page.getByTestId("open-settings").click();
 	}
-	const nav = page.getByTestId(LINE_WIDTH_NAV[kind]);
+	const nav = page.getByTestId("settings-nav-appearance");
 	await expect(nav).toBeVisible();
 	await nav.click();
-	await expect(page.getByTestId(`${kind}-line-width-control`)).toBeVisible();
-	return widthControls(page, kind);
+	await expect(page.getByTestId("file-line-width-control")).toBeVisible();
+	return widthControls(page);
 }
 
 /**
@@ -60,13 +45,11 @@ async function closeSettings(page: Page): Promise<void> {
 async function restoreLineWidthDefaults(page: Page): Promise<void> {
 	if (page.isClosed()) return;
 	if (await page.getByTestId("settings-dialog").isVisible()) await closeSettings(page);
-	for (const kind of ["chat", "file"] as const) {
-		const controls = await openLineWidthSettings(page, kind);
-		if ((await controls.input.inputValue()) !== "120") await saveWidth(controls.input, 120);
-		if ((await controls.bounded.getAttribute("data-active")) !== "true") {
-			await controls.bounded.click();
-			await expect(controls.bounded).toHaveAttribute("data-active", "true");
-		}
+	const controls = await openFileLineWidthSettings(page);
+	if ((await controls.input.inputValue()) !== "120") await saveWidth(controls.input, 120);
+	if ((await controls.bounded.getAttribute("data-active")) !== "true") {
+		await controls.bounded.click();
+		await expect(controls.bounded).toHaveAttribute("data-active", "true");
 	}
 	await closeSettings(page);
 }
@@ -84,51 +67,38 @@ test("line-width controls validate drafts, converge on broadcasts, and persist",
 	try {
 		await page.goto("/");
 		await expect(page.getByTestId("connection-status")).toHaveAttribute("data-status", "connected");
-		const chat = await openLineWidthSettings(page, "chat");
-		await expect(chat.input).toHaveValue("120");
-		await expect(chat.bounded).toHaveAttribute("data-active", "true");
-		const file = await openLineWidthSettings(page, "file");
+		const file = await openFileLineWidthSettings(page);
 		await expect(file.input).toHaveValue("120");
 		await expect(file.bounded).toHaveAttribute("data-active", "true");
 
-		await openLineWidthSettings(page, "chat");
-		await chat.input.fill("90");
-		await chat.input.press("Escape");
-		await expect(chat.input).toHaveValue("120");
+		await file.input.fill("90");
+		await file.input.press("Escape");
+		await expect(file.input).toHaveValue("120");
 
-		await chat.input.fill("39");
-		await expect(chat.input).toHaveAttribute("aria-invalid", "true");
+		await file.input.fill("39");
+		await expect(file.input).toHaveAttribute("aria-invalid", "true");
 		await expect(page.getByText("Enter a whole number from 40 to 240.")).toBeVisible();
-		// An invalid draft is never committed: Enter keeps the draft and its error.
-		await chat.input.press("Enter");
-		await expect(chat.input).toHaveValue("39");
-		await expect(chat.input).toHaveAttribute("aria-invalid", "true");
+		await file.input.press("Enter");
+		await expect(file.input).toHaveValue("39");
+		await expect(file.input).toHaveAttribute("aria-invalid", "true");
 
-		await saveWidth(chat.input, 80);
-		await expect(chat.input).not.toHaveAttribute("aria-invalid", "true");
-		await openLineWidthSettings(page, "file");
 		await saveWidth(file.input, 160);
+		await expect(file.input).not.toHaveAttribute("aria-invalid", "true");
 
-		await openLineWidthSettings(page, "chat");
 		const held = channelHold.arm("settings.changed");
 		release = held.release;
-		await chat.bounded.click();
+		await file.bounded.click();
 		await held.held;
-		await expect(chat.bounded).toHaveAttribute("data-active", "true");
+		await expect(file.bounded).toHaveAttribute("data-active", "true");
 		release();
 		release = () => {};
-		await expect(chat.bounded).toHaveAttribute("data-active", "false");
-		await openLineWidthSettings(page, "file");
-		await expect(file.bounded).toHaveAttribute("data-active", "true");
+		await expect(file.bounded).toHaveAttribute("data-active", "false");
 
 		await page.reload();
 		await expect(page.getByTestId("connection-status")).toHaveAttribute("data-status", "connected");
-		await openLineWidthSettings(page, "chat");
-		await expect(chat.input).toHaveValue("80");
-		await expect(chat.bounded).toHaveAttribute("data-active", "false");
-		await openLineWidthSettings(page, "file");
+		await openFileLineWidthSettings(page);
 		await expect(file.input).toHaveValue("160");
-		await expect(file.bounded).toHaveAttribute("data-active", "true");
+		await expect(file.bounded).toHaveAttribute("data-active", "false");
 	} finally {
 		release();
 		await restoreLineWidthDefaults(page).catch(() => {});
@@ -146,7 +116,7 @@ test("the file width wraps source and updates an already-mounted editor", async 
 		await expectWrapped(viewLines);
 		const defaultVisualLines = await viewLines.locator(":scope > .view-line").count();
 
-		const file = await openLineWidthSettings(page, "file");
+		const file = await openFileLineWidthSettings(page);
 		await saveWidth(file.input, 40);
 		await closeSettings(page);
 		await expect
@@ -174,69 +144,4 @@ test("Pierre renders both sides of a long-line diff", async ({ page }) => {
 			.getByText(`changed ${LONG_LINE}`.trim(), { exact: false })
 			.last(),
 	).toBeVisible();
-});
-
-test("chat uses the selected measure and optionally exceeds a narrow pane", async ({ page }) => {
-	try {
-		await openWorkspaceChat(page);
-		const chat = await openLineWidthSettings(page, "chat");
-		await saveWidth(chat.input, 40);
-		await closeSettings(page);
-
-		const input = page.getByTestId("chat-input");
-		await input.fill(LONG_LINE);
-		await input.press("Enter");
-		const userMessage = page.locator('[data-testid="chat-message"][data-role="user"]').last();
-		await expect(userMessage).toBeVisible();
-		const row = userMessage.locator('xpath=ancestor::*[@data-testid="chat-row"][1]');
-		// Poll the measure: the `--chat-transcript-width` custom property is applied via a ref callback and a
-		// native webview can flush its layout a frame later, so a single synchronous read is racy.
-		await expect
-			.poll(() =>
-				row.evaluate((element) => {
-					const probe = document.createElement("div");
-					probe.style.position = "fixed";
-					probe.style.width = "40ch";
-					document.body.append(probe);
-					const expectedTextWidth = probe.getBoundingClientRect().width;
-					probe.remove();
-					const gutter = Number.parseFloat(
-						getComputedStyle(document.documentElement).getPropertyValue("--chat-gutter"),
-					);
-					return Math.abs(element.getBoundingClientRect().width - (expectedTextWidth + 2 * gutter));
-				}),
-			)
-			.toBeLessThanOrEqual(2);
-
-		await openLineWidthSettings(page, "chat");
-		await saveWidth(chat.input, 240);
-		await closeSettings(page);
-		await hideAuxiliaryWorkbench(page);
-		await page.setViewportSize(PHONE_VIEWPORT);
-		const transcriptScroll = page.getByTestId("chat-transcript-scroll");
-		await expect
-			.poll(async () => {
-				const rowBox = await row.boundingBox();
-				const scrollBox = await transcriptScroll.boundingBox();
-				return rowBox !== null && scrollBox !== null && rowBox.width <= scrollBox.width + 1;
-			})
-			.toBe(true);
-
-		await openLineWidthSettings(page, "chat");
-		await chat.bounded.click();
-		await expect(chat.bounded).toHaveAttribute("data-active", "false");
-		await closeSettings(page);
-		await expect
-			.poll(() => transcriptScroll.evaluate((element) => element.scrollWidth > element.clientWidth))
-			.toBe(true);
-		const overflow = await transcriptScroll.evaluate((element) => ({
-			clientWidth: element.clientWidth,
-			scrollLeft: element.scrollLeft,
-			scrollWidth: element.scrollWidth,
-		}));
-		expect(overflow.scrollWidth).toBeGreaterThan(overflow.clientWidth);
-		expect(overflow.scrollLeft).toBe(0);
-	} finally {
-		await restoreLineWidthDefaults(page).catch(() => {});
-	}
 });

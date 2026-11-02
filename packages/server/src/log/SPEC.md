@@ -12,9 +12,9 @@ tags: [public-surface-checked]
 
 The host's diagnostic record: every module logs through `logger(scope)` instead of `console.*`.
 Operators see readable stderr, while the same application records land as structured JSONL under
-`<dataDir>/logs/` so users can send them to ThinkRail for agent-led reproduction and investigation.
-Only calls through this module's explicit logger reach durable files; arbitrary pi / extension
-`console.*` arguments remain terminal-only because they can contain prompts, tool data, or credentials.
+`<dataDir>/logs/` so users can send them to RealThing for reproduction and investigation.
+Only calls through this module's explicit logger reach durable files; arbitrary `console.*` arguments
+remain terminal-only because they can contain sensitive user or project data.
 
 ## Destinations & rotation
 
@@ -24,7 +24,7 @@ Only calls through this module's explicit logger reach durable files; arbitrary 
 - `pino-pretty` renders application logs to stderr only. Durable files stay as Pino's NDJSON rather than
   passing through a human-text formatter.
 - `pino-roll` owns the complete file lifecycle: daily plus 10 MB size rotation, generated suffixes, size
-  accounting, restart continuation, and cleanup. The base is `thinkrail.jsonl`; generated names follow
+  accounting, restart continuation, and cleanup. The base is `realthing.jsonl`; generated names follow
   the installed transport's convention. Fourteen rotated files plus the active file are retained, which
   bounds ordinary diagnostic storage near 150 MB. The adapter invokes the pinned transport's own cleanup
   routine once after opening because `pino-roll@4.0.0` otherwise runs it only after an in-process roll;
@@ -38,7 +38,7 @@ Only calls through this module's explicit logger reach durable files; arbitrary 
 
 - `debug | info | warn | error`; default threshold **info**. The threshold gates stderr and file alike.
   Resolution: explicit `initLogging({ level })` (the CLI's `--verbose` → debug) >
-  `THINKRAIL_LOG_LEVEL` (this module is that variable's single reader; an invalid value warns without
+  `REALTHING_LOG_LEVEL` (this module is that variable's single reader; an invalid value warns without
   echoing the environment value and falls back to info) > info.
 - Before `initLogging`, `logger(...)` calls echo to stderr only and write no file, so unit tests and
   library embedders never grow support files implicitly.
@@ -49,8 +49,8 @@ Only calls through this module's explicit logger reach durable files; arbitrary 
 
 ## Console boundary
 
-`console.debug/log/info/warn/error` are never patched or copied into durable files. Pi, extensions, and
-third-party packages may put sensitive project data in arbitrary console arguments; no structured
+`console.debug/log/info/warn/error` are never patched or copied into durable files. Third-party
+packages may put sensitive project data in arbitrary console arguments; no structured
 redactor can make their free text safe. Host diagnostics that belong in support files must instead pass
 through a reviewed `logger(scope)` call with an intentionally bounded message.
 
@@ -59,7 +59,7 @@ through a reviewed `logger(scope)` call with an intentionally bounded message.
 - Logging must never take the host down. Initialization and log calls degrade to direct stderr on failure;
   every destination error channel is consumed without routing back through the logger.
 - Support files never intentionally contain credentials, authorization headers, cookies, environment
-  values, prompt/message contents, file contents, tool arguments/results, or WS/protocol payloads. Known
+  values, file contents, or WS/protocol payloads. Known
   structured secret fields are removed with Pino redaction as defense in depth; call sites must still
   follow the closed-diagnostics rule because secrets embedded in free-text messages cannot be redacted
   structurally. Durable messages may interpolate only closed method names, counts, generated ids, and

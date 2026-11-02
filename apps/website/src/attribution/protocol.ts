@@ -1,4 +1,4 @@
-export const productionOrigin = "https://thinkrail.ai";
+export const productionOrigin = "https://realthing.ai";
 export const claimLifetimeMs = 10 * 60 * 1000;
 export const attributionLifetimeMs = 30 * 24 * 60 * 60 * 1000;
 export const attributionPolicyVersion = 1 as const;

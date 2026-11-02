@@ -1,12 +1,12 @@
-import { RiChatNewLine as MessageSquarePlus, RiCloseLine as X } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { IconButton } from "@thinkrail/ui/button";
+import { RiCloseLine as X } from "@remixicon/react";
+import { useT } from "@realthing/locales/react";
+import { IconButton } from "@realthing/ui/button";
 import {
 	type ImperativePanelGroupHandle,
 	ResizableHandle,
 	ResizablePanel,
 	ResizablePanelGroup,
-} from "@thinkrail/ui/resizable";
+} from "@realthing/ui/resizable";
 import { memo, useMemo, useRef } from "react";
 import { type LayoutAttention, readLayoutSelection, tupleKey } from "../../lib";
 import {
@@ -35,14 +35,12 @@ import { TabStrip } from "./workbenchTabs";
 export const CenterGroupView = memo(function CenterGroupView({
 	group,
 	selectedId,
-	onNewChat,
 	renderEmptyCenter,
 	renderCenterActions,
 	...shared
 }: SharedGroupProps & {
 	group: LayoutCenterGroup;
 	selectedId: string | undefined;
-	onNewChat: WorkbenchProps["onNewChat"];
 	renderEmptyCenter: WorkbenchProps["renderEmptyCenter"];
 	renderCenterActions: WorkbenchProps["renderCenterActions"];
 }) {
@@ -91,8 +89,6 @@ export const CenterGroupView = memo(function CenterGroupView({
 				onFocusAdjacentGroup={shared.onFocusAdjacentGroup}
 				onHideSide={shared.onHideSide}
 				onRevealTool={shared.onRevealTool}
-				onRenameChat={shared.onRenameChat}
-				{...(shared.chatFirstPrompts ? { chatFirstPrompts: shared.chatFirstPrompts } : {})}
 				canFocusAdjacentGroup={shared.canFocusAdjacentGroup}
 				renderTabAdornment={shared.renderTabAdornment}
 				trailing={
@@ -118,15 +114,6 @@ export const CenterGroupView = memo(function CenterGroupView({
 								className="shrink-0 self-center"
 							/>
 						) : null}
-						<IconButton
-							variant="ghost"
-							size="m"
-							icon={MessageSquarePlus}
-							label={t("workbench.center.newChat")}
-							data-testid="new-chat"
-							onClick={() => onNewChat(group.id)}
-							className="shrink-0 self-center"
-						/>
 					</>
 				}
 			/>
@@ -139,7 +126,7 @@ export const CenterGroupView = memo(function CenterGroupView({
 			>
 				{selected ? (
 					<GroupTabBody
-						key={selected.id}
+						key={selected.kind === "file" ? "file" : selected.id}
 						tab={selected}
 						renderTabBody={shared.renderTabBody}
 						renderToolBody={shared.renderToolBody}
@@ -200,7 +187,6 @@ export type CenterNodeProps = SharedGroupProps & {
 	attention: LayoutAttention;
 	projectionEpoch: number;
 	onCommit: WorkbenchProps["onCommit"];
-	onNewChat: WorkbenchProps["onNewChat"];
 	renderEmptyCenter: WorkbenchProps["renderEmptyCenter"];
 	renderCenterActions: WorkbenchProps["renderCenterActions"];
 };
@@ -210,7 +196,6 @@ export const CenterNodeView = memo(function CenterNodeView({
 	attention,
 	projectionEpoch,
 	onCommit,
-	onNewChat,
 	...shared
 }: CenterNodeProps) {
 	return node.kind === "group" ? (
@@ -218,7 +203,6 @@ export const CenterNodeView = memo(function CenterNodeView({
 			key={tupleKey("center-node", node.id)}
 			group={node}
 			selectedId={readLayoutSelection(attention, node.id)}
-			onNewChat={onNewChat}
 			{...shared}
 		/>
 	) : (
@@ -228,7 +212,6 @@ export const CenterNodeView = memo(function CenterNodeView({
 			attention={attention}
 			projectionEpoch={projectionEpoch}
 			onCommit={onCommit}
-			onNewChat={onNewChat}
 			{...shared}
 		/>
 	);
@@ -240,7 +223,6 @@ export const CenterSplitView = memo(function CenterSplitView({
 	attention,
 	projectionEpoch,
 	onCommit,
-	onNewChat,
 	...shared
 }: Omit<CenterNodeProps, "node"> & { node: LayoutCenterSplit }) {
 	const [sizeRef, size] = useElementSize();
@@ -280,7 +262,6 @@ export const CenterSplitView = memo(function CenterSplitView({
 						attention={attention}
 						projectionEpoch={projectionEpoch}
 						onCommit={onCommit}
-						onNewChat={onNewChat}
 						{...shared}
 					/>
 				</ResizablePanel>
@@ -303,7 +284,6 @@ export const CenterSplitView = memo(function CenterSplitView({
 						attention={attention}
 						projectionEpoch={projectionEpoch}
 						onCommit={onCommit}
-						onNewChat={onNewChat}
 						{...shared}
 					/>
 				</ResizablePanel>

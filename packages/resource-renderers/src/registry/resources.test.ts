@@ -1,11 +1,11 @@
 import { afterEach, expect, test } from "bun:test";
-import type { ReviewAnchor } from "@thinkrail/contracts";
 import {
 	anchorLabel,
 	describeResource,
 	isPlaceable,
 	type ResourceDescriptor,
 	type ResourceRenderer,
+	type ReviewAnchor,
 	registerResourceRenderer,
 	resolveRenderers,
 } from ".";
@@ -41,7 +41,7 @@ function register(value: ResourceRenderer): void {
 
 function registerFallbacks(): void {
 	register(
-		renderer("thinkrail/code", {
+		renderer("realthing/code", {
 			labelKey: "viewer.renderer.source",
 			match: { text: true },
 			rank: 100,
@@ -57,7 +57,7 @@ function registerFallbacks(): void {
 		}),
 	);
 	register(
-		renderer("thinkrail/binary", {
+		renderer("realthing/binary", {
 			labelKey: "viewer.renderer.file",
 			match: { text: false },
 		}),
@@ -82,7 +82,7 @@ test("resolution filters matches, orders richer renderers by rank, and appends t
 	expect(resolveRenderers(markdown, "view", { mobile: false }).map((item) => item.id)).toEqual([
 		"example/high",
 		"example/low",
-		"thinkrail/code",
+		"realthing/code",
 	]);
 });
 
@@ -121,11 +121,11 @@ test("resolution filters view and diff capabilities independently", () => {
 
 	expect(resolveRenderers(markdown, "view", { mobile: false }).map((item) => item.id)).toEqual([
 		"example/view",
-		"thinkrail/code",
+		"realthing/code",
 	]);
 	expect(resolveRenderers(markdown, "diff", { mobile: false }).map((item) => item.id)).toEqual([
 		"example/diff",
-		"thinkrail/code",
+		"realthing/code",
 	]);
 });
 
@@ -148,23 +148,23 @@ test("mobile resolution is a hard capability filter", () => {
 	);
 
 	expect(resolveRenderers(markdown, "view", { mobile: true }).map((item) => item.id)).toEqual([
-		"thinkrail/code",
+		"realthing/code",
 	]);
 });
 
 test("text and byte resources always resolve to their registered fallback", () => {
 	registerFallbacks();
-	expect(resolveRenderers(markdown, "diff", { mobile: false }).at(-1)?.id).toBe("thinkrail/code");
+	expect(resolveRenderers(markdown, "diff", { mobile: false }).at(-1)?.id).toBe("realthing/code");
 	expect(
 		resolveRenderers({ workspaceId: "ws", path: "asset.bin", text: false, byteLength: 4 }, "view", {
 			mobile: false,
 		}).map((item) => item.id),
-	).toEqual(["thinkrail/binary"]);
+	).toEqual(["realthing/binary"]);
 });
 
 test("a missing fallback fails with the renderer id and intent", () => {
 	expect(() => resolveRenderers(markdown, "view", { mobile: false })).toThrow(
-		"thinkrail/code (view)",
+		"realthing/code (view)",
 	);
 });
 

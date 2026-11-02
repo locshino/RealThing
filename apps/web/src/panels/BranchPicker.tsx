@@ -4,9 +4,9 @@ import {
 	RiGitBranchLine as GitBranch,
 	RiRefreshLine as RefreshCw,
 } from "@remixicon/react";
-import type { BranchList } from "@thinkrail/contracts";
-import { useT } from "@thinkrail/locales/react";
-import { Button, IconButton } from "@thinkrail/ui/button";
+import type { BranchList } from "@realthing/contracts";
+import { useT } from "@realthing/locales/react";
+import { Button, IconButton } from "@realthing/ui/button";
 import {
 	Command,
 	CommandEmpty,
@@ -14,8 +14,8 @@ import {
 	CommandInput,
 	CommandItem,
 	CommandList,
-} from "@thinkrail/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@thinkrail/ui/popover";
+} from "@realthing/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@realthing/ui/popover";
 import { type ReactNode, useState } from "react";
 import { hasRemoteBranches, remoteBranchPresentation } from "./branchGroups";
 

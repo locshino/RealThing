@@ -10,7 +10,7 @@ import {
 	toV8Stack,
 } from "./errors";
 
-const ROOTS: FrameRoots = { appRoot: "/opt/thinkrail", caseInsensitive: false };
+const ROOTS: FrameRoots = { appRoot: "/opt/realthing", caseInsensitive: false };
 
 function rootValue(properties: Record<string, unknown>): unknown {
 	return sanitizeExceptionProperties(
@@ -34,12 +34,12 @@ test.each([
 });
 
 test.each([
-	["/opt/thinkrail/packages/server/src/host/server.ts", "packages/server/src/host/server.ts", true],
+	["/opt/realthing/packages/server/src/host/server.ts", "packages/server/src/host/server.ts", true],
 	["../../packages/server/src/log/logging.ts", EXTERNAL_FRAME, false],
 	["packages/billing/index.ts", EXTERNAL_FRAME, false],
-	["file:///opt/thinkrail/apps/cli/src/main.ts", "apps/cli/src/main.ts", true],
+	["file:///opt/realthing/apps/cli/src/main.ts", "apps/cli/src/main.ts", true],
 	[
-		"/opt/thinkrail/node_modules/@earendil-works/pi-coding-agent/dist/index.js",
+		"/opt/realthing/node_modules/@earendil-works/pi-coding-agent/dist/index.js",
 		"node_modules/@earendil-works/pi-coding-agent/dist/index.js",
 		false,
 	],
@@ -95,15 +95,15 @@ test("chunk ids pass only as UUIDs, from the SDK frame or the browser's url map"
 					stacktrace: {
 						type: "raw",
 						frames: [
-							frame({ filename: "/opt/thinkrail/runtime/server-runtime.ts", chunk_id: id }),
+							frame({ filename: "/opt/realthing/runtime/server-runtime.ts", chunk_id: id }),
 							frame({ filename: url }),
-							frame({ filename: "/opt/thinkrail/a.js", chunk_id: "not a uuid /Users/jdoe" }),
+							frame({ filename: "/opt/realthing/a.js", chunk_id: "not a uuid /Users/jdoe" }),
 							frame({ filename: "/Users/jdoe/x.js", chunk_id: id }),
 						],
 					},
 				},
 			],
-			$thinkrail_chunk_ids: { [url]: id },
+			$realthing_chunk_ids: { [url]: id },
 		},
 		ROOTS,
 	);
@@ -114,17 +114,17 @@ test("chunk ids pass only as UUIDs, from the SDK frame or the browser's url map"
 		undefined,
 		undefined,
 	]);
-	expect(properties).not.toHaveProperty("$thinkrail_chunk_ids");
+	expect(properties).not.toHaveProperty("$realthing_chunk_ids");
 });
 
 test("Windows frame roots compare case-insensitively with either separator", () => {
 	const roots: FrameRoots = {
-		appRoot: "C:/Program Files/ThinkRail/resources/app",
+		appRoot: "C:/Program Files/RealThing/resources/app",
 		caseInsensitive: true,
 	};
 	expect(
 		normalizeFrameFilename(
-			"c:\\program files\\thinkrail\\resources\\app\\runtime\\server-runtime.ts",
+			"c:\\program files\\realthing\\resources\\app\\runtime\\server-runtime.ts",
 			roots,
 		).filename,
 	).toBe("runtime/server-runtime.ts");
@@ -134,12 +134,12 @@ test("detectAppRoot resolves the repository in source and the bundle directory w
 	expect(detectAppRoot("file:///work/repo/packages/server/src/analytics/errors.ts")).toBe(
 		"/work/repo",
 	);
-	expect(detectAppRoot("file:///$bunfs/root/thinkrail")).toBe("/$bunfs/root");
+	expect(detectAppRoot("file:///$bunfs/root/realthing")).toBe("/$bunfs/root");
 	expect(
 		detectAppRoot(
-			"file:///Applications/ThinkRail.app/Contents/Resources/app/runtime/server-runtime.ts",
+			"file:///Applications/RealThing.app/Contents/Resources/app/runtime/server-runtime.ts",
 		),
-	).toBe("/Applications/ThinkRail.app/Contents/Resources/app/runtime");
+	).toBe("/Applications/RealThing.app/Contents/Resources/app/runtime");
 });
 
 test("sanitizeExceptionProperties rebuilds the event from an allow-list", () => {
@@ -156,12 +156,12 @@ test("sanitizeExceptionProperties rebuilds the event from an allow-list", () => 
 						frames: [
 							{
 								platform: "node:javascript",
-								filename: "/opt/thinkrail/packages/server/src/host/server.ts",
+								filename: "/opt/realthing/packages/server/src/host/server.ts",
 								function: "handleRequest",
 								lineno: 12,
 								colno: 3,
 								in_app: true,
-								abs_path: "/opt/thinkrail/packages/server/src/host/server.ts",
+								abs_path: "/opt/realthing/packages/server/src/host/server.ts",
 								context_line: "const password = 'hunter2'",
 								pre_context: ["// jdoe"],
 								post_context: ["}"],

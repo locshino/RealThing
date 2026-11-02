@@ -79,22 +79,12 @@ test("a live rendered-diff refresh keeps an expanded run expanded", async ({ pag
 	await expect(diff).toContainText("Paragraph 0 stays put.");
 });
 
-test("worktree changes on disk appear live in Specs, Files, Changes, and an open file tab", async ({
+test("worktree changes on disk appear live in Files, Changes, and an open file tab", async ({
 	page,
 }) => {
 	await openFixtureProject(page);
 	const workspace = await createWorkspaceViaDialog(page);
 	const worktree = workspace.worktreePath;
-
-	await expect(page.locator('[data-testid="spec-node"][data-spec-id="sample-root"]')).toBeVisible();
-	mkdirSync(join(worktree, "module-live"), { recursive: true });
-	writeFileSync(
-		join(worktree, "module-live", "SPEC.md"),
-		"---\nid: sample-live\ntype: module-design\ntitle: Live Module\nparent: sample-root\n---\n\n## Responsibility\n\nWritten on disk mid-session by the e2e suite.\n",
-	);
-	await fsExpect(
-		page.locator('[data-testid="spec-node"][data-spec-id="sample-live"]'),
-	).toBeVisible();
 
 	await revealWorkbenchTool(page, "files");
 	const freshFile = page.getByTestId("file-node").filter({ hasText: "fresh-file.txt" });
@@ -106,9 +96,6 @@ test("worktree changes on disk appear live in Specs, Files, Changes, and an open
 
 	await revealWorkbenchTool(page, "changes");
 	const readmeRow = page.getByTestId("change-item").filter({ hasText: "README.md" });
-	await expect(
-		page.getByTestId("change-item").filter({ hasText: "SPEC.md" }).first(),
-	).toBeVisible();
 	await expect(readmeRow).toHaveCount(0);
 	writeFileSync(join(worktree, "README.md"), "# sample-project\n\nedited live by e2e\n");
 	await fsExpect(readmeRow).toHaveAttribute("data-status", "modified");

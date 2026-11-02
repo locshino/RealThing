@@ -11,7 +11,7 @@ import {
 	type ReferrerClass,
 } from "./protocol";
 
-const storageKey = "thinkrail_attribution_context_v1";
+const storageKey = "realthing_attribution_context_v1";
 const searchHosts = ["google.com", "bing.com", "duckduckgo.com", "search.yahoo.com"];
 const socialHosts = [
 	"linkedin.com",
@@ -43,7 +43,7 @@ export function classifyReferrer(referrer: string): ReferrerClass {
 	} catch {
 		return "referral";
 	}
-	if (hostname === "thinkrail.ai") return "internal";
+	if (hostname === "realthing.ai") return "internal";
 	if (searchHosts.some((domain) => domainMatches(hostname, domain))) return "search";
 	if (socialHosts.some((domain) => domainMatches(hostname, domain))) return "social";
 	return "referral";

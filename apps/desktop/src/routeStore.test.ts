@@ -11,7 +11,7 @@ afterEach(() => {
 });
 
 function routePath(): string {
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-routes-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-routes-"));
 	roots.push(root);
 	mkdirSync(join(root, "nested"));
 	return join(root, "nested", "routes.json");

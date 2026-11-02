@@ -4,8 +4,8 @@ import {
 	type Project,
 	WORKSPACE_RENAME_PROTOCOL_VERSION,
 	type Workspace,
-} from "@thinkrail/contracts";
-import { t } from "@thinkrail/locales/react";
+} from "@realthing/contracts";
+import { t } from "@realthing/locales/react";
 import {
 	type FocusEvent,
 	type KeyboardEvent,
@@ -15,20 +15,13 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { supportsWorkspaceSettling, toast, useAppStore } from "../store";
-import { errorText, getTransport, prewarmWorkspaceSkillLoad } from "../transport";
-
-const PREWARM_WORKSPACE_LIMIT = 8;
+import { toast, useAppStore } from "../store";
+import { errorText, getTransport } from "../transport";
 
 export async function loadProjectWorkspaces(projectId: string): Promise<Workspace[]> {
 	const rows = await getTransport().request("workspace.list", { projectId });
 	const store = useAppStore.getState();
 	store.setWorkspaces(projectId, rows);
-	if (store.selectedProjectId === projectId) {
-		for (const workspace of rows.slice(0, PREWARM_WORKSPACE_LIMIT)) {
-			void prewarmWorkspaceSkillLoad(workspace.id).catch(() => {});
-		}
-	}
 	return rows;
 }
 
@@ -39,43 +32,6 @@ export function canRenameWorkspace(protocolVersion: number | null, workspace: Wo
 		workspace.kind !== "default" &&
 		workspace.kind !== "external"
 	);
-}
-
-export function canSettleWorkspace(protocolVersion: number | null, workspace: Workspace): boolean {
-	return supportsWorkspaceSettling(protocolVersion) && workspace.kind !== "default";
-}
-
-export function settleWorkspace(workspaceId: string): void {
-	void getTransport()
-		.request("workspace.settle", { id: workspaceId })
-		.catch((err) => toast.error(errorText(err, t("panels.workspaceActions.settleFailed"))));
-}
-
-export function unsettleWorkspace(workspaceId: string): void {
-	void getTransport()
-		.request("workspace.unsettle", { id: workspaceId })
-		.catch((err) => toast.error(errorText(err, t("panels.workspaceActions.keepActiveFailed"))));
-}
-
-export function markWorkspaceUnread(workspaceId: string): void {
-	if (!useAppStore.getState().beginMarkWorkspaceUnread(workspaceId)) return;
-	void getTransport()
-		.request("workspace.markUnread", { id: workspaceId })
-		.then(({ record }) => useAppStore.getState().finishMarkWorkspaceUnread(workspaceId, record))
-		.catch((err) => {
-			useAppStore.getState().finishMarkWorkspaceUnread(workspaceId, null);
-			toast.error(errorText(err, t("panels.workspaceActions.markUnreadFailed")));
-		});
-}
-
-export function markWorkspaceRead(workspaceId: string): void {
-	void getTransport()
-		.request("workspace.markRead", { id: workspaceId })
-		.then(({ records }) => {
-			const store = useAppStore.getState();
-			for (const record of records) store.applySessionState(record);
-		})
-		.catch((err) => toast.error(errorText(err, t("panels.workspaceActions.markReadFailed"))));
 }
 
 export function workspaceRenameValue(currentName: string, input: string): string | null {

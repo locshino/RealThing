@@ -215,11 +215,25 @@ export function createShikiTokens({ languages: catalog, languageId, engine }: Sh
 	}
 
 	function provider(id: string): languages.TokensProvider {
-		const grammar = highlighter?.getLanguage(id) ?? null;
+		let grammar: ReturnType<HighlighterCore["getLanguage"]> | null = null;
+		if (highlighter) {
+			try {
+				grammar = highlighter.getLanguage(id);
+			} catch {
+				grammar = null;
+			}
+		}
 		return {
 			getInitialState: () => new LineState(INITIAL),
 			tokenize(line, state) {
 				const current = state instanceof LineState ? state : new LineState(INITIAL);
+				if (!grammar && highlighter) {
+					try {
+						grammar = highlighter.getLanguage(id);
+					} catch {
+						grammar = null;
+					}
+				}
 				if (line.length >= MAX_LINE_LENGTH || !grammar) {
 					return { endState: current, tokens: [{ startIndex: 0, scopes: "" }] };
 				}

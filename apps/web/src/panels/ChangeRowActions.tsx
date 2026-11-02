@@ -4,14 +4,14 @@ import {
 	RiFileScanLine as FileDiff,
 	RiExternalLinkLine as OpenAsTab,
 } from "@remixicon/react";
-import { useT } from "@thinkrail/locales/react";
-import { IconButton } from "@thinkrail/ui/button";
+import { useT } from "@realthing/locales/react";
+import { IconButton } from "@realthing/ui/button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
 	DropdownMenuTrigger,
-} from "@thinkrail/ui/dropdown-menu";
+} from "@realthing/ui/dropdown-menu";
 import type { MouseEvent, ReactNode } from "react";
 import { useState } from "react";
 import { copyText } from "@/lib";

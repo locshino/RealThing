@@ -87,7 +87,7 @@ test("journal parsing accepts only bounded pending and resolved shapes", () => {
 });
 
 test("the journal store round-trips, ignores corrupt files, and clears", () => {
-	const root = mkdtempSync(join(tmpdir(), "thinkrail-update-journal-"));
+	const root = mkdtempSync(join(tmpdir(), "realthing-update-journal-"));
 	try {
 		const path = join(root, "update-journal.json");
 		const errors: unknown[] = [];
